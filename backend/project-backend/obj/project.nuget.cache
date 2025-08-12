@@ -1,0 +1,11 @@
+{
+  "version": 2,
+  "dgSpecHash": "z1S0jFgmAZI=",
+  "success": true,
+  "projectFilePath": "C:\\Users\\rohve\\OneDrive\\Documents\\GitHub\\Project-Collaboration-Portal\\backend\\project-backend\\project-backend.csproj",
+  "expectedPackageFiles": [
+    "C:\\Users\\rohve\\.nuget\\packages\\microsoft.aspnetcore.openapi\\9.0.5\\microsoft.aspnetcore.openapi.9.0.5.nupkg.sha512",
+    "C:\\Users\\rohve\\.nuget\\packages\\microsoft.openapi\\1.6.17\\microsoft.openapi.1.6.17.nupkg.sha512"
+  ],
+  "logs": []
+}
