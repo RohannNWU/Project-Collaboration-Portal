@@ -1,66 +1,55 @@
-# Docs for the Azure Web Apps Deploy action: https://github.com/Azure/webapps-deploy
-# More GitHub Actions for Azure: https://github.com/Azure/actions
-
-name: Build and deploy ASP app to Azure Web App - PCP-Backend
+name: Build and Deploy ASP.NET Core Backend
 
 on:
   push:
     branches:
       - main
-  workflow_dispatch:
+    paths:
+      - 'backend/**'
+  pull_request:
+    branches:
+      - main
+    paths:
+      - 'backend/**'
+
+env:
+  AZURE_WEBAPP_NAME: PCP-Backend  # Replace with your Azure app name
+  AZURE_WEBAPP_PACKAGE_PATH: 'backend'
+  DOTNET_VERSION: '8.0.x'                   # .NET version (adjust as needed)
+  DOTNET_CLI_TELEMETRY_OPTOUT: 1            # Disable telemetry
 
 jobs:
-  build:
+  build-and-deploy:
     runs-on: windows-latest
-    permissions:
-      contents: read #This is required for actions/checkout
 
     steps:
-      - uses: actions/checkout@v4
+    - name: Checkout repository
+      uses: actions/checkout@v4
 
-      - name: Setup MSBuild path
-        uses: microsoft/setup-msbuild@v1.0.2
+    - name: Setup .NET Core
+      uses: actions/setup-dotnet@v3
+      with:
+        dotnet-version: ${{ env.DOTNET_VERSION }}
 
-      - name: Setup NuGet
-        uses: NuGet/setup-nuget@v1.0.5
+    - name: Build with dotnet
+      working-directory: backend
+      run: |
+        dotnet restore
+        dotnet build --configuration Release --no-restore
 
-      - name: Restore NuGet packages
-        run: nuget restore
+    - name: Run tests (optional)
+      working-directory: backend
+      run: |
+        dotnet test --configuration Release --no-build --verbosity normal
 
-      - name: Publish to folder
-        run: msbuild /nologo /verbosity:m /t:Build /t:pipelinePreDeployCopyAllFilesToOneFolder /p:_PackageTempDir="\published\"
+    - name: Publish with dotnet
+      working-directory: backend
+      run: |
+        dotnet publish --configuration Release --output ${{ github.workspace }}/${{ env.AZURE_WEBAPP_PACKAGE_PATH }} --no-build
 
-      - name: Upload artifact for deployment job
-        uses: actions/upload-artifact@v4
-        with:
-          name: ASP-app
-          path: '/published/**'
-
-  deploy:
-    runs-on: windows-latest
-    needs: build
-    permissions:
-      id-token: write #This is required for requesting the JWT
-      contents: read #This is required for actions/checkout
-
-    steps:
-      - name: Download artifact from build job
-        uses: actions/download-artifact@v4
-        with:
-          name: ASP-app
-      
-      - name: Login to Azure
-        uses: azure/login@v2
-        with:
-          client-id: ${{ secrets.AZUREAPPSERVICE_CLIENTID_250571AD955749C0AD8297A19BF60F01 }}
-          tenant-id: ${{ secrets.AZUREAPPSERVICE_TENANTID_67B21EB12FD7463A8191AE57D5ED8020 }}
-          subscription-id: ${{ secrets.AZUREAPPSERVICE_SUBSCRIPTIONID_88D993484EDE4F0D887CA78B966004C1 }}
-
-      - name: Deploy to Azure Web App
-        id: deploy-to-webapp
-        uses: azure/webapps-deploy@v3
-        with:
-          app-name: 'PCP-Backend'
-          slot-name: 'Production'
-          package: .
-          
+    - name: Deploy to Azure Web App
+      uses: azure/webapps-deploy@v2
+      with:
+        app-name: ${{ env.AZURE_WEBAPP_NAME }}
+        package: ${{ github.workspace }}/${{ env.AZURE_WEBAPP_PACKAGE_PATH }}
+        publish-profile: ${{ secrets.AZURE_WEBAPP_PUBLISH_PROFILE }}
