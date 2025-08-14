@@ -52,15 +52,15 @@ jobs:
       - name: Login to Azure
         uses: azure/login@v2
         with:
-          client-id: ${{ secrets.AZUREAPPSERVICE_CLIENTID_C1E65E5203EB4DF88A99E3634754733F }}
-          tenant-id: ${{ secrets.AZUREAPPSERVICE_TENANTID_04D2AAEFB74444E1A8B3011FD8DEED8A }}
-          subscription-id: ${{ secrets.AZUREAPPSERVICE_SUBSCRIPTIONID_07D2CB8D3D95469FBFCAA65BB2DCD2DE }}
+          client-id: ${{ secrets.AZUREAPPSERVICE_CLIENTID_250571AD955749C0AD8297A19BF60F01 }}
+          tenant-id: ${{ secrets.AZUREAPPSERVICE_TENANTID_67B21EB12FD7463A8191AE57D5ED8020 }}
+          subscription-id: ${{ secrets.AZUREAPPSERVICE_SUBSCRIPTIONID_88D993484EDE4F0D887CA78B966004C1 }}
 
       - name: Deploy to Azure Web App
         id: deploy-to-webapp
         uses: azure/webapps-deploy@v3
         with:
           app-name: 'PCP-Backend'
-          package: backend
-
+          slot-name: 'Production'
+          package: .
           
