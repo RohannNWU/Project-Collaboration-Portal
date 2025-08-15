@@ -1,7 +1,7 @@
 import { useState } from "react";
 import "./Login.css";
 
-export default function Login({ onLogin }) {
+export default function Login() {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [message, setMessage] = useState("");
@@ -22,10 +22,9 @@ export default function Login({ onLogin }) {
       const data = await response.json();
 
       if (response.ok) {
-        localStorage.setItem("token", data.token);
         setMessage("Login successful!");
-        if (onLogin) onLogin(); // notify App to switch to Dashboard
-    } else {
+        localStorage.setItem("token", data.token); // store JWT
+      } else {
         setMessage(data.message || "Login failed");
       }
     } catch (err) {
