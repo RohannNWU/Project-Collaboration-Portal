@@ -31,3 +31,6 @@ C:\Users\rohve\OneDrive\Documents\GitHub\Project-Collaboration-Portal\backend\ob
 C:\Users\rohve\OneDrive\Documents\GitHub\Project-Collaboration-Portal\backend\obj\Debug\net9.0\backend.pdb
 C:\Users\rohve\OneDrive\Documents\GitHub\Project-Collaboration-Portal\backend\obj\Debug\net9.0\backend.genruntimeconfig.cache
 C:\Users\rohve\OneDrive\Documents\GitHub\Project-Collaboration-Portal\backend\obj\Debug\net9.0\ref\backend.dll
+C:\Users\rohve\OneDrive\Documents\GitHub\Project-Collaboration-Portal\backend\bin\Debug\net9.0\Swashbuckle.AspNetCore.Swagger.dll
+C:\Users\rohve\OneDrive\Documents\GitHub\Project-Collaboration-Portal\backend\bin\Debug\net9.0\Swashbuckle.AspNetCore.SwaggerGen.dll
+C:\Users\rohve\OneDrive\Documents\GitHub\Project-Collaboration-Portal\backend\bin\Debug\net9.0\Swashbuckle.AspNetCore.SwaggerUI.dll
