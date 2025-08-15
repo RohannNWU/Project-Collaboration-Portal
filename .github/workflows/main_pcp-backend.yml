@@ -53,4 +53,5 @@ jobs:
           app-name: 'pcp-backend'
           slot-name: 'Production'
           package: .
-          publish-profile: ${{ secrets.AZUREAPPSERVICE_PUBLISHPROFILE_D2E3E13502594EA08094E1F734A1D4F2 }}
+
+          publish-profile: ${{ secrets.AZUREAPP_PUBLISH_PROFILE }}
