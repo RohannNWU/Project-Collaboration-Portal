@@ -30,6 +30,7 @@ function Login() {
     } catch (error) {
       console.error('Error:', error);
       setMessage(`An error occurred: ${error.message}`);
+      print(error.message);
     }
   };
 
