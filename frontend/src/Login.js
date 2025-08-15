@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom'; // Import useNavigate
 
 function Login() {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [message, setMessage] = useState('');
-  const navigate = useNavigate(); // If using React Router
+  const navigate = useNavigate(); // Use the navigate hook
 
   const handleSubmit = async (e) => {
     e.preventDefault();
