@@ -25,7 +25,7 @@ function Login() {
       if (response.ok) {
         navigate('/dashboard');
       } else {
-        setMessage(data.message || 'Login failed.');
+        setMessage(data.message);
       }
     } catch (error) {
       console.error('Error:', error);
