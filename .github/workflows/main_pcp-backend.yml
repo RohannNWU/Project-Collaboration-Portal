@@ -33,7 +33,7 @@ jobs:
       - name: Upload artifact for deployment job
         uses: actions/upload-artifact@v4
         with:
-          name: ASP-app
+          name: pcp-app
           path: '/published/**'
 
   deploy:
@@ -44,7 +44,11 @@ jobs:
       - name: Download artifact from build job
         uses: actions/download-artifact@v4
         with:
-          name: ASP-app
+          name: pcp-app
+          merge-multiple: false
+          repository: RohanmNWU/Project-Collaboration-Portal
+          run-id: 16990543176
+
       
       - name: Deploy to Azure Web App
         id: deploy-to-webapp

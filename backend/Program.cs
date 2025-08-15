@@ -3,7 +3,7 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowFrontend",
-        policy => policy.WithOrigins("https://wonderful-rock-091893c03.1.azurestaticapps.net")
+        policy => policy.WithOrigins("https://wonderful-coast-0409a4c03.2.azurestaticapps.net/")
                         .AllowAnyHeader()
                         .AllowAnyMethod());
 });
