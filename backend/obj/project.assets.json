@@ -484,11 +484,11 @@
   "project": {
     "version": "1.0.0",
     "restore": {
-      "projectUniqueName": "C:\\Users\\rohve\\OneDrive\\Documents\\GitHub\\Project-Collaboration-Portal\\backend\\PCP\\PCP.csproj",
+      "projectUniqueName": "C:\\Users\\rohve\\OneDrive\\Documents\\GitHub\\Project-Collaboration-Portal\\backend\\PCP.csproj",
       "projectName": "PCP",
-      "projectPath": "C:\\Users\\rohve\\OneDrive\\Documents\\GitHub\\Project-Collaboration-Portal\\backend\\PCP\\PCP.csproj",
+      "projectPath": "C:\\Users\\rohve\\OneDrive\\Documents\\GitHub\\Project-Collaboration-Portal\\backend\\PCP.csproj",
       "packagesPath": "C:\\Users\\rohve\\.nuget\\packages\\",
-      "outputPath": "C:\\Users\\rohve\\OneDrive\\Documents\\GitHub\\Project-Collaboration-Portal\\backend\\PCP\\obj\\",
+      "outputPath": "C:\\Users\\rohve\\OneDrive\\Documents\\GitHub\\Project-Collaboration-Portal\\backend\\obj\\",
       "projectStyle": "PackageReference",
       "fallbackFolders": [
         "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages"
