@@ -20,14 +20,14 @@ builder.Services.AddSingleton<MongoDbService>();
 // Configure CORS to allow the specific frontend origin
 builder.Services.AddCors(options =>
 {
-    options.AddPolicy("AllowFrontend",
-        policy =>
-        {
-            policy.WithOrigins("https://wonderful-coast-0409a4c03.2.azurestaticapps.net")
-                  .AllowAnyHeader()
-                  .AllowAnyMethod()
-                  .AllowCredentials();
-        });
+    options.AddPolicy("AllowFrontend", p =>
+        p.WithOrigins(
+            "http://localhost:5173", // dev React
+            "https://https://wonderful-coast-0409a4c03.2.azurestaticapps.net/" // prod
+        )
+        .AllowAnyHeader()
+        .AllowAnyMethod()
+        .AllowCredentials());
 });
 
 // JWT Auth
