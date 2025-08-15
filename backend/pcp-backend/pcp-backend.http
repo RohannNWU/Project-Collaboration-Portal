@@ -1,6 +1,0 @@
-@pcp_backend_HostAddress = http://localhost:5118
-
-GET {{pcp_backend_HostAddress}}/weatherforecast/
-Accept: application/json
-
-###
