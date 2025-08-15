@@ -23,46 +23,33 @@ jobs:
     runs-on: windows-latest
 
     steps:
-      - name: Setup .NET
-        uses: actions/setup-dotnet@v3
-        with:
-        dotnet-version: 8.0.x
+    - name: Checkout repository
+      uses: actions/checkout@v4
 
-      - name: Restore dependencies
-        run: dotnet restore backend/Project-Collaboration-Portal.csproj
+    - name: Setup .NET Core
+      uses: actions/setup-dotnet@v3
+      with:
+        dotnet-version: ${{ env.DOTNET_VERSION }}
 
-      - name: Build project
-        run: dotnet build backend/Project-Collaboration-Portal.csproj --configuration Release
+    - name: Build with dotnet
+      working-directory: backend
+      run: |
+        dotnet restore
+        dotnet build --configuration Release --no-restore
 
-      - name: Publish project
-        run: dotnet publish backend/Project-Collaboration-Portal.csproj --configuration Release --output ./publish
+    - name: Run tests (optional)
+      working-directory: backend
+      run: |
+        dotnet test --configuration Release --no-build --verbosity normal
 
-      - name: Checkout repository
-        uses: actions/checkout@v4
+    - name: Publish with dotnet
+      working-directory: backend
+      run: |
+        dotnet publish --configuration Release --output ${{ github.workspace }}/${{ env.AZURE_WEBAPP_PACKAGE_PATH }} --no-build
 
-      - name: Setup .NET Core
-        uses: actions/setup-dotnet@v3
-        with:
-          dotnet-version: ${{ env.DOTNET_VERSION }}
-
-      - name: Build with dotnet
-        working-directory: backend
-        run: |
-         dotnet restore
-         dotnet build --configuration Release --no-restore
-
-      - name: Run tests (optional)
-        working-directory: backend
-        run: |
-          dotnet test --configuration Release --no-build --verbosity normal
-
-      - name: Publish with dotnet
-        working-directory: backend
-        run: |
-          dotnet publish --configuration Release --output ${{ github.workspace }}/${{ env.AZURE_WEBAPP_PACKAGE_PATH }} --no-build
-
-      - name: 'Deploy to Azure Web App'
-        uses: azure/webapps-deploy@v2
-        with:
-          app-name: PCP-Backend
-          package: ./publish
+    - name: Deploy to Azure Web App
+      uses: azure/webapps-deploy@v2
+      with:
+        app-name: ${{ env.AZURE_WEBAPP_NAME }}
+        package: ${{ github.workspace }}/${{ env.AZURE_WEBAPP_PACKAGE_PATH }}
+        publish-profile: ${{ secrets.AZURE_WEBAPP_PUBLISH_PROFILE }}
