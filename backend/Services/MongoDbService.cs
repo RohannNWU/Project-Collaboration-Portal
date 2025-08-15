@@ -1,18 +1,25 @@
+using Microsoft.Extensions.Configuration;
 using MongoDB.Driver;
+using ProjectCollaborationPortal.Models;
+using System.Threading.Tasks;
 
-public class MongoDbService
+namespace ProjectCollaborationPortal.Services
 {
-    private readonly IMongoCollection<User> _users;
-
-    public MongoDbService(IConfiguration config)
+    public class MongoDbService
     {
-        var client = new MongoClient(config.GetConnectionString("MongoDB"));
-        var database = client.GetDatabase("PCP");
-        _users = database.GetCollection<User>("User");
-    }
+        private readonly IMongoCollection<User> _users;
 
-    public User GetUser(string username, string password)
-    {
-        return _users.Find(u => u.Username == username && u.Password == password).FirstOrDefault();
+        public MongoDbService(IConfiguration config)
+        {
+            var client = new MongoClient(config.GetConnectionString("MongoDB"));
+            var dbName = config["MongoDbSettings:DatabaseName"] ?? "PCP";
+            var database = client.GetDatabase(dbName);
+
+            var usersCollection = config["MongoDbSettings:UsersCollectionName"] ?? "User";
+            _users = database.GetCollection<User>(usersCollection);
+        }
+
+        public Task<User> GetByUsernameAsync(string username) =>
+            _users.Find(u => u.Username == username).FirstOrDefaultAsync();
     }
 }
