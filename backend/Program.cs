@@ -23,7 +23,7 @@ builder.Services.AddCors(options =>
     options.AddPolicy("AllowFrontend", p =>
         p.WithOrigins(
             "http://localhost:5173", // dev React
-            "https://wonderful-coast-0409a4c03.2.azurestaticapps.net/" // prod
+            "https://wonderful-coast-0409a4c03.2.azurestaticapps.net" // prod
         )
         .AllowAnyHeader()
         .AllowAnyMethod()
@@ -76,7 +76,6 @@ if (app.Environment.IsDevelopment())
 app.UseHttpsRedirection();
 
 app.UseCors("AllowFrontend");
-
 app.UseAuthentication();
 app.UseAuthorization();
 
