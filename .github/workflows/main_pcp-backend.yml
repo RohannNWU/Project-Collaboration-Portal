@@ -23,6 +23,21 @@ jobs:
     runs-on: windows-latest
 
     steps:
+      - name: Setup .NET
+      uses: actions/setup-dotnet@v3
+      with:
+        dotnet-version: 8.0.x
+
+    - name: Restore dependencies
+      run: dotnet restore backend/Project-Collaboration-Portal.csproj
+
+    - name: Build project
+      run: dotnet build backend/Project-Collaboration-Portal.csproj --configuration Release
+
+    - name: Publish project
+      run: dotnet publish backend/Project-Collaboration-Portal.csproj --configuration Release --output ./publish
+
+
     - name: Checkout repository
       uses: actions/checkout@v4
 
