@@ -1,17 +1,18 @@
 var builder = WebApplication.CreateBuilder(args);
 
-builder.Services.AddCors(options =>
-{
-    options.AddPolicy("AllowFrontend", policy =>
-        policy.WithOrigins("https://wonderful-rock-091893c03.1.azurestaticapps.net")
-              .AllowAnyHeader()
-              .AllowAnyMethod());
-});
-
-builder.Services.AddControllers();
+builder.Services.AddEndpointsApiExplorer();
+builder.Services.AddSwaggerGen();
 
 var app = builder.Build();
 
-app.UseCors("AllowFrontend");
-app.MapControllers();
-app.Run();
+if (app.Environment.IsDevelopment())
+{
+    app.UseSwagger();
+    app.UseSwaggerUI();
+}
+
+app.UseHttpsRedirection();
+
+app.MapGet("time/utc", () => Results.Ok(DateTime.UtcNow));
+
+await app.RunAsync();
