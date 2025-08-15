@@ -1,0 +1,6 @@
+@PCP_HostAddress = http://localhost:5144
+
+GET {{PCP_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
