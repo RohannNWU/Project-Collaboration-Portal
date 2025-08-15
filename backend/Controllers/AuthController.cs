@@ -11,7 +11,7 @@ public class AuthController : ControllerBase
     public IActionResult Login([FromBody] LoginModel model)
     {
         // Hardcoded for simplicity; replace with real auth logic
-        if (model.Username == "user" && model.Password == "pass")
+        if (model.Username == "pcp-admin" && model.Password == "CodingisFun!")
         {
             return Ok(new { Message = "Login successful" });
         }
