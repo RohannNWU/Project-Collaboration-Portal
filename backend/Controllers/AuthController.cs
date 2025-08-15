@@ -1,21 +1,31 @@
 using Microsoft.AspNetCore.Mvc;
 
-namespace backend.Controllers;
-
-[ApiController]
-[Route("api/[controller]")]
-public class AuthController : ControllerBase
+namespace backend.Controllers
 {
-    [HttpPost("login")]
-    public IActionResult Login([FromBody] User model, [FromServices] MongoDbService mongoService)
+    [ApiController]
+    [Route("api/[controller]")]
+    public class AuthController : ControllerBase
     {
-        var user = mongoService.GetUser(model.Username, model.Password);
+        private readonly MongoDbService _mongoService;
 
-        if (user == null)
+        // Inject MongoDbService via constructor
+        public AuthController(MongoDbService mongoService)
         {
-            return Unauthorized(new { Message = "Invalid username or password" });
+            _mongoService = mongoService;
         }
 
-        return Ok(new { Message = "Login successful" });
+        [HttpPost("login")]
+        public IActionResult Login([FromBody] User model)
+        {
+            // Look up the user in MongoDB
+            var user = _mongoService.GetUser(model.Username, model.Password);
+
+            if (user == null)
+            {
+                return Unauthorized(new { Message = "Invalid username or password" });
+            }
+
+            return Ok(new { Message = "Login successful" });
+        }
     }
 }
