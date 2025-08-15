@@ -42,11 +42,7 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: ASP-app
-          merge-multiple: false
-          repository: RohannNWU/Project-Collaboration-Portal
-          run-id: 16990543176
 
-      
       - name: Deploy to Azure Web App
         id: deploy-to-webapp
         uses: azure/webapps-deploy@v3
