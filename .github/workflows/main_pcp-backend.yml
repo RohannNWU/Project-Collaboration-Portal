@@ -27,9 +27,6 @@ jobs:
       - name: Restore NuGet packages
         run: nuget restore
 
-      - name: Publish to folder
-        run: msbuild /nologo /verbosity:m /t:Build /t:pipelinePreDeployCopyAllFilesToOneFolder /p:_PackageTempDir="\published\"
-
       - name: Upload artifact for deployment job
         uses: actions/upload-artifact@v4
         with:
@@ -57,4 +54,5 @@ jobs:
           app-name: 'PCP-Backend'
           slot-name: 'Production'
           package: .
+
           publish-profile: ${{ secrets.AZUREAPPSERVICE_PUBLISHPROFILE_0183CDC3AD4F4FA2B868E3DD3C495D4F }}
