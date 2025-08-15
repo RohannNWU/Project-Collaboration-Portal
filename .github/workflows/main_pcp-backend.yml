@@ -43,7 +43,7 @@ jobs:
         with:
           name: pcp-app
           merge-multiple: false
-          repository: RohanmNWU/Project-Collaboration-Portal
+          repository: RohannNWU/Project-Collaboration-Portal
           run-id: 16990543176
 
       
