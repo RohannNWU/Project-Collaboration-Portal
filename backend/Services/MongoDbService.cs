@@ -6,9 +6,9 @@ public class MongoDbService
 
     public MongoDbService(IConfiguration config)
     {
-        var client = new MongoClient(config.GetConnectionString("MongoDb"));
-        var database = client.GetDatabase("PCP"); // change to your DB name
-        _users = database.GetCollection<User>("User");   // change to your collection name
+        var client = new MongoClient(config.GetConnectionString("MongoDB"));
+        var database = client.GetDatabase("PCP");
+        _users = database.GetCollection<User>("User");
     }
 
     public User GetUser(string username, string password)
