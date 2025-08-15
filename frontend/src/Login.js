@@ -4,10 +4,11 @@ function Login() {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [message, setMessage] = useState('');
+  const navigate = useNavigate(); // If using React Router
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setMessage('');  // Clear previous message
+    setMessage('');
 
     try {
       const response = await fetch('https://pcp-backend.azurewebsites.net/api/auth/login', {
@@ -22,13 +23,14 @@ function Login() {
 
       if (response.ok) {
         setMessage(data.message || 'Login successful!');
+        // Redirect to dashboard
         navigate('/dashboard');
       } else {
         setMessage(data.message || 'Login failed.');
       }
     } catch (error) {
       console.error('Error:', error);
-      setMessage('An error occurred.');
+      setMessage(`An error occurred: ${error.message}`);
     }
   };
 
