@@ -37,13 +37,6 @@ jobs:
       - name: Publish project
         run: dotnet publish backend/Project-Collaboration-Portal.csproj --configuration Release --output ./publish
 
-      - name: 'Deploy to Azure Web App'
-        uses: azure/webapps-deploy@v2
-        with:
-          app-name: PCP-Backend
-          package: ./publish
-
-
       - name: Checkout repository
         uses: actions/checkout@v4
 
@@ -68,9 +61,8 @@ jobs:
         run: |
           dotnet publish --configuration Release --output ${{ github.workspace }}/${{ env.AZURE_WEBAPP_PACKAGE_PATH }} --no-build
 
-      - name: Deploy to Azure Web App
+      - name: 'Deploy to Azure Web App'
         uses: azure/webapps-deploy@v2
         with:
-          app-name: ${{ env.AZURE_WEBAPP_NAME }}
-          package: ${{ github.workspace }}/${{ env.AZURE_WEBAPP_PACKAGE_PATH }}
-          publish-profile: ${{ secrets.AZURE_WEBAPP_PUBLISH_PROFILE }}
+          app-name: PCP-Backend
+          package: ./publish
