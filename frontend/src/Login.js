@@ -1,11 +1,11 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom'; // Import useNavigate
+import { useNavigate } from 'react-router-dom';
 
 function Login() {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [message, setMessage] = useState('');
-  const navigate = useNavigate(); // Use the navigate hook
+  const navigate = useNavigate();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -23,8 +23,6 @@ function Login() {
       const data = await response.json();
 
       if (response.ok) {
-        setMessage(data.message || 'Login successful!');
-        // Redirect to dashboard
         navigate('/dashboard');
       } else {
         setMessage(data.message || 'Login failed.');

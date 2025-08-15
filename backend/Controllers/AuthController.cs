@@ -1,5 +1,4 @@
 using Microsoft.AspNetCore.Mvc;
-using backend.Models;  // Replace with your actual namespace
 
 namespace backend.Controllers;
 
@@ -8,13 +7,15 @@ namespace backend.Controllers;
 public class AuthController : ControllerBase
 {
     [HttpPost("login")]
-    public IActionResult Login([FromBody] LoginModel model)
+    public IActionResult Login([FromBody] User model, [FromServices] MongoDbService mongoService)
     {
-        // Hardcoded for simplicity; replace with real auth logic
-        if (model.Username == "pcp-admin" && model.Password == "CodingisFun!")
+        var user = mongoService.GetUser(model.Username, model.Password);
+
+        if (user == null)
         {
-            return Ok(new { Message = "Login successful" });
+            return Unauthorized(new { Message = "Invalid username or password" });
         }
-        return Unauthorized(new { Message = "Invalid credentials" });
+
+        return Ok(new { Message = "Login successful" });
     }
 }
