@@ -7,12 +7,12 @@ public class User
     [BsonRepresentation(BsonType.ObjectId)]
     public string Id { get; set; }
 
-    [BsonElement("Username")]
+    [BsonElement("username")]
     public string Username { get; set; }
 
-    [BsonElement("Password")]
+    [BsonElement("password")]
     public string Password { get; set; }
 
-    [BsonElement("Role")]
+    [BsonElement("role")]
     public string Role { get; set; }
 }
