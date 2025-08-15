@@ -13,6 +13,7 @@ if (app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 
+// GET UTC
 app.MapGet("time/utc", () => Results.Ok(DateTime.UtcNow));
 
 await app.RunAsync();
