@@ -7,7 +7,7 @@ function App() {
 
   return (
     <div>
-      <Login onLogin={() => setLoggedIn(true)} />
+      {loggedIn ? <Dashboard /> : <Login />}
     </div>
   );
 }
