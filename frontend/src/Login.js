@@ -22,6 +22,7 @@ function Login() {
 
       if (response.ok) {
         setMessage(data.message || 'Login successful!');
+        navigate('/dashboard');
       } else {
         setMessage(data.message || 'Login failed.');
       }
