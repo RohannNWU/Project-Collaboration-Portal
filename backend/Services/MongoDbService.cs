@@ -1,9 +1,9 @@
 using Microsoft.Extensions.Configuration;
 using MongoDB.Driver;
-using ProjectCollaborationPortal.Models;
+using backend.Models;
 using System.Threading.Tasks;
 
-namespace ProjectCollaborationPortal.Services
+namespace backend.Services
 {
     public class MongoDbService
     {

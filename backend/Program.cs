@@ -1,7 +1,7 @@
 using Microsoft.OpenApi.Models;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
-using ProjectCollaborationPortal.Services;
+using backend.Services;
 using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);

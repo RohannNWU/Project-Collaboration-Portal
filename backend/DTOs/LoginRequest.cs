@@ -1,4 +1,4 @@
-namespace ProjectCollaborationPortal.DTOs
+namespace backend.DTOs
 {
     public class LoginRequest
     {

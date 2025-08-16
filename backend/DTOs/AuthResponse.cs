@@ -1,6 +1,6 @@
 using System;
 
-namespace ProjectCollaborationPortal.DTOs
+namespace backend.DTOs
 {
     public class AuthResponse
     {
