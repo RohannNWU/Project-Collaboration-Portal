@@ -20,18 +20,19 @@ function Login() {
         body: JSON.stringify({ username, password }),
       });
 
+      const text = await response.text(); // Get raw response
+      console.log('Raw response:', text);
       const contentType = response.headers.get('content-type');
-      let data;
+      console.log('Content-Type:', contentType);
 
+      let data;
       if (contentType && contentType.includes('application/json')) {
         data = await response.json();
       } else {
-        const text = await response.text();
         throw new Error(`Expected JSON, but received: ${text.substring(0, 100)}...`);
       }
 
       if (response.ok) {
-        // Store the JWT token and navigate
         localStorage.setItem('token', data.token);
         navigate('/dashboard');
       } else {
