@@ -1,23 +1,18 @@
 import React from 'react';
-import { BrowserRouter as Router, Route, Routes, Navigate } from 'react-router-dom';
-import Login from './Login';
-import Dashboard from './Dashboard';
-import './App.css';
+import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import Login from './components/Login';
+import Dashboard from './components/Dashboard';
 
 function App() {
-  // Simulate logged-in state (replace with actual auth logic)
-  const isAuthenticated = true; // Set to true after successful login
-
   return (
     <Router>
       <div className="App">
+        <header className="App-header">
+          <h1>Project Collaboration Portal</h1>
+        </header>
         <Routes>
-          <Route path="/login" element={<Login />} />
-          <Route
-            path="/dashboard"
-            element={isAuthenticated ? <Dashboard /> : <Navigate to="/login" />}
-          />
-          <Route path="*" element={<Navigate to="/login" />} />
+          <Route path="/" element={<Login />} />
+          <Route path="/dashboard" element={<Dashboard />} />
         </Routes>
       </div>
     </Router>
