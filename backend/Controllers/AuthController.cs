@@ -11,7 +11,7 @@ using System.Security.Claims;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace ProjectCollaborationPortal.Controllers
+namespace backend.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
@@ -29,12 +29,12 @@ namespace ProjectCollaborationPortal.Controllers
         [HttpPost("login")]
         public async Task<IActionResult> Login([FromBody] LoginRequest req)
         {
+            Console.WriteLine("U: " + req.Username + ", P: " + req.Password);
             if (req == null || string.IsNullOrWhiteSpace(req.Username) || string.IsNullOrWhiteSpace(req.Password))
                 return BadRequest(new { Message = "Username and password are required." });
 
             // 1) Pull the user from MongoDB by username
             var user = await _mongo.GetByUsernameAsync(req.Username);
-            Console.WriteLine(user);
             if (user == null)
                 return Unauthorized(new { Message = "Invalid username or password" });
 
