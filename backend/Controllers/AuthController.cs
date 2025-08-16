@@ -29,7 +29,6 @@ namespace backend.Controllers
         [HttpPost("login")]
         public async Task<IActionResult> Login([FromBody] LoginRequest req)
         {
-            Console.WriteLine("U: " + req.Username + ", P: " + req.Password);
             if (req == null || string.IsNullOrWhiteSpace(req.Username) || string.IsNullOrWhiteSpace(req.Password))
                 return BadRequest(new { Message = "Username and password are required." });
 
