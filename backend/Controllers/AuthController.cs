@@ -34,6 +34,7 @@ namespace ProjectCollaborationPortal.Controllers
 
             // 1) Pull the user from MongoDB by username
             var user = await _mongo.GetByUsernameAsync(req.Username);
+            Console.WriteLine(user);
             if (user == null)
                 return Unauthorized(new { Message = "Invalid username or password" });
 
