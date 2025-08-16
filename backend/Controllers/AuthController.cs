@@ -14,7 +14,7 @@ using System.Threading.Tasks;
 namespace backend.Controllers
 {
     [ApiController]
-    [Route("api/[controller]")]
+    [Route("api/auth/[controller]")]
     public class AuthController : ControllerBase
     {
         private readonly MongoDbService _mongo;
