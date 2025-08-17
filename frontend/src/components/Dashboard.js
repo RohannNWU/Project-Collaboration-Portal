@@ -1,34 +1,42 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import './Dashboard.css'; // We'll create this for styling
 
 function Dashboard() {
   const navigate = useNavigate();
   const user = JSON.parse(localStorage.getItem('user'));
+  const [projects, setProjects] = useState([]); // empty for now
 
   useEffect(() => {
     if (!user) {
-      localStorage.removeItem('user');
       navigate('/');
     }
   }, [user, navigate]);
 
   if (!user) return null;
 
-  const handleLogout = () => {
-    localStorage.removeItem('user');
-    navigate('/');
-  };
-
   return (
-    <div>
-      <h2>Dashboard</h2>
-      <p>Welcome, {user.username} ({user.role})</p>
-      <button onClick={handleLogout}>Logout</button>
+    <div className="dashboard-container">
+      <header className="dashboard-header">
+        <h1>Welcome, {user.username}</h1>
+        <span className="dashboard-role">{user.role}</span>
+      </header>
 
-      <h3>Your Projects:</h3>
-      <div id="projects-list">
-        {/* Populate projects later */}
-      </div>
+      <main className="dashboard-main">
+        <h2>Your Projects</h2>
+        {projects.length === 0 ? (
+          <p className="dashboard-empty">You have no projects yet.</p>
+        ) : (
+          <div className="projects-grid">
+            {projects.map((project, index) => (
+              <div key={index} className="project-card">
+                <h3>{project.name}</h3>
+                <p>{project.description}</p>
+              </div>
+            ))}
+          </div>
+        )}
+      </main>
     </div>
   );
 }
