@@ -13,8 +13,10 @@ var mongoConnectionString = builder.Configuration.GetConnectionString("MongoDb")
 var databaseName = builder.Configuration["DatabaseName"]
                    ?? Environment.GetEnvironmentVariable("DatabaseName");
 
-builder.Services.AddSingleton<IMongoClient>(sp => new MongoClient(mongoConnectionString));
-builder.Services.AddSingleton(sp => sp.GetRequiredService<IMongoClient>().GetDatabase(databaseName));
+var mongoSettings = MongoClientSettings.FromConnectionString(mongoConnectionString);
+mongoSettings.SslSettings = new SslSettings { EnabledSslProtocols = System.Security.Authentication.SslProtocols.Tls12 };
+var mongoClient = new MongoClient(mongoSettings);
+builder.Services.AddSingleton<IMongoClient>(mongoClient);
 
 builder.Services.AddCors(options =>
 {
