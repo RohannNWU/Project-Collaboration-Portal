@@ -16,10 +16,6 @@ namespace backend.Controllers
 
         public LoginController(IMongoDatabase database)
         {
-            // Diagnostic: log the database and collection names
-            Console.WriteLine("Database: " + database.DatabaseNamespace.DatabaseName);
-            Console.WriteLine("Collection: User");
-
             _users = database.GetCollection<User>("User");
         }
 

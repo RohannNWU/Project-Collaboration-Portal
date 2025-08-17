@@ -29,7 +29,7 @@ function Login() {
         return;
       }
 
-      if (response.ok && data.success) {
+      if (response.ok) {
         localStorage.setItem('user', JSON.stringify({ username: data.username, role: data.role }));
         navigate('/dashboard');
       } else {
