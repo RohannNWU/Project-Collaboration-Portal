@@ -4,6 +4,7 @@ using MongoDB.Bson.Serialization.Attributes;
 using backend.Models;
 using System;
 using System.Threading.Tasks;
+using MongoDB.Bson;
 
 namespace backend.Controllers
 {
@@ -60,7 +61,7 @@ namespace backend.Controllers
     public class User
     {
         [BsonId]
-        public string Id { get; set; }
+        public ObjectId Id { get; set; }
 
         [BsonElement("username")]
         public string Username { get; set; }
