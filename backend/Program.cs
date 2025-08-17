@@ -1,30 +1,40 @@
 using MongoDB.Driver;
+using Microsoft.AspNetCore.Builder;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
+using System.Security.Authentication;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
+// Add services
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
+// Read MongoDB connection info from App Settings / Environment
 var mongoConnectionString = builder.Configuration.GetConnectionString("MongoDb")
                             ?? Environment.GetEnvironmentVariable("MongoDb");
 
 var databaseName = builder.Configuration["DatabaseName"]
                    ?? Environment.GetEnvironmentVariable("DatabaseName");
 
+// Configure MongoDB client with TLS 1.2
 var mongoSettings = MongoClientSettings.FromConnectionString(mongoConnectionString);
-mongoSettings.SslSettings = new SslSettings { EnabledSslProtocols = System.Security.Authentication.SslProtocols.Tls12 };
+mongoSettings.SslSettings = new SslSettings { EnabledSslProtocols = SslProtocols.Tls12 };
 var mongoClient = new MongoClient(mongoSettings);
-builder.Services.AddSingleton<IMongoClient>(mongoClient);
 
+// Register MongoClient and IMongoDatabase for dependency injection
+builder.Services.AddSingleton<IMongoClient>(mongoClient);
+builder.Services.AddSingleton(sp => sp.GetRequiredService<IMongoClient>().GetDatabase(databaseName));
+
+// Configure CORS for frontend
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("FrontendPolicy", policy =>
     {
         policy.WithOrigins(
-                "https://wonderful-coast-0409a4c03.2.azurestaticapps.net", // your Azure frontend
-                "http://localhost:5173" // optional for local development
+                "https://wonderful-coast-0409a4c03.2.azurestaticapps.net",
+                "http://localhost:5173"
             )
             .AllowAnyMethod()
             .AllowAnyHeader();
@@ -33,7 +43,7 @@ builder.Services.AddCors(options =>
 
 var app = builder.Build();
 
-// Configure the HTTP request pipeline.
+// Configure middleware
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();

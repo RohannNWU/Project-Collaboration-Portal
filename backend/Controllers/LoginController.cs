@@ -1,6 +1,8 @@
 using Microsoft.AspNetCore.Mvc;
 using MongoDB.Driver;
 using backend.Models;
+using System;
+using System.Threading.Tasks;
 
 namespace backend.Controllers
 {
@@ -35,6 +37,7 @@ namespace backend.Controllers
             }
             catch (Exception ex)
             {
+                // Always return JSON even if MongoDB connection fails
                 return StatusCode(500, new { success = false, message = "Server error: " + ex.Message });
             }
         }
