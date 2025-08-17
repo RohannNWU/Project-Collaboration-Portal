@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import './Login.css'; // We'll create this for styling
 
 function Login() {
   const [username, setUsername] = useState('');
@@ -29,7 +30,7 @@ function Login() {
         return;
       }
 
-      if (response.ok && data.success) {
+      if (data.success) {
         localStorage.setItem('user', JSON.stringify({ username: data.username, role: data.role }));
         navigate('/dashboard');
       } else {
@@ -44,29 +45,35 @@ function Login() {
   };
 
   return (
-    <div>
-      <h2>Login</h2>
-      <form onSubmit={handleSubmit}>
-        <div>
-          <label>Username:</label>
+    <div className="login-container">
+      <form className="login-card" onSubmit={handleSubmit}>
+        <h2 className="login-title">Project Collaboration Portal</h2>
+
+        {error && <p className="login-error">{error}</p>}
+
+        <div className="login-field">
+          <label>Username</label>
           <input
             type="text"
             value={username}
             onChange={(e) => setUsername(e.target.value)}
+            placeholder="Enter your username"
             required
           />
         </div>
-        <div>
-          <label>Password:</label>
+
+        <div className="login-field">
+          <label>Password</label>
           <input
             type="password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
+            placeholder="Enter your password"
             required
           />
         </div>
-        {error && <p style={{ color: 'red' }}>{error}</p>}
-        <button type="submit" disabled={loading}>
+
+        <button type="submit" className="login-button" disabled={loading}>
           {loading ? 'Logging in...' : 'Login'}
         </button>
       </form>
