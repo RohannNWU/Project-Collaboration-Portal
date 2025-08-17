@@ -7,10 +7,10 @@ builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
-var mongoConnectionString = builder.Configuration.GetConnectionString("MongoDb") 
-                            ?? Environment.GetEnvironmentVariable("ConnectionString:MongoDb");
+var mongoConnectionString = builder.Configuration.GetConnectionString("MongoDb")
+                            ?? Environment.GetEnvironmentVariable("MongoDb");
 
-var databaseName = builder.Configuration["DatabaseName"] 
+var databaseName = builder.Configuration["DatabaseName"]
                    ?? Environment.GetEnvironmentVariable("DatabaseName");
 
 builder.Services.AddSingleton<IMongoClient>(sp => new MongoClient(mongoConnectionString));
@@ -20,9 +20,12 @@ builder.Services.AddCors(options =>
 {
     options.AddPolicy("FrontendPolicy", policy =>
     {
-        policy.WithOrigins("https://wonderful-coast-0409a4c03.2.azurestaticapps.net") // ✅ Your frontend URL
-              .AllowAnyMethod()
-              .AllowAnyHeader();
+        policy.WithOrigins(
+                "https://wonderful-coast-0409a4c03.2.azurestaticapps.net", // your Azure frontend
+                "http://localhost:5173" // optional for local development
+            )
+            .AllowAnyMethod()
+            .AllowAnyHeader();
     });
 });
 

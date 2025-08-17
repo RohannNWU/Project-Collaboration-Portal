@@ -20,7 +20,14 @@ function Login() {
         body: JSON.stringify({ username, password }),
       });
 
-      const data = await response.json();
+      let data = {};
+      try {
+        data = await response.json();
+      } catch {
+        setError('Server returned invalid response');
+        setLoading(false);
+        return;
+      }
 
       if (response.ok && data.success) {
         localStorage.setItem('user', JSON.stringify({ username: data.username, role: data.role }));
