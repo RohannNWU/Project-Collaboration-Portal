@@ -7,19 +7,22 @@ builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
-builder.Services.AddSingleton<IMongoClient>(sp =>
-    new MongoClient(builder.Configuration.GetConnectionString("MongoDb")));
+var mongoConnectionString = builder.Configuration.GetConnectionString("MongoDb") 
+                            ?? Environment.GetEnvironmentVariable("ConnectionString:MongoDb");
 
-builder.Services.AddSingleton(sp =>
-    sp.GetRequiredService<IMongoClient>().GetDatabase(builder.Configuration["DatabaseName"]));
+var databaseName = builder.Configuration["DatabaseName"] 
+                   ?? Environment.GetEnvironmentVariable("DatabaseName");
+
+builder.Services.AddSingleton<IMongoClient>(sp => new MongoClient(mongoConnectionString));
+builder.Services.AddSingleton(sp => sp.GetRequiredService<IMongoClient>().GetDatabase(databaseName));
 
 builder.Services.AddCors(options =>
 {
-    options.AddDefaultPolicy(builder =>
+    options.AddPolicy("FrontendPolicy", policy =>
     {
-        builder.AllowAnyOrigin()
-               .AllowAnyMethod()
-               .AllowAnyHeader();
+        policy.WithOrigins("https://wonderful-coast-0409a4c03.2.azurestaticapps.net") // ✅ Your frontend URL
+              .AllowAnyMethod()
+              .AllowAnyHeader();
     });
 });
 
@@ -32,7 +35,7 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI();
 }
 
-app.UseCors();
+app.UseCors("FrontendPolicy");
 app.UseHttpsRedirection();
 app.UseAuthorization();
 app.MapControllers();

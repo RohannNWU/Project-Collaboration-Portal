@@ -5,32 +5,34 @@ function Login() {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
+    setLoading(true);
 
     try {
-      const response = await fetch('https://pcp-backend.azurewebsites.net/api/login', {
+      const response = await fetch('https://pcp-backend.azurewebsites.net/api/Login', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ username, password }),
       });
 
       const data = await response.json();
 
-      if (data.success) {
-        // Store user info in localStorage
+      if (response.ok && data.success) {
         localStorage.setItem('user', JSON.stringify({ username: data.username, role: data.role }));
         navigate('/dashboard');
       } else {
-        setError('Invalid username or password');
+        setError(data.message || 'Invalid username or password');
       }
     } catch (err) {
+      console.error(err);
       setError('An error occurred. Please try again.');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -57,7 +59,9 @@ function Login() {
           />
         </div>
         {error && <p style={{ color: 'red' }}>{error}</p>}
-        <button type="submit">Login</button>
+        <button type="submit" disabled={loading}>
+          {loading ? 'Logging in...' : 'Login'}
+        </button>
       </form>
     </div>
   );
