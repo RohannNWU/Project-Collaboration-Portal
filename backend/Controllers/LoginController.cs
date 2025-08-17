@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
 using MongoDB.Driver;
+using MongoDB.Bson.Serialization.Attributes;
 using backend.Models;
 using System;
 using System.Threading.Tasks;
@@ -14,6 +15,10 @@ namespace backend.Controllers
 
         public LoginController(IMongoDatabase database)
         {
+            // Diagnostic: log the database and collection names
+            Console.WriteLine("Database: " + database.DatabaseNamespace.DatabaseName);
+            Console.WriteLine("Collection: User");
+
             _users = database.GetCollection<User>("User");
         }
 
@@ -25,6 +30,7 @@ namespace backend.Controllers
                 if (string.IsNullOrEmpty(request.Username) || string.IsNullOrEmpty(request.Password))
                     return BadRequest(new { success = false, message = "Username and password are required" });
 
+                // Build filter
                 var filter = Builders<User>.Filter.Eq(u => u.Username, request.Username) &
                              Builders<User>.Filter.Eq(u => u.Password, request.Password);
 
@@ -43,9 +49,26 @@ namespace backend.Controllers
         }
     }
 
+    // Request model
     public class LoginRequest
     {
         public string Username { get; set; }
         public string Password { get; set; }
+    }
+
+    // User model
+    public class User
+    {
+        [BsonId]
+        public string Id { get; set; }
+
+        [BsonElement("username")]
+        public string Username { get; set; }
+
+        [BsonElement("password")]
+        public string Password { get; set; }
+
+        [BsonElement("role")]
+        public string Role { get; set; }
     }
 }
