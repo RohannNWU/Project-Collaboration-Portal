@@ -34,7 +34,7 @@ builder.Services.AddCors(options =>
     {
         policy.WithOrigins(
                 "https://wonderful-coast-0409a4c03.2.azurestaticapps.net",
-                "http://localhost:5173"
+                "http://localhost:3000"
             )
             .AllowAnyMethod()
             .AllowAnyHeader();

@@ -37,3 +37,6 @@ C:\Users\rohve\OneDrive\Documents\GitHub\ProjectCollaborationPortal\backend\bin\
 C:\Users\rohve\OneDrive\Documents\GitHub\ProjectCollaborationPortal\backend\bin\Debug\net9.0\SharpCompress.dll
 C:\Users\rohve\OneDrive\Documents\GitHub\ProjectCollaborationPortal\backend\bin\Debug\net9.0\Snappier.dll
 C:\Users\rohve\OneDrive\Documents\GitHub\ProjectCollaborationPortal\backend\bin\Debug\net9.0\ZstdSharp.dll
+C:\Users\rohve\OneDrive\Documents\GitHub\ProjectCollaborationPortal\backend\bin\Debug\net9.0\Swashbuckle.AspNetCore.Swagger.dll
+C:\Users\rohve\OneDrive\Documents\GitHub\ProjectCollaborationPortal\backend\bin\Debug\net9.0\Swashbuckle.AspNetCore.SwaggerGen.dll
+C:\Users\rohve\OneDrive\Documents\GitHub\ProjectCollaborationPortal\backend\bin\Debug\net9.0\Swashbuckle.AspNetCore.SwaggerUI.dll
