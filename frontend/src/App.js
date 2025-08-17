@@ -2,6 +2,7 @@ import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import Login from './components/Login';
 import Dashboard from './components/Dashboard';
 
+// Routes are the pages the user will see i.e. login, dashboard, register
 function App() {
   return (
     <Router> {/* Must wrap everything */}
