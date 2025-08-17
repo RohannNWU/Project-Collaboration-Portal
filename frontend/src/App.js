@@ -6,9 +6,6 @@ function App() {
   return (
     <Router> {/* Must wrap everything */}
       <div className="App">
-        <header className="App-header">
-          <h1>Project Collaboration Portal</h1>
-        </header>
         <Routes>
           <Route path="/" element={<Login />} />
           <Route path="/dashboard" element={<Dashboard />} />

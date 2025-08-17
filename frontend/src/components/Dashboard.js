@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import './Dashboard.css'; // We'll create this for styling
+import './Dashboard.css';
 
 function Dashboard() {
   const navigate = useNavigate();
@@ -13,13 +13,23 @@ function Dashboard() {
     }
   }, [user, navigate]);
 
+  const handleLogout = () => {
+    localStorage.removeItem('user'); // clear user session
+    navigate('/');                   // redirect to login
+  };
+
   if (!user) return null;
 
   return (
     <div className="dashboard-container">
       <header className="dashboard-header">
-        <h1>Welcome, {user.username}</h1>
-        <span className="dashboard-role">{user.role}</span>
+        <div className="dashboard-header-left">
+          <h1>Welcome, {user.username}</h1>
+          <span className="dashboard-role">{user.role}</span>
+        </div>
+        <div className="dashboard-header-right">
+          <button className="logout-button" onClick={handleLogout}>Logout</button>
+        </div>
       </header>
 
       <main className="dashboard-main">
