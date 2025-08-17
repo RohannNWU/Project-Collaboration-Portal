@@ -5,7 +5,7 @@ import './Dashboard.css'; // We'll create this for styling
 function Dashboard() {
   const navigate = useNavigate();
   const user = JSON.parse(localStorage.getItem('user'));
-  const [projects, setProjects] = useState([]); // empty for now
+  const [projects] = useState([]); // empty for now
 
   useEffect(() => {
     if (!user) {
