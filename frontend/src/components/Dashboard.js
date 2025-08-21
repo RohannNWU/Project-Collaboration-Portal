@@ -5,7 +5,6 @@ import './Dashboard.css';
 function Dashboard() {
   const navigate = useNavigate();
   const user = JSON.parse(localStorage.getItem('user'));
-  const [projects] = useState([]); // empty for now
 
   useEffect(() => {
     if (!user) {
@@ -21,7 +20,7 @@ function Dashboard() {
   if (!user) return null;
 
   return (
-    <div className="dashboard-container">
+    <div>
       <head>
         <meta charset="UTF-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -54,6 +53,7 @@ function Dashboard() {
             <button class="qa-btn" id="qa-new-task">＋ New Task</button>
             <button class="qa-btn" id="qa-message-team">💬 Message Team</button>
             <button class="qa-btn" id="qa-upload">⬆️ Upload File</button>
+            <button class="qa-btn" id="qa-logout" onClick={handleLogout}>↩ Logout</button>
           </div>
         </aside>
 
@@ -74,7 +74,7 @@ function Dashboard() {
               <button class="icon-btn" title="Settings">⚙️</button>
               <div class="user">
                 <div class="avatar">JM</div>
-                <span class="username">user.username</span>
+                <span class="username">{user.username}</span>
                 <button class="icon-btn" title="Logout">↩</button>
               </div>
             </div>
