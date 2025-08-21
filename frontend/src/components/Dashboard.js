@@ -1,27 +1,11 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import './Dashboard.css';
-
-// It's recommended to manage external libraries like Chart.js via npm
-// and import them here. For example:
-// import { Chart } from 'chart.js';
-// import { Line, Doughnut } from 'react-chartjs-2';
 
 function Dashboard() {
   const navigate = useNavigate();
   const user = JSON.parse(localStorage.getItem('user'));
-
-  useEffect(() => {
-    // Any logic that was in an external `script.js` for DOM manipulation
-    // should be handled here with React state and effects.
-    // For example, to initialize charts or fetch data.
-
-    // To set the year in the footer:
-    const yearSpan = document.getElementById('year');
-    if (yearSpan) {
-      yearSpan.textContent = new Date().getFullYear();
-    }
-  }, []); // Empty dependency array means this runs once on mount.
+  const [projects] = useState([]); // empty for now
 
   useEffect(() => {
     if (!user) {
@@ -36,22 +20,33 @@ function Dashboard() {
 
   if (!user) return null;
 
-  // The JSX should only contain the content for the dashboard,
-  // not the entire HTML page structure with <head>, <body>, etc.
-  // Also, in JSX, the 'class' attribute must be written as 'className'.
   return (
     <div>
-        <aside className="sidebar">
-          <div className="brand">
-            <div className="logo">NWU</div>
-            <div className="brand-text">
+      <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>Student Dashboard · Project Collaboration Portal</title>
+        <link rel="stylesheet" href="styles.css" />
+        <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+      </head>
+      <body>
+        <aside class="sidebar">
+          <div class="brand">
+            <div class="logo">NWU</div>
+            <div class="brand-text">
               <h2>Project Collaboration Portal</h2>
               <small>Student</small>
             </div>
           </div>
 
-          <nav className="nav">
-            <button className="nav
+          <nav class="nav">
+            <button class="nav-btn"><span>📁</span> My Projects</button>
+            <button class="nav-btn"><span>✅</span> My Tasks</button>
+            <button class="nav-btn"><span>👥</span> Teams</button>
+            <button class="nav-btn"><span>📅</span> Calendar</button>
+            <button class="nav-btn"><span>🌿</span> Repos</button>
+            <button class="nav-btn"><span>📄</span> Documents</button>
+            <button class="nav-btn"><span>✉️</span> Inbox</button>
           </nav>
 
           <div class="quick-actions">
@@ -59,13 +54,10 @@ function Dashboard() {
             <button class="qa-btn" id="qa-new-task">＋ New Task</button>
             <button class="qa-btn" id="qa-message-team">💬 Message Team</button>
             <button class="qa-btn" id="qa-upload">⬆️ Upload File</button>
-            <button class="qa-btn" id="qa-logout" onClick={handleLogout}>↩ Logout</button>
           </div>
         </aside>
 
-        
         <main class="main">
-          
           <header class="topbar">
             <div class="tb-left">
               <h1>Project Collaboration Portal</h1>
@@ -80,13 +72,12 @@ function Dashboard() {
               <button class="icon-btn" title="Settings">⚙️</button>
               <div class="user">
                 <div class="avatar">JM</div>
-                <span class="username">{user.username}</span>
+                <span class="username">John M.</span>
                 <button class="icon-btn" title="Logout">↩</button>
               </div>
             </div>
           </header>
 
-          
           <section class="cards">
             <div class="card">
               <p>Active Projects</p>
@@ -102,7 +93,6 @@ function Dashboard() {
             </div>
           </section>
 
-          
           <section class="panel">
             <div class="panel-head">
               <h2>My Projects</h2>
@@ -116,7 +106,6 @@ function Dashboard() {
             <div id="projectList" class="project-list"></div>
           </section>
 
-          
           <section class="charts">
             <div class="chart-card">
               <div class="panel-head"><h3>Weekly Progress</h3></div>
@@ -129,7 +118,6 @@ function Dashboard() {
           </section>
         </main>
 
-        
         <aside class="rightbar">
           <section class="panel">
             <div class="panel-head">
