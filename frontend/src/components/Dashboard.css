@@ -1,41 +1,139 @@
-/* Header layout */
-.dashboard-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  background: #6c63ff;
-  color: #fff;
-  padding: 25px 20px;
-  border-radius: 12px;
-  margin-bottom: 30px;
-  box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+/* ---------- NWU THEME ---------- */
+:root{
+  --nwu-purple:#6C3D91;    /* Primary */
+  --nwu-turquoise:#00889C; /* Accent */
+  --nwu-grey:#78848E;      /* Neutral */
+  --nwu-black:#181512;
+  --bg:#f6f7fb;
+  --card:#ffffff;
+  --border:#e6e8ee;
 }
 
-.dashboard-header-left h1 {
-  margin: 0;
-  font-size: 2rem;
+/* ---------- Layout ---------- */
+*{box-sizing:border-box}
+html,body{height:100%}
+body{
+  margin:0;
+  font-family: ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,Arial;
+  color:#1f2330;
+  background:var(--bg);
+  display:grid;
+  grid-template-columns: 260px 1fr 340px;
 }
 
-.dashboard-role {
-  display: block;
-  margin-top: 5px;
-  font-weight: 500;
-  font-size: 1rem;
-  opacity: 0.9;
+.sidebar{
+  background:linear-gradient(180deg,var(--nwu-purple) 0%, #5A2F80 100%);
+  color:#f7f7fa;
+  padding:18px;
+  display:flex;flex-direction:column;gap:14px;
 }
-
-/* Logout button */
-.logout-button {
-  padding: 10px 20px;
-  border-radius: 8px;
-  border: none;
-  background-color: #ff4d4d;
-  color: #fff;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.3s ease;
+.brand{display:flex;align-items:center;gap:10px}
+.logo{
+  width:44px;height:44px;border-radius:12px;
+  background:radial-gradient( circle at 30% 30%, #fff 0%, #d7c6e6 35%, var(--nwu-purple) 100%);
+  color:var(--nwu-purple); font-weight:800; display:grid; place-items:center;
 }
+.brand-text h2{margin:0;font-size:16px}
+.brand-text small{opacity:.85}
 
-.logout-button:hover {
-  background-color: #cc0000;
+.nav{display:grid;gap:6px;margin-top:8px}
+.nav-btn{
+  text-align:left;border:none;background:transparent;color:#f1e9f8;
+  padding:10px 12px;border-radius:10px;cursor:pointer;
+}
+.nav-btn span{opacity:.9;margin-right:8px}
+.nav-btn:hover{background:rgba(255,255,255,.12)}
+
+.quick-actions{margin-top:auto;display:grid;gap:8px}
+.qa-btn{
+  border:1px solid rgba(255,255,255,.25);
+  background:rgba(255,255,255,.08);
+  color:#fff;padding:10px 12px;border-radius:10px;cursor:pointer;
+}
+.qa-btn:hover{background:rgba(255,255,255,.18)}
+
+/* ---------- Main ---------- */
+.main{padding:18px;overflow:auto}
+.topbar{
+  position:sticky;top:18px;z-index:5;
+  background:var(--card);border:1px solid var(--border);
+  border-radius:16px;padding:12px 14px;display:flex;align-items:center;justify-content:space-between;gap:10px;
+  box-shadow:0 2px 10px rgba(0,0,0,.03);
+}
+.tb-left{display:flex;align-items:center;gap:10px}
+.topbar h1{font-size:18px;margin:0}
+.badge{
+  background:var(--nwu-turquoise);color:white;border-radius:999px;
+  padding:4px 10px;font-size:12px
+}
+.tb-right{display:flex;align-items:center;gap:8px}
+.search{position:relative}
+.search input{
+  border:1px solid var(--border);border-radius:10px;padding:8px 34px 8px 36px;min-width:260px
+}
+.search-ico{width:16px;height:16px;position:absolute;left:12px;top:50%;transform:translateY(-50%);fill:var(--nwu-grey)}
+.icon-btn{border:none;background:#f2f4f8;border:1px solid var(--border);border-radius:12px;padding:8px;cursor:pointer}
+.icon-btn:hover{background:#e9eef5}
+.user{display:flex;align-items:center;gap:8px}
+.avatar{width:32px;height:32px;border-radius:999px;background:var(--nwu-purple);color:#fff;display:grid;place-items:center;font-weight:700}
+.username{font-size:14px;color:#3b3f4a}
+
+/* ---------- Cards ---------- */
+.cards{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin:14px 0}
+.card{
+  background:var(--card);border:1px solid var(--border);border-radius:16px;padding:16px;text-align:center;
+  box-shadow:0 1px 2px rgba(0,0,0,.04)
+}
+.card p{margin:0 0 6px;color:var(--nwu-grey)}
+.card h2{margin:0;font-size:28px;color:var(--nwu-purple)}
+
+/* ---------- Panels ---------- */
+.panel{background:var(--card);border:1px solid var(--border);border-radius:16px;margin-top:14px;padding:14px}
+.panel-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
+.tabs{display:flex;gap:6px}
+.tab{
+  border:1px solid var(--border);background:#f1f3f7;color:#20242e;
+  border-radius:999px;padding:6px 10px;font-size:12px;cursor:pointer
+}
+.tab.active{background:var(--nwu-turquoise);border-color:var(--nwu-turquoise);color:#fff}
+
+/* ---------- Project list ---------- */
+.project-list{display:grid;gap:10px}
+.project-card{
+  display:grid;grid-template-columns:1fr auto;gap:10px;align-items:center;
+  padding:12px;border:1px solid var(--border);border-radius:12px;transition:border .2s, transform .1s;
+}
+.project-card:hover{border-color:#cfd6df;transform:translateY(-1px)}
+.project-meta{display:flex;align-items:center;gap:10px}
+.project-icon{width:40px;height:40px;border-radius:10px;background:#efe7f6;color:var(--nwu-purple);display:grid;place-items:center;font-weight:800}
+.project-info h4{margin:0;font-size:15px}
+.project-info small{color:var(--nwu-grey)}
+.status{padding:4px 8px;border-radius:999px;font-size:12px}
+.status.ontrack{background:#dff5ea;color:#0f6848}
+.status.atrisk{background:#fff0d5;color:#8a4b00}
+.status.review{background:#e3f3f6;color:#0d6a78}
+
+.progress{height:8px;background:#e7ebf2;border-radius:999px;overflow:hidden;margin-top:6px}
+.progress>span{display:block;height:100%;background:linear-gradient(90deg,var(--nwu-turquoise),#3fb9cb)}
+
+/* ---------- Charts ---------- */
+.charts{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:14px}
+.chart-card{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:14px}
+
+/* ---------- Rightbar ---------- */
+.rightbar{background:#fcfcff;border-left:1px solid var(--border);padding:18px;overflow:auto}
+.list{list-style:none;margin:0;padding:0;display:grid;gap:10px}
+.list li{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:10px}
+.live{font-size:12px;background:#e6fff3;color:#0f6848;border:1px solid #b6f3d0;border-radius:999px;padding:2px 8px}
+.bullet{list-style:disc;padding-left:18px;color:#3d4350}
+.footer{margin-top:14px;color:var(--nwu-grey);font-size:12px;text-align:center}
+
+/* ---------- Responsive ---------- */
+@media (max-width:1160px){ body{grid-template-columns:240px 1fr} .rightbar{display:none} }
+@media (max-width:760px){
+  body{grid-template-columns:1fr}
+  .sidebar{display:none}
+  .cards{grid-template-columns:1fr}
+  .charts{grid-template-columns:1fr}
+  .search input{min-width:unset;width:160px}
 }
