@@ -1,11 +1,10 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect} from 'react';
 import { useNavigate } from 'react-router-dom';
 import './Dashboard.css';
 
 function Dashboard() {
   const navigate = useNavigate();
   const user = JSON.parse(localStorage.getItem('user'));
-  const [projects] = useState([]); // empty for now
 
   useEffect(() => {
     if (!user) {
@@ -54,6 +53,7 @@ function Dashboard() {
             <button class="qa-btn" id="qa-new-task">＋ New Task</button>
             <button class="qa-btn" id="qa-message-team">💬 Message Team</button>
             <button class="qa-btn" id="qa-upload">⬆️ Upload File</button>
+            <button class="qa-btn" id="qa-logout" onClick={handleLogout}>↩ Logout</button>
           </div>
         </aside>
 
