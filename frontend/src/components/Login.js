@@ -3,10 +3,10 @@ import { useNavigate } from 'react-router-dom';
 import './styles.css';
 
 function Login() {
-  const [username] = useState('');
-  const [password] = useState('');
-  const [setError] = useState('');
-  const [setLoading] = useState(false);
+  const [username, setUsername] = useState(''); // Fixed: Added setUsername
+  const [password, setPassword] = useState(''); // Fixed: Added setPassword
+  const [error, setError] = useState(''); // Fixed: Added error state
+  const [loading, setLoading] = useState(false); // Fixed: Added loading state
   const navigate = useNavigate();
 
   const handleSubmit = async (e) => {
@@ -47,74 +47,103 @@ function Login() {
   };
 
   return (
-    <>
+    <div className="login-page"> {/* Changed from body to div */}
       <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css"/>
-      <link rel="stylesheet" href="styles.css"/>
-      <body class="login-page">
-        <div class="login-container">
-          <div class="login-content">
-            <div class="branding">
-              <div class="logo">
-                <i class="fas fa-users"></i>
+      <div className="login-container">
+        <div className="login-content">
+          <div className="branding">
+            <div className="logo">
+              <i className="fas fa-users"></i>
+            </div>
+            <h1>CollabPortal</h1>
+            <p>Your collaborative workspace</p>
+          </div>
+
+          <div className="welcome">
+            <h2>Welcome back</h2>
+            <p>Sign in to your collaboration workspace</p>
+          </div>
+
+          <form id="loginForm" className="login-form" onSubmit={handleSubmit}> {/* Fixed: Moved onSubmit to form */}
+            <div className="form-group">
+              <label htmlFor="email">Email address</label>
+              <div className="input-with-icon">
+                <i className="fas fa-envelope"></i>
+                <input 
+                  type="email" 
+                  id="email" 
+                  placeholder="Enter your email" 
+                  required
+                  value={username}
+                  onChange={(e) => setUsername(e.target.value)} // Added: Input binding
+                />
               </div>
-              <h1>CollabPortal</h1>
-              <p>Your collaborative workspace</p>
             </div>
 
-            <div class="welcome">
-              <h2>Welcome back</h2>
-              <p>Sign in to your collaboration workspace</p>
+            <div className="form-group">
+              <label htmlFor="password">Password</label>
+              <div className="password-input-container">
+                <i className="fas fa-lock input-icon"></i>
+                <input 
+                  type="password" 
+                  id="password" 
+                  placeholder="Enter your password" 
+                  required
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)} // Added: Input binding
+                />
+                <button type="button" id="togglePassword" className="toggle-password" aria-label="Toggle password visibility">
+                  <i className="far fa-eye"></i>
+                </button>
+              </div>
             </div>
 
-            <form id="loginForm" class="login-form">
-              <div class="form-group">
-                <label for="email">Email address</label>
-                <div class="input-with-icon">
-                  <i class="fas fa-envelope"></i>
-                  <input type="email" id="email" placeholder="Enter your email" required/>
-                </div>
-              </div>
-
-              <div class="form-group">
-                <label for="password">Password</label>
-                <div class="password-input-container">
-                  <i class="fas fa-lock input-icon"></i>
-                  <input type="password" id="password" placeholder="Enter your password" required/>
-                    <button type="button" id="togglePassword" class="toggle-password" aria-label="Toggle password visibility">
-                      <i class="far fa-eye"></i>
-                    </button>
-                </div>
-              </div>
-
-              <div class="form-options">
-                <label class="remember-me">
-                  <input type="checkbox" id="rememberMe"/>
-                    <span>Remember me</span>
-                </label>
-                <a class="forgot-password">Forgot password?</a>
-              </div>
-
-              <button type="submit" class="login-button" id="loginButton" onSubmit={handleSubmit}>
-                <span>Sign in <i class="fas fa-arrow-right"></i></span>
-                <span class="loading-spinner" style="display: none;">Signing in...</span>
+            <div className="form-options">
+              <label className="remember-me">
+                <input type="checkbox" id="rememberMe"/>
+                <span>Remember me</span>
+              </label>
+              <button 
+                type="button" 
+                className="forgot-password" 
+                onClick={() => navigate('/forgot-password')} // Fixed: Changed to button
+              >
+                Forgot password?
               </button>
-            </form>
-
-            <div class="divider">
-              <span>OR</span>
             </div>
 
-            <div class="signup-link">
-              <p>Don't have an account? <a>Sign up</a></p>
-            </div>
+            <button 
+              type="submit" 
+              className="login-button" 
+              id="loginButton" 
+              disabled={loading} // Added: Disable when loading
+            >
+              {loading ? (
+                <span className="loading-spinner">Signing in...</span>
+              ) : (
+                <span>Sign in <i className="fas fa-arrow-right"></i></span>
+              )}
+            </button>
+          </form>
+
+          <div className="divider">
+            <span>OR</span>
+          </div>
+
+          <div className="signup-link">
+            <p>Don't have an account? <button 
+              type="button" 
+              className="signup-button" 
+              onClick={() => navigate('/signup')} // Fixed: Changed to button
+            >
+              Sign up
+            </button></p>
           </div>
         </div>
+      </div>
 
-        <div id="toast" class="toast"></div>
-
-        <script src="scripts.js"></script>
-      </body>
-    </>
+      {error && <div id="toast" className="toast">{error}</div>} {/* Added: Error display */}
+    </div>
   );
 }
 
