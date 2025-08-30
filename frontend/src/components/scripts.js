@@ -254,3 +254,155 @@ window.addEventListener("DOMContentLoaded", ()=>{
   document.getElementById("qa-message-team").onclick = ()=>alert("Message Team clicked");
   document.getElementById("qa-upload").onclick = ()=>alert("Upload File clicked");
 });
+
+document.addEventListener('DOMContentLoaded', function() {
+    // DOM Elements
+    const loginForm = document.getElementById('loginForm');
+    const emailInput = document.getElementById('email');
+    const passwordInput = document.getElementById('password');
+    const togglePasswordBtn = document.getElementById('togglePassword');
+    const rememberMe = document.getElementById('rememberMe');
+    const loginButton = document.getElementById('loginButton');
+    const toast = document.getElementById('toast');
+    
+    // Toggle password visibility
+    if (togglePasswordBtn) {
+        togglePasswordBtn.addEventListener('click', function(e) {
+            e.preventDefault();
+            const isPassword = passwordInput.type === 'password';
+            
+            // Toggle the input type
+            passwordInput.type = isPassword ? 'text' : 'password';
+            
+            // Toggle eye icon
+            const icon = this.querySelector('i');
+            icon.classList.toggle('fa-eye', !isPassword);
+            icon.classList.toggle('fa-eye-slash', isPassword);
+            
+            // Maintain focus on the input
+            passwordInput.focus();
+            
+            // Move cursor to the end of the input
+            const len = passwordInput.value.length;
+            passwordInput.setSelectionRange(len, len);
+        });
+    }
+    
+    // Handle form submission
+    if (loginForm) {
+        loginForm.addEventListener('submit', handleLogin);
+    }
+    
+    // Form submission handler
+    function handleLogin(e) {
+        e.preventDefault();
+        
+        // Show loading state
+        const buttonText = loginButton.querySelector('span:first-child');
+        const loadingSpinner = loginButton.querySelector('.loading-spinner');
+        
+        buttonText.style.display = 'none';
+        loadingSpinner.style.display = 'inline-flex';
+        loginButton.disabled = true;
+        
+        // Get form values
+        const email = emailInput.value.trim();
+        const password = passwordInput.value;
+        const remember = rememberMe.checked;
+        
+        // Simple validation
+        if (!email || !password) {
+            showToast('Please fill in all fields', 'error');
+            resetButtonState();
+            return;
+        }
+        
+        // Simulate API call with timeout
+        setTimeout(() => {
+            // In a real app, you would make an actual API call here
+            // For demo purposes, we'll just show a success message
+            showToast('Welcome back! You have successfully logged in to the collaboration portal.', 'success');
+            
+            // Reset form and button state after a short delay
+            setTimeout(() => {
+                resetButtonState();
+                // Redirect to dashboard or home page after successful login
+                // window.location.href = 'dashboard.html';
+            }, 1000);
+            
+        }, 1500);
+    }
+    
+    // Reset button to its initial state
+    function resetButtonState() {
+        const buttonText = loginButton.querySelector('span:first-child');
+        const loadingSpinner = loginButton.querySelector('.loading-spinner');
+        
+        buttonText.style.display = 'inline-flex';
+        loadingSpinner.style.display = 'none';
+        loginButton.disabled = false;
+    }
+    
+    // Show toast notification
+    function showToast(message, type = 'success') {
+        if (!toast) return;
+        
+        // Set message and style based on type
+        toast.textContent = message;
+        
+        // Reset classes and add appropriate ones
+        toast.className = 'toast';
+        
+        if (type === 'error') {
+            toast.style.backgroundColor = '#ef4444'; // Red for errors
+        } else if (type === 'success') {
+            toast.style.backgroundColor = '#10b981'; // Green for success
+        } else {
+            toast.style.backgroundColor = '#1f2937'; // Default dark gray
+        }
+        
+        // Show toast
+        setTimeout(() => {
+            toast.classList.add('show');
+            
+            // Hide after 5 seconds
+            setTimeout(() => {
+                toast.classList.remove('show');
+            }, 5000);
+        }, 100);
+    }
+    
+    // Check for saved credentials if remember me was checked
+    function checkSavedCredentials() {
+        const savedEmail = localStorage.getItem('savedEmail');
+        const savedRemember = localStorage.getItem('rememberMe') === 'true';
+        
+        if (savedEmail && savedRemember) {
+            emailInput.value = savedEmail;
+            rememberMe.checked = true;
+            passwordInput.focus();
+        } else if (savedEmail) {
+            // Clear saved email if remember me is not checked
+            localStorage.removeItem('savedEmail');
+        }
+    }
+    
+    // Save credentials if remember me is checked
+    function saveCredentials() {
+        if (rememberMe.checked) {
+            localStorage.setItem('savedEmail', emailInput.value.trim());
+            localStorage.setItem('rememberMe', 'true');
+        } else {
+            localStorage.removeItem('savedEmail');
+            localStorage.setItem('rememberMe', 'false');
+        }
+    }
+    
+    // Event listener for remember me checkbox
+    if (rememberMe) {
+        rememberMe.addEventListener('change', saveCredentials);
+    }
+    
+    // Check for saved credentials on page load
+    checkSavedCredentials();
+});

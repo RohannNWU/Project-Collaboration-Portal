@@ -47,39 +47,74 @@ function Login() {
   };
 
   return (
-    <div className="login-container">
-      <form className="login-card" onSubmit={handleSubmit}>
-        <h2 className="login-title">Project Collaboration Portal</h2>
+    <>
+      <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css"/>
+      <link rel="stylesheet" href="styles.css"/>
+      <body class="login-page">
+        <div class="login-container">
+          <div class="login-content">
+            <div class="branding">
+              <div class="logo">
+                <i class="fas fa-users"></i>
+              </div>
+              <h1>CollabPortal</h1>
+              <p>Your collaborative workspace</p>
+            </div>
 
-        {error && <p className="login-error">{error}</p>}
+            <div class="welcome">
+              <h2>Welcome back</h2>
+              <p>Sign in to your collaboration workspace</p>
+            </div>
 
-        <div className="login-field">
-          <label>Username</label>
-          <input
-            type="text"
-            value={username}
-            onChange={(e) => setUsername(e.target.value)}
-            placeholder="Enter your username"
-            required
-          />
+            <form id="loginForm" class="login-form">
+              <div class="form-group">
+                <label for="email">Email address</label>
+                <div class="input-with-icon">
+                  <i class="fas fa-envelope"></i>
+                  <input type="email" id="email" placeholder="Enter your email" required/>
+                </div>
+              </div>
+
+              <div class="form-group">
+                <label for="password">Password</label>
+                <div class="password-input-container">
+                  <i class="fas fa-lock input-icon"></i>
+                  <input type="password" id="password" placeholder="Enter your password" required/>
+                    <button type="button" id="togglePassword" class="toggle-password" aria-label="Toggle password visibility">
+                      <i class="far fa-eye"></i>
+                    </button>
+                </div>
+              </div>
+
+              <div class="form-options">
+                <label class="remember-me">
+                  <input type="checkbox" id="rememberMe"/>
+                    <span>Remember me</span>
+                </label>
+                <a href="#" class="forgot-password">Forgot password?</a>
+              </div>
+
+              <button type="submit" class="login-button" id="loginButton">
+                <span>Sign in <i class="fas fa-arrow-right"></i></span>
+                <span class="loading-spinner" style="display: none;">Signing in...</span>
+              </button>
+            </form>
+
+            <div class="divider">
+              <span>OR</span>
+            </div>
+
+            <div class="signup-link">
+              <p>Don't have an account? <a href="#">Sign up</a></p>
+            </div>
+          </div>
         </div>
 
-        <div className="login-field">
-          <label>Password</label>
-          <input
-            type="password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            placeholder="Enter your password"
-            required
-          />
-        </div>
+        <div id="toast" class="toast"></div>
 
-        <button type="submit" className="login-button" disabled={loading}>
-          {loading ? 'Logging in...' : 'Login'}
-        </button>
-      </form>
-    </div>
+        <script src="scripts.js"></script>
+      </body>
+    </>
   );
 }
 
