@@ -91,7 +91,7 @@ function Login() {
                   <input type="checkbox" id="rememberMe"/>
                     <span>Remember me</span>
                 </label>
-                <a href="#" class="forgot-password">Forgot password?</a>
+                <a class="forgot-password">Forgot password?</a>
               </div>
 
               <button type="submit" class="login-button" id="loginButton" onSubmit={handleSubmit}>
@@ -105,7 +105,7 @@ function Login() {
             </div>
 
             <div class="signup-link">
-              <p>Don't have an account? <a href="#">Sign up</a></p>
+              <p>Don't have an account? <a>Sign up</a></p>
             </div>
           </div>
         </div>
