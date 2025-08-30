@@ -25,7 +25,7 @@ function Dashboard() {
         <meta charset="UTF-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
         <title>Student Dashboard · Project Collaboration Portal</title>
-        <link rel="stylesheet" href="styles.css" />
+        <link rel="stylesheet" href="Dashboard.css" />
         <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
       </head>
       <body>
