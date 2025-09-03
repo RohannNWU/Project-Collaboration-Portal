@@ -15,3 +15,6 @@ def login_handler(request):
     else:
         messages.error(request, 'Invalid email and password combination')
         return render(request, 'login.html')
+    
+def landing_page(request):
+    return render(request, 'landingpage.html')
