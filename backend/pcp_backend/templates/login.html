@@ -1,0 +1,28 @@
+{% load static %}
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>PCP Login</title>
+        <link rel="stylesheet" href="{% static 'css/login.css' %}">
+    </head>
+    <body>
+        <h1>Project Collaboration Portal</h1>
+        <form id="login-form" action="{% url 'login_handler' %}" method="POST">
+        {% csrf_token %}
+            <div class="login-container">
+            <div>
+                <label for="email">Enter your Email Address</label>
+                <div><input type="email" id="username" name="email_address" placeholder="Email Address" required></div>
+            </div>
+            <div>
+                <label for="password">Enter your Password</label>
+                <div><input type"password" id="password" name="user_password" placeholder="Password" required></div>
+            </div>
+            <button type="submit">Login</button>
+            {% for message in messages %}
+                <div>{{message}}</div>
+            {% endfor %}
+        </div>
+    </form>
+    </body>
+</html>
