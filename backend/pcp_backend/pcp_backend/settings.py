@@ -6,7 +6,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 
 SECRET_KEY = 'django-insecure-b^8o+h050er#erx3c!ortc4baxr^@-rq+=n1t1!v+udn0heaam'
 
-DEBUG = True  # Set to False in production
+DEBUG = False  # Set to False in production
 
 ALLOWED_HOSTS = ['testing-pcp.azurewebsites.net', '127.0.0.1', 'localhost']
 
