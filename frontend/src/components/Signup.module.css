@@ -1,0 +1,32 @@
+/* Signup.module.css */
+.signupContainer {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-height: 100vh;
+  justify-content: center;
+  background: var(--bg);
+}
+.formGroup {
+  margin-bottom: 15px;
+}
+.input {
+  padding: 8px;
+  width: 200px;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+}
+.error {
+  color: #ff4d4f;
+}
+.success {
+  color: #0f6848;
+}
+.registerButton {
+  padding: 10px;
+  background: var(--nwu-turquoise);
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+}

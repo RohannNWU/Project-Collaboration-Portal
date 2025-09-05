@@ -1,13 +1,18 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import './styles.css';
+import { useAuth } from '../context/AuthProvider';
+import styles from './login.module.css';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { faEnvelope, faLock, faEye, faEyeSlash, faArrowRight } from '@fortawesome/free-solid-svg-icons';
 
 function Login() {
-  const [username, setUsername] = useState(''); // Fixed: Added setUsername
-  const [password, setPassword] = useState(''); // Fixed: Added setPassword
-  const [error, setError] = useState(''); // Fixed: Added error state
-  const [loading, setLoading] = useState(false); // Fixed: Added loading state
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
+  const { setUser } = useAuth();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -15,12 +20,15 @@ function Login() {
     setLoading(true);
 
     try {
-      const API_BASE_URL = window.location.hostname === "localhost" ? "http://localhost:5280" : "https://pcp-backend.azurewebsites.net";
+      const API_BASE_URL = window.location.hostname === 'localhost'
+        ? 'http://127.0.0.1:8000'
+        : 'https://pcp-backend.azurewebsites.net';
 
-      const response = await fetch(`${API_BASE_URL}/api/Login`, {
-        method: 'POST',
+      const response = await fetch(`${API_BASE_URL}/login/`, {
+        method: 'POST', // Changed to POST
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username, password }),
+        credentials: 'include', // Include cookies for HttpOnly tokens
+        body: JSON.stringify({ email, password }), // Send email and password
       });
 
       let data = {};
@@ -33,10 +41,12 @@ function Login() {
       }
 
       if (data.success) {
-        localStorage.setItem('user', JSON.stringify({ username: data.username, role: data.role }));
+        const userData = { username: data.username, role: data.role };
+        localStorage.setItem('user', JSON.stringify(userData));
+        setUser(userData);
         navigate('/dashboard');
       } else {
-        setError(data.message || 'Invalid username or password');
+        setError(data.message || 'Invalid email or password');
       }
     } catch (err) {
       console.error(err);
@@ -46,103 +56,132 @@ function Login() {
     }
   };
 
+  const fetchProtectedData = async () => {
+    try {
+      const API_BASE_URL = window.location.hostname === 'localhost'
+        ? 'http://127.0.0.1:8000'
+        : 'https://pcp-backend.azurewebsites.net';
+
+      const response = await fetch(`${API_BASE_URL}/protected/`, {
+        method: 'GET',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include', // Include cookies
+      });
+      const data = await response.json();
+      console.log(data);
+    } catch (error) {
+      console.error('Error:', error);
+    }
+  };
+
+  const togglePasswordVisibility = () => {
+    setShowPassword(!showPassword);
+  };
+
   return (
-    <div className="login-page"> {/* Changed from body to div */}
-      <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css"/>
-      <div className="login-container">
-        <div className="login-content">
-          <div className="branding">
-            <div className="logo">
-              <i className="fas fa-users"></i>
-            </div>
-            <h1>CollabPortal</h1>
+    <div className={styles.loginPage}>
+      <div className={styles.loginContainer}>
+        <div className={styles.loginContent}>
+          <div className={styles.branding}>
+            <h1>Project Collaboration Portal</h1>
             <p>Your collaborative workspace</p>
           </div>
 
-          <div className="welcome">
+          <div className={styles.welcome}>
             <h2>Welcome back</h2>
             <p>Sign in to your collaboration workspace</p>
           </div>
 
-          <form id="loginForm" className="login-form" onSubmit={handleSubmit}> {/* Fixed: Moved onSubmit to form */}
-            <div className="form-group">
+          <form id="loginForm" className={styles.loginForm} onSubmit={handleSubmit}>
+            <div className={styles.formGroup}>
               <label htmlFor="email">Email address</label>
-              <div className="input-with-icon">
-                <i className="fas fa-envelope"></i>
-                <input 
-                  type="email" 
-                  id="email" 
-                  placeholder="Enter your email" 
+              <div className={styles.passwordInputContainer}>
+                <FontAwesomeIcon icon={faEnvelope} className={styles.inputIcon} />
+                <input
+                  type="email"
+                  id="email"
+                  name="email"
+                  placeholder="Enter your email"
                   required
-                  value={username}
-                  onChange={(e) => setUsername(e.target.value)} // Added: Input binding
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
                 />
               </div>
             </div>
 
-            <div className="form-group">
+            <div className={styles.formGroup}>
               <label htmlFor="password">Password</label>
-              <div className="password-input-container">
-                <i className="fas fa-lock input-icon"></i>
-                <input 
-                  type="password" 
-                  id="password" 
-                  placeholder="Enter your password" 
+              <div className={styles.passwordInputContainer}>
+                <FontAwesomeIcon icon={faLock} className={styles.inputIcon} />
+                <input
+                  type={showPassword ? 'text' : 'password'}
+                  id="password"
+                  name="password"
+                  placeholder="Enter your password"
                   required
                   value={password}
-                  onChange={(e) => setPassword(e.target.value)} // Added: Input binding
+                  onChange={(e) => setPassword(e.target.value)}
                 />
-                <button type="button" id="togglePassword" className="toggle-password" aria-label="Toggle password visibility">
-                  <i className="far fa-eye"></i>
+                <button
+                  type="button"
+                  id="togglePassword"
+                  className={styles.togglePassword}
+                  aria-label="Toggle password visibility"
+                  onClick={togglePasswordVisibility}
+                >
+                  <FontAwesomeIcon icon={showPassword ? faEyeSlash : faEye} />
                 </button>
               </div>
             </div>
 
-            <div className="form-options">
-              <label className="remember-me">
-                <input type="checkbox" id="rememberMe"/>
+            <div className={styles.formOptions}>
+              <label className={styles.rememberMe}>
+                <input type="checkbox" id="rememberMe" />
                 <span>Remember me</span>
               </label>
-              <button 
-                type="button" 
-                className="forgot-password" 
-                onClick={() => navigate('/forgot-password')} // Fixed: Changed to button
+              <button
+                type="button"
+                className={styles.forgotPassword}
+                onClick={() => navigate('/forgot-password')}
               >
                 Forgot password?
               </button>
             </div>
 
-            <button 
-              type="submit" 
-              className="login-button" 
-              id="loginButton" 
-              disabled={loading} // Added: Disable when loading
+            <button
+              type="submit"
+              className={styles.loginButton}
+              id="loginButton"
+              disabled={loading}
             >
               {loading ? (
-                <span className="loading-spinner">Signing in...</span>
+                <span className={styles.loadingSpinner}>Signing in...</span>
               ) : (
-                <span>Sign in <i className="fas fa-arrow-right"></i></span>
+                <span>Sign in <FontAwesomeIcon icon={faArrowRight} /></span>
               )}
             </button>
           </form>
 
-          <div className="divider">
+          <div className={styles.divider}>
             <span>OR</span>
           </div>
 
-          <div className="signup-link">
-            <p>Don't have an account? <button 
-              type="button" 
-              className="signup-button" 
-              onClick={() => navigate('/signup')} // Fixed: Changed to button
-            >
-              Sign up
-            </button></p>
+          <div className={styles.signupLink}>
+            <p>
+              Don't have an account?
+              <button
+                type="button"
+                className={styles.signupButton}
+                onClick={() => navigate('/signup')}
+              >
+                Sign up
+              </button>
+            </p>
           </div>
         </div>
       </div>
 
-      {error && <div id="toast" className="toast">{error}</div>} {/* Added: Error display */}
+      {error && <div id="toast" className={styles.toast}>{error}</div>}
     </div>
   );
 }

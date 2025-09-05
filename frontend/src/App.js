@@ -1,17 +1,29 @@
+import React from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { AuthProvider } from './context/AuthProvider';
+import ProtectedRoute from './components/ProtectedRoute';
 import Login from './components/Login';
 import Dashboard from './components/Dashboard';
+import Signup from './components/Signup';
 
-// Routes are the pages the user will see i.e. login, dashboard, register
 function App() {
   return (
-    <Router> {/* Must wrap everything */}
-      <div className="App">
+    <Router>
+      <AuthProvider>
         <Routes>
+          <Route path="/login" element={<Login />} />
+          <Route
+            path="/dashboard"
+            element={
+              <ProtectedRoute>
+                <Dashboard />
+              </ProtectedRoute>
+            }
+          />
           <Route path="/" element={<Login />} />
-          <Route path="/dashboard" element={<Dashboard />} />
+          <Route path="/signup" element={<Signup />} />
         </Routes>
-      </div>
+      </AuthProvider>
     </Router>
   );
 }

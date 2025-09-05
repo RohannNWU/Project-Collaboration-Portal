@@ -1,167 +1,154 @@
-import React, { useEffect} from 'react';
-import { useNavigate } from 'react-router-dom';
-import './Dashboard.css';
+import React, { useEffect }from 'react';
+import styles from './Dashboard.module.css'
+import { makeAuthenticatedRequest } from '../utils/api';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { faFolder, faCheckCircle, faUsers, faCalendar, faCodeBranch, faFile, faInbox, faBell, faGear, faSignOutAlt } from '@fortawesome/free-solid-svg-icons';
 
-function Dashboard() {
-  const navigate = useNavigate();
-  const user = JSON.parse(localStorage.getItem('user'));
-
+const Dashboard = () => {
   useEffect(() => {
-    if (!user) {
-      navigate('/');
-    }
-  }, [user, navigate]);
-
-  const handleLogout = () => {
-    localStorage.removeItem('user'); // clear user session
-    navigate('/');                   // redirect to login
-  };
-
-  if (!user) return null;
+    const fetchData = async () => {
+      try {
+        const API_BASE_URL = window.location.hostname === 'localhost'
+          ? 'http://127.0.0.1:8000'
+          : 'https://pcp-backend.azurewebsites.net';
+        const response = await makeAuthenticatedRequest(`${API_BASE_URL}/protected/`);
+        const data = await response.json();
+        console.log(data);
+      } catch (error) {
+        console.error('Failed to fetch data:', error);
+      }
+    };
+    fetchData();
+  }, []);
 
   return (
-    <div>
-      <head>
-        <meta charset="UTF-8" />
-        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-        <title>Student Dashboard · Project Collaboration Portal</title>
-        <link rel="stylesheet" href="Dashboard.css" />
-        <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-      </head>
-      <body>
-        <aside class="sidebar">
-          <div class="brand">
-            <div class="logo">NWU</div>
-            <div class="brand-text">
-              <h2>Project Collaboration Portal</h2>
-              <small>Student</small>
+    <div className={styles.dashboard}>
+      <aside className={styles.sidebar}>
+        <div className={styles.brand}>
+          <div className={styles.logo}>NWU</div>
+          <div className={styles.brandText}>
+            <h2>Project Collaboration Portal</h2>
+            <small>Student</small>
+          </div>
+        </div>
+        <nav className={styles.nav}>
+          <button className={styles.navBtn}><FontAwesomeIcon icon={faFolder} /> My Projects</button>
+          <button className={styles.navBtn}><FontAwesomeIcon icon={faCheckCircle} /> My Tasks</button>
+          <button className={styles.navBtn}><FontAwesomeIcon icon={faUsers} /> Teams</button>
+          <button className={styles.navBtn}><FontAwesomeIcon icon={faCalendar} /> Calendar</button>
+          <button className={styles.navBtn}><FontAwesomeIcon icon={faCodeBranch} /> Repos</button>
+          <button className={styles.navBtn}><FontAwesomeIcon icon={faFile} /> Documents</button>
+          <button className={styles.navBtn}><FontAwesomeIcon icon={faInbox} /> Inbox</button>
+        </nav>
+        <div className={styles.quickActions}>
+          <button className={styles.qaBtn} id="qa-new-project">＋ New Project</button>
+          <button className={styles.qaBtn} id="qa-new-task">＋ New Task</button>
+          <button className={styles.qaBtn} id="qa-message-team">💬 Message Team</button>
+          <button className={styles.qaBtn} id="qa-upload">⬆️ Upload File</button>
+        </div>
+      </aside>
+      <main className={styles.main}>
+        <header className={styles.topbar}>
+          <div className={styles.tbLeft}>
+            <h1>Project Collaboration Portal</h1>
+            <span className={styles.badge}>Student</span>
+          </div>
+          <div className={styles.tbRight}>
+            <div className={styles.search}>
+              <input id="searchInput" type="text" placeholder="Search projects, tasks, people…" />
+              <svg className={styles.searchIco} viewBox="0 0 24 24"><path d="M10 18a8 8 0 1 1 5.293-14.293A8 8 0 0 1 10 18Zm11 3-6-6" /></svg>
+            </div>
+            <button className={styles.iconBtn} title="Notifications"><FontAwesomeIcon icon={faBell} /></button>
+            <button className={styles.iconBtn} title="Settings"><FontAwesomeIcon icon={faGear} /></button>
+            <div className={styles.user}>
+              <div className={styles.avatar}>JM</div>
+              <span className={styles.username}>John M.</span>
+              <button className={styles.iconBtn} title="Logout"><FontAwesomeIcon icon={faSignOutAlt} /></button>
             </div>
           </div>
+        </header>
 
-          <nav class="nav">
-            <button class="nav-btn"><span>📁</span> My Projects</button>
-            <button class="nav-btn"><span>✅</span> My Tasks</button>
-            <button class="nav-btn"><span>👥</span> Teams</button>
-            <button class="nav-btn"><span>📅</span> Calendar</button>
-            <button class="nav-btn"><span>🌿</span> Repos</button>
-            <button class="nav-btn"><span>📄</span> Documents</button>
-            <button class="nav-btn"><span>✉️</span> Inbox</button>
-          </nav>
-
-          <div class="quick-actions">
-            <button class="qa-btn" id="qa-new-project">＋ New Project</button>
-            <button class="qa-btn" id="qa-new-task">＋ New Task</button>
-            <button class="qa-btn" id="qa-message-team">💬 Message Team</button>
-            <button class="qa-btn" id="qa-upload">⬆️ Upload File</button>
-            <button class="qa-btn" id="qa-logout" onClick={handleLogout}>↩ Logout</button>
+        <section className={styles.cards}>
+          <div className={styles.card}>
+            <p>Active Projects</p>
+            <h2 id="kpi-projects">0</h2>
           </div>
-        </aside>
+          <div className={styles.card}>
+            <p>Tasks Due This Week</p>
+            <h2 id="kpi-tasks-week">0</h2>
+          </div>
+          <div className={styles.card}>
+            <p>Unread Messages</p>
+            <h2 id="kpi-messages">0</h2>
+          </div>
+        </section>
 
-        <main class="main">
-          <header class="topbar">
-            <div class="tb-left">
-              <h1>Project Collaboration Portal</h1>
-              <span class="badge">Student</span>
+        <section className={styles.panel}>
+          <div className={styles.panelHead}>
+            <h2>My Projects</h2>
+            <div className={styles.tabs}>
+              <button className={`${styles.tab} ${styles.active}`} data-filter="all">All</button>
+              <button className={styles.tab} data-filter="On Track">On Track</button>
+              <button className={styles.tab} data-filter="At Risk">At Risk</button>
+              <button className={styles.tab} data-filter="Review">Review</button>
             </div>
-            <div class="tb-right">
-              <div class="search">
-                <input id="searchInput" type="text" placeholder="Search projects, tasks, people…" />
-                <svg class="search-ico" viewBox="0 0 24 24"><path d="M10 18a8 8 0 1 1 5.293-14.293A8 8 0 0 1 10 18Zm11 3-6-6" /></svg>
-              </div>
-              <button class="icon-btn" title="Notifications">🔔</button>
-              <button class="icon-btn" title="Settings">⚙️</button>
-              <div class="user">
-                <div class="avatar">JM</div>
-                <span class="username">John M.</span>
-                <button class="icon-btn" title="Logout">↩</button>
-              </div>
-            </div>
-          </header>
+          </div>
+          <div id="projectList" className={styles.projectList}></div>
+        </section>
 
-          <section class="cards">
-            <div class="card">
-              <p>Active Projects</p>
-              <h2 id="kpi-projects">0</h2>
-            </div>
-            <div class="card">
-              <p>Tasks Due This Week</p>
-              <h2 id="kpi-tasks-week">0</h2>
-            </div>
-            <div class="card">
-              <p>Unread Messages</p>
-              <h2 id="kpi-messages">0</h2>
-            </div>
-          </section>
+        <section className={styles.charts}>
+          <div className={styles.chartCard}>
+            <div className={styles.panelHead}><h3>Weekly Progress</h3></div>
+            <canvas id="progressChart"></canvas>
+          </div>
+          <div className={styles.chartCard}>
+            <div className={styles.panelHead}><h3>Workload by Area</h3></div>
+            <canvas id="workloadChart"></canvas>
+          </div>
+        </section>
+      </main>
 
-          <section class="panel">
-            <div class="panel-head">
-              <h2>My Projects</h2>
-              <div class="tabs">
-                <button class="tab active" data-filter="all">All</button>
-                <button class="tab" data-filter="On Track">On Track</button>
-                <button class="tab" data-filter="At Risk">At Risk</button>
-                <button class="tab" data-filter="Review">Review</button>
-              </div>
-            </div>
-            <div id="projectList" class="project-list"></div>
-          </section>
+      <aside className={styles.rightbar}>
+        <section className={styles.panel}>
+          <div className={styles.panelHead}>
+            <h3>Upcoming Deadlines</h3>
+            <button className={styles.iconBtn}>📅</button>
+          </div>
+          <ul id="deadlineList" className={styles.list}></ul>
+        </section>
 
-          <section class="charts">
-            <div class="chart-card">
-              <div class="panel-head"><h3>Weekly Progress</h3></div>
-              <canvas id="progressChart"></canvas>
-            </div>
-            <div class="chart-card">
-              <div class="panel-head"><h3>Workload by Area</h3></div>
-              <canvas id="workloadChart"></canvas>
-            </div>
-          </section>
-        </main>
+        <section className={styles.panel}>
+          <div className={styles.panelHead}>
+            <h3>Team Activity</h3>
+            <span className={styles.live}>Live</span>
+          </div>
+          <ul id="activityList" className={styles.list}></ul>
+        </section>
 
-        <aside class="rightbar">
-          <section class="panel">
-            <div class="panel-head">
-              <h3>Upcoming Deadlines</h3>
-              <button class="icon-btn">📅</button>
-            </div>
-            <ul id="deadlineList" class="list"></ul>
-          </section>
+        <section className={styles.panel}>
+          <div className={styles.panelHead}>
+            <h3>Inbox</h3>
+            <button className={styles.iconBtn}>✉️</button>
+          </div>
+          <ul id="inboxList" className={styles.list}></ul>
+        </section>
 
-          <section class="panel">
-            <div class="panel-head">
-              <h3>Team Activity</h3>
-              <span class="live">Live</span>
-            </div>
-            <ul id="activityList" class="list"></ul>
-          </section>
+        <section className={styles.panel}>
+          <div className={styles.panelHead}><h3>Getting Started</h3></div>
+          <ul className={styles.bullet}>
+            <li>Connect your Git repository</li>
+            <li>Invite teammates to your workspace</li>
+            <li>Create your first sprint board</li>
+            <li>Enable calendar sync</li>
+          </ul>
+        </section>
 
-          <section class="panel">
-            <div class="panel-head">
-              <h3>Inbox</h3>
-              <button class="icon-btn">✉️</button>
-            </div>
-            <ul id="inboxList" class="list"></ul>
-          </section>
-
-          <section class="panel">
-            <div class="panel-head"><h3>Getting Started</h3></div>
-            <ul class="bullet">
-              <li>Connect your Git repository</li>
-              <li>Invite teammates to your workspace</li>
-              <li>Create your first sprint board</li>
-              <li>Enable calendar sync</li>
-            </ul>
-          </section>
-
-          <footer class="footer">
-            © <span id="year"></span> Project Collaboration Portal · Student Dashboard
-          </footer>
-        </aside>
-
-        <script src="script.js"></script>
-      </body>
+        <footer className={styles.footer}>
+          © <span id="year"></span> Project Collaboration Portal · Student Dashboard
+        </footer>
+      </aside>
     </div>
   );
-}
+};
 
 export default Dashboard;

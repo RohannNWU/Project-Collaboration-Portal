@@ -1,0 +1,26 @@
+body {
+    font-family: 'Franklin Gothic Medium';
+    background-color: #088cad;
+    color: #cccccb
+}
+
+h1 {
+    font-size: 42px;
+    font-weight: bold;
+    text-decoration: underline;
+}
+
+label {
+    font-size: 18px;
+    font-weight: bold;
+}
+
+.login-container {
+    min-height: 100vh;
+    min-width: 250px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 5px;
+    background-color: #9f9f9f;
+}
