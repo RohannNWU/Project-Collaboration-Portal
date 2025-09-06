@@ -1,6 +1,5 @@
 import React, { useEffect } from 'react';
-import styles from './Dashboard.module.css'
-import { makeAuthenticatedRequest } from '../utils/api';
+import styles from './Dashboard.module.css';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faFolder, faCheckCircle, faUsers, faCalendar, faCodeBranch, faFile, faInbox, faBell, faGear, faSignOutAlt } from '@fortawesome/free-solid-svg-icons';
 
