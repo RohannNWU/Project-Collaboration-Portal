@@ -61,17 +61,35 @@ function Login() {
     try {
       const API_BASE_URL = window.location.hostname === 'localhost'
         ? 'http://127.0.0.1:8000'
-        : 'https://pcp-backend-f4a2.onrender.com';
+        : 'https://pcp-backend-f4a2.onrender.com'; // Use consistent URL
+
+      // Get access_token from cookies
+      const cookies = document.cookie.split('; ').reduce((acc, cookie) => {
+        const [name, value] = cookie.split('=');
+        acc[name] = value;
+        return acc;
+      }, {});
+      const accessToken = cookies['access_token'];
 
       const response = await fetch(`${API_BASE_URL}/protected/`, {
         method: 'GET',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include', // Include cookies
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${accessToken}`, // Add JWT token
+        },
+        credentials: 'include', // Still include cookies if needed
       });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
       const data = await response.json();
       console.log(data);
+      return data;
     } catch (error) {
       console.error('Error:', error);
+      throw error;
     }
   };
 

@@ -6,6 +6,7 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework_simplejwt.tokens import RefreshToken
+from rest_framework_simplejwt.tokens import AccessToken
 import bcrypt
 import json
 
@@ -41,13 +42,7 @@ def register_user(request):
 
 class LoginView(APIView):
     def options(self, request, *args, **kwargs):
-        response = Response(status=status.HTTP_200_OK)
-        response['Access-Control-Allow-Origin'] = 'http://localhost:3000'
-        response['Access-Control-Allow-Origin'] = 'https://wonderful-coast-0409a4c03.2.azurestaticapps.net'
-        response['Access-Control-Allow-Methods'] = 'POST, OPTIONS'
-        response['Access-Control-Allow-Headers'] = 'content-type, authorization'
-        response['Access-Control-Allow-Credentials'] = 'true'
-        return response
+        return Response(status=status.HTTP_200_OK)
 
     def post(self, request):
         email = request.data.get('email')
@@ -90,10 +85,27 @@ class LoginView(APIView):
         return response
 
 class ProtectedView(APIView):
-    permission_classes = [IsAuthenticated]
-
     def get(self, request):
-        return Response({'message': 'This is a protected endpoint!'})
+        # Extract access_token from cookies
+        access_token = request.COOKIES.get('access_token')
+        if not access_token:
+            return Response(
+                {'detail': 'Authentication credentials were not provided.'},
+                status=status.HTTP_401_UNAUTHORIZED
+            )
+
+        try:
+            # Validate the token
+            token = AccessToken(access_token)
+            # Optionally, you can access token payload (e.g., user_id, email)
+            user_id = token['user_id']
+            # Add your logic here
+            return Response({'message': 'This is a protected endpoint!'}, status=status.HTTP_200_OK)
+        except Exception as e:
+            return Response(
+                {'detail': 'Invalid token.'},
+                status=status.HTTP_401_UNAUTHORIZED
+            )
 
 def landing_page(request):
     return render(request, 'landingpage.html')
