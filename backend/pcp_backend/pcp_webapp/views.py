@@ -16,8 +16,6 @@ def register_user(request):
             data = json.loads(request.body)
             email = data.get('email')
             password = data.get('password')
-            username = data.get('username', '')
-            role = data.get('role', 'user')
 
             if not email or not password:
                 return JsonResponse({'message': 'Email and password are required'}, status=400)
@@ -29,8 +27,6 @@ def register_user(request):
             settings.USERS_COLLECTION.insert_one({
                 'email': email,
                 'password': hashed_password,
-                'username': username,
-                'role': role
             })
 
             return JsonResponse({'message': 'Registration successful'}, status=201)
@@ -62,8 +58,6 @@ class LoginView(APIView):
 
         response = Response({
             'success': True,
-            'username': user.get('username', ''),
-            'role': user.get('role', 'user'),
         }, status=status.HTTP_200_OK)
 
         response.set_cookie(
