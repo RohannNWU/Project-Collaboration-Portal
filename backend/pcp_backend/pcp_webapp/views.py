@@ -56,50 +56,19 @@ class LoginView(APIView):
         refresh['email'] = email
         refresh['user_id'] = str(user['_id'])
 
-        response = Response({
+        return Response({
             'success': True,
+            'access_token': str(refresh.access_token),
+            'refresh_token': str(refresh),
+            'user': {'email': email, 'user_id': str(user['_id'])}
         }, status=status.HTTP_200_OK)
 
-        response.set_cookie(
-            'access_token',
-            str(refresh.access_token),
-            httponly=True,
-            secure=True,  # False for local testing
-            samesite='Lax',
-            max_age=3600
-        )
-        response.set_cookie(
-            'refresh_token',
-            str(refresh),
-            httponly=True,
-            secure=True,  # False for local testing
-            samesite='Lax',
-            max_age=86400
-        )
-        return response
-
 class ProtectedView(APIView):
-    def get(self, request):
-        # Extract access_token from cookies
-        access_token = request.COOKIES.get('access_token')
-        if not access_token:
-            return Response(
-                {'detail': 'Authentication credentials were not provided.'},
-                status=status.HTTP_401_UNAUTHORIZED
-            )
+    permission_classes = [IsAuthenticated]  # Use DRF's authentication
 
-        try:
-            # Validate the token
-            token = AccessToken(access_token)
-            # Optionally, you can access token payload (e.g., user_id, email)
-            user_id = token['user_id']
-            # Add your logic here
-            return Response({'message': 'This is a protected endpoint!'}, status=status.HTTP_200_OK)
-        except Exception as e:
-            return Response(
-                {'detail': 'Invalid token.'},
-                status=status.HTTP_401_UNAUTHORIZED
-            )
+    def get(self, request):
+        user_id = request.user.user_id  # Access user_id from the validated token
+        return Response({'message': f'This is a protected endpoint! User ID: {user_id}'}, status=status.HTTP_200_OK)
 
 def landing_page(request):
     return render(request, 'landingpage.html')

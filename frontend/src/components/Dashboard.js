@@ -1,4 +1,4 @@
-import React, { useEffect }from 'react';
+import React, { useEffect } from 'react';
 import styles from './Dashboard.module.css'
 import { makeAuthenticatedRequest } from '../utils/api';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
@@ -11,9 +11,26 @@ const Dashboard = () => {
         const API_BASE_URL = window.location.hostname === 'localhost'
           ? 'http://127.0.0.1:8000'
           : 'https://pcp-backend-f4a2.onrender.com';
-        const response = await makeAuthenticatedRequest(`${API_BASE_URL}/protected/`);
+        const accessToken = localStorage.getItem('access_token');
+
+        if (!accessToken) {
+          throw new Error('No access token found');
+        }
+
+        const response = await fetch(`${API_BASE_URL}/protected/`, {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${accessToken}`,
+          },
+        });
+
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+
         const data = await response.json();
-        console.log(data);
+        console.log('Protected data:', data);
       } catch (error) {
         console.error('Failed to fetch data:', error);
       }
