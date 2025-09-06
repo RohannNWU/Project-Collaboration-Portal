@@ -4,8 +4,6 @@ import styles from './Signup.module.css';
 const Signup = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [username, setUsername] = useState('');
-  const [role, setRole] = useState('user');
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
 
@@ -23,15 +21,13 @@ const Signup = () => {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ email, password, username, role }),
+        body: JSON.stringify({ email, password }),
       });
 
       if (response.ok) {
         setSuccess('Registration successful!');
         setEmail('');
         setPassword('');
-        setUsername('');
-        setRole('user');
       } else {
         const data = await response.json();
         setError(data.message || 'Registration failed. Please try again.');
@@ -57,17 +53,6 @@ const Signup = () => {
           />
         </div>
         <div className={styles.formGroup}>
-          <label htmlFor="username">Username:</label>
-          <input
-            type="text"
-            id="username"
-            value={username}
-            onChange={(e) => setUsername(e.target.value)}
-            required
-            className={styles.input}
-          />
-        </div>
-        <div className={styles.formGroup}>
           <label htmlFor="password">Password:</label>
           <input
             type="password"
@@ -77,18 +62,6 @@ const Signup = () => {
             required
             className={styles.input}
           />
-        </div>
-        <div className={styles.formGroup}>
-          <label htmlFor="role">Role:</label>
-          <select
-            id="role"
-            value={role}
-            onChange={(e) => setRole(e.target.value)}
-            className={styles.input}
-          >
-            <option value="user">User</option>
-            <option value="admin">Admin</option>
-          </select>
         </div>
         {error && <p className={styles.error}>{error}</p>}
         {success && <p className={styles.success}>{success}</p>}
