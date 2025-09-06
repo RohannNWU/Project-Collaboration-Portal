@@ -44,6 +44,7 @@ function Login() {
         const userData = { username: data.username, role: data.role };
         localStorage.setItem('user', JSON.stringify(userData));
         setUser(userData);
+        await fetchProtectedData();
         navigate('/dashboard');
       } else {
         setError(data.message || 'Invalid email or password');
