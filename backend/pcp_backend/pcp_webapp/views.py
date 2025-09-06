@@ -84,5 +84,28 @@ class LoginView(APIView):
         )
         return response
 
+class ProtectedView(APIView):
+    def get(self, request):
+        # Extract access_token from cookies
+        access_token = request.COOKIES.get('access_token')
+        if not access_token:
+            return Response(
+                {'detail': 'Authentication credentials were not provided.'},
+                status=status.HTTP_401_UNAUTHORIZED
+            )
+
+        try:
+            # Validate the token
+            token = AccessToken(access_token)
+            # Optionally, you can access token payload (e.g., user_id, email)
+            user_id = token['user_id']
+            # Add your logic here
+            return Response({'message': 'This is a protected endpoint!'}, status=status.HTTP_200_OK)
+        except Exception as e:
+            return Response(
+                {'detail': 'Invalid token.'},
+                status=status.HTTP_401_UNAUTHORIZED
+            )
+
 def landing_page(request):
     return render(request, 'landingpage.html')

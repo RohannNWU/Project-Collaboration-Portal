@@ -17,7 +17,7 @@ const Signup = () => {
     try {
       const API_BASE_URL = window.location.hostname === 'localhost'
         ? 'http://127.0.0.1:8000'
-        : 'https://pcp-backend-f4a2.onrender.com/';
+        : 'https://pcp-backend-f4a2.onrender.com';
       const response = await fetch(`${API_BASE_URL}/api/register/`, {
         method: 'POST',
         headers: {
