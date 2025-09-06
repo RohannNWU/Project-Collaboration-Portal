@@ -114,9 +114,9 @@ STATICFILES_DIRS = [BASE_DIR / 'static']
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 # Production security settings
-SECURE_SSL_REDIRECT = False  # Redirect HTTP to HTTPS
-SESSION_COOKIE_SECURE = False  # Cookies only sent over HTTPS
-CSRF_COOKIE_SECURE = False  # CSRF cookies over HTTPS
-SECURE_HSTS_SECONDS = 0  # Enforce HTTPS for 1 year
-SECURE_HSTS_INCLUDE_SUBDOMAINS = False
-SECURE_HSTS_PRELOAD = False
+SECURE_SSL_REDIRECT = True  # Redirect HTTP to HTTPS
+SESSION_COOKIE_SECURE = True  # Cookies only sent over HTTPS
+CSRF_COOKIE_SECURE = True  # CSRF cookies over HTTPS
+SECURE_HSTS_SECONDS = 31536000  # Enforce HTTPS for 1 year
+SECURE_HSTS_INCLUDE_SUBDOMAINS = True
+SECURE_HSTS_PRELOAD = True
