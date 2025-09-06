@@ -28,6 +28,7 @@ const Signup = () => {
         setSuccess('Registration successful!');
         setEmail('');
         setPassword('');
+        navigate('/login');
       } else {
         const data = await response.json();
         setError(data.message || 'Registration failed. Please try again.');
