@@ -64,7 +64,7 @@ class LoginView(APIView):
             'access_token',
             str(refresh.access_token),
             httponly=True,
-            secure=False,  # False for local testing
+            secure=True,  # False for local testing
             samesite='Lax',
             max_age=3600
         )
@@ -72,7 +72,7 @@ class LoginView(APIView):
             'refresh_token',
             str(refresh),
             httponly=True,
-            secure=False,  # False for local testing
+            secure=True,  # False for local testing
             samesite='Lax',
             max_age=86400
         )
