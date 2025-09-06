@@ -43,6 +43,7 @@ class LoginView(APIView):
     def options(self, request, *args, **kwargs):
         response = Response(status=status.HTTP_200_OK)
         response['Access-Control-Allow-Origin'] = 'http://localhost:3000'
+        response['Access-Control-Allow-Origin'] = 'https://wonderful-coast-0409a4c03.2.azurestaticapps.net'
         response['Access-Control-Allow-Methods'] = 'POST, OPTIONS'
         response['Access-Control-Allow-Headers'] = 'content-type, authorization'
         response['Access-Control-Allow-Credentials'] = 'true'
