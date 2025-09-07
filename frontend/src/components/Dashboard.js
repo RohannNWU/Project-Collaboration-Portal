@@ -64,7 +64,16 @@ const Dashboard = () => {
           <button className={styles.navBtn}><FontAwesomeIcon icon={faFolder} /> My Projects</button>
           <button className={styles.navBtn}><FontAwesomeIcon icon={faCheckCircle} /> My Tasks</button>
           <button className={styles.navBtn}><FontAwesomeIcon icon={faUsers} /> Teams</button>
-          <button className={styles.navBtn}><FontAwesomeIcon icon={faCalendar} /> Calendar</button>
+          {/*----------------------------------------
+          - Navigation to Calendar Page
+          ----------------------------------------*/}
+          <button 
+            className={styles.navBtn} 
+            onClick={() => navigate("/calendar")}   // ✅ this makes it work
+          >
+            <FontAwesomeIcon icon={faCalendar} /> Calendar
+          </button>
+          
           <button className={styles.navBtn}><FontAwesomeIcon icon={faCodeBranch} /> Repos</button>
           <button className={styles.navBtn}><FontAwesomeIcon icon={faFile} /> Documents</button>
           <button className={styles.navBtn}><FontAwesomeIcon icon={faInbox} /> Inbox</button>
