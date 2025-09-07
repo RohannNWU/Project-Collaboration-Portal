@@ -105,7 +105,6 @@ const Dashboard = () => {
             <div className={styles.tabs}>
               <button className={`${styles.tab} ${styles.active}`} data-filter="all">All</button>
               <button className={styles.tab} data-filter="On Track">On Track</button>
-              <button className={styles.tab} data-filter="At Risk">At Risk</button>
               <button className={styles.tab} data-filter="Review">Review</button>
             </div>
           </div>
