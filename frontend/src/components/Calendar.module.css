@@ -1,0 +1,29 @@
+/*----------------------------------------
+//  Calendar Page Styling
+//----------------------------------------*/
+
+.calendarPage {
+  padding: 20px;
+  background: #fafafa;
+  min-height: 100vh;
+}
+
+.header {
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 20px;
+  padding-bottom: 10px;
+}
+
+.header h1 {
+  margin: 0;
+  font-size: 24px;
+  color: var(--nwu-purple);
+}
+
+.calendarBody {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 20px;
+  min-height: 400px;
+}
