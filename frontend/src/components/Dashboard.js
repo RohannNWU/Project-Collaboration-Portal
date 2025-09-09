@@ -1,9 +1,19 @@
-import React, { useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import styles from './Dashboard.module.css';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faFolder, faCheckCircle, faUsers, faCalendar, faCodeBranch, faFile, faInbox, faBell, faGear, faSignOutAlt } from '@fortawesome/free-solid-svg-icons';
 
 const Dashboard = () => {
+  const [userEmail, setUserEmail] = useState(() => {
+    try {
+      const storedUser = localStorage.getItem('user');
+      return storedUser ? JSON.parse(storedUser).email : 'Anonymous User';
+    } catch (e) {
+      console.error('Failed to parse user from localStorage:', e);
+      return 'Student';
+    }
+  });
+
   useEffect(() => {
     const fetchData = async () => {
       try {
@@ -16,20 +26,12 @@ const Dashboard = () => {
           throw new Error('No access token found');
         }
 
-        const response = await fetch(`${API_BASE_URL}/protected/`, {
-          method: 'GET',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${accessToken}`,
-          },
-        });
-
-        if (!response.ok) {
-          throw new Error(`HTTP error! status: ${response.status}`);
-        }
-
         const data = await response.json();
         console.log('Protected data:', data);
+        if (data.email) {
+          localStorage.setItem('user', JSON.stringify({ email: data.email }));
+          setUserEmail(data.email);
+        }
       } catch (error) {
         console.error('Failed to fetch data:', error);
       }
@@ -44,7 +46,7 @@ const Dashboard = () => {
           <div className={styles.logo}>NWU</div>
           <div className={styles.brandText}>
             <h2>Project Collaboration Portal</h2>
-            <small>Student</small>
+            <small>{userEmail}</small>
           </div>
         </div>
         <nav className={styles.nav}>

@@ -2,12 +2,10 @@ from django.conf import settings
 from django.http import JsonResponse
 from django.shortcuts import render
 from rest_framework import status
-from rest_framework.permissions import IsAuthenticated, AllowAny
+from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
-from rest_framework.decorators import api_view, permission_classes
 from rest_framework_simplejwt.tokens import RefreshToken
-from rest_framework_simplejwt.tokens import AccessToken
 import bcrypt
 import json
 
@@ -61,15 +59,5 @@ class LoginView(APIView):
             'success': True,
             'access_token': str(refresh.access_token),
             'refresh_token': str(refresh),
-            'user': {'email': email, 'user_id': str(user['_id'])}
+            'user': {'email': email}
         }, status=status.HTTP_200_OK)
-
-class ProtectedView(APIView):
-    permission_classes = [IsAuthenticated]  # Use DRF's authentication
-
-    def get(self, request):
-        user_id = request.user.user_id  # Access user_id from the validated token
-        return Response({'message': f'This is a protected endpoint! User ID: {user_id}'}, status=status.HTTP_200_OK)
-
-def landing_page(request):
-    return render(request, 'landingpage.html')
