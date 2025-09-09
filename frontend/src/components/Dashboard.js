@@ -26,6 +26,18 @@ const Dashboard = () => {
           throw new Error('No access token found');
         }
 
+        const response = await fetch(`${API_BASE_URL}/protected/`, {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${accessToken}`,
+          },
+        });
+
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+
         const data = await response.json();
         console.log('Protected data:', data);
         if (data.email) {
