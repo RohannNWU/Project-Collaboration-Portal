@@ -14,7 +14,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # Quick-start development settings - unsuitable for production
 SECRET_KEY = 'your-secret-key-here'  # Replace with a random string for production
 DEBUG = True
-ALLOWED_HOSTS = ['wonderful-coast-0409a4c03.2.azurestaticapps.net', 'localhost', '127.0.0.1']
+ALLOWED_HOSTS = ['wonderful-coast-0409a4c03.2.azurestaticapps.net', 'localhost', '127.0.0.1', 'pcp-backend-f4a2.onrender.com']
 
 # Application definition
 INSTALLED_APPS = [
@@ -108,13 +108,9 @@ CORS_ALLOWED_ORIGINS = [
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 # Disable authentication backends
-AUTHENTICATION_BACKENDS = [
-    'django.contrib.auth.backends.ModelBackend',
-]
+AUTHENTICATION_BACKENDS = []
 
 # REST Framework - Disable default JWT authentication
 REST_FRAMEWORK = {
-    'DEFAULT_AUTHENTICATION_CLASSES': (
-        'rest_framework_simplejwt.authentication.JWTAuthentication',
-    ),
+    'DEFAULT_AUTHENTICATION_CLASSES': (),
 }
