@@ -100,7 +100,8 @@ STATIC_URL = 'static/'
 # CORS
 CORS_ALLOWED_ORIGINS = [
     "http://localhost:3000",
-    "https://wonderful-coast-0409a4c03.2.azurestaticapps.net"
+    "https://wonderful-coast-0409a4c03.2.azurestaticapps.net",
+    "https://pcp-backend-f4a2.onrender.com"
 ]
 
 # Default primary key field type
