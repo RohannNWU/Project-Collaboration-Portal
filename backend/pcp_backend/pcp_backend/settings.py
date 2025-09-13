@@ -100,6 +100,7 @@ STATIC_URL = 'static/'
 # CORS
 CORS_ALLOWED_ORIGINS = [
     "http://localhost:3000",
+    "https://wonderful-coast-0409a4c03.2.azurestaticapps.net"
 ]
 
 # Default primary key field type
