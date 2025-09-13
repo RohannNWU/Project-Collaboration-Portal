@@ -1,11 +1,10 @@
-from django.urls import path
-from pcp_webapp import views
 from django.contrib import admin
-from rest_framework_simplejwt.views import TokenRefreshView
+from django.urls import path
+from pcp_webapp.views import LoginView, DashboardView, AddUserView
 
 urlpatterns = [
     path('admin/', admin.site.urls),
-    path('api/login/', views.LoginView.as_view(), name='login'),
-    path('api/token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
-    path('api/register/', views.register_user, name='register'),
+    path('api/login/', LoginView.as_view(), name='login'),
+    path('api/dashboard/', DashboardView.as_view(), name='dashboard'),
+    path('api/adduser/', AddUserView.as_view(), name='adduser'),
 ]

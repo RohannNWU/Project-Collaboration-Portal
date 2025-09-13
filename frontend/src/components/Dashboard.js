@@ -1,55 +1,38 @@
 import React, { useState, useEffect } from 'react';
-import styles from './Dashboard.module.css';
+import axios from 'axios';
+import { useNavigate } from 'react-router-dom';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import styles from './Dashboard.module.css';
 import { faFolder, faCheckCircle, faUsers, faCalendar, faCodeBranch, faFile, faInbox, faBell, faGear, faSignOutAlt } from '@fortawesome/free-solid-svg-icons';
 
 const Dashboard = () => {
-  const [userEmail, setUserEmail] = useState(() => {
-    try {
-      const storedUser = localStorage.getItem('user');
-      return storedUser ? JSON.parse(storedUser).email : 'Anonymous User';
-    } catch (e) {
-      console.error('Failed to parse user from localStorage:', e);
-      return 'Student';
-    }
-  });
+  const [email, setEmail] = useState('');
+  const [username, setUsername] = useState('');
+  const navigate = useNavigate();
 
   useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const API_BASE_URL = window.location.hostname === 'localhost'
-          ? 'http://127.0.0.1:8000'
-          : 'https://pcp-backend-f4a2.onrender.com';
-        const accessToken = localStorage.getItem('access_token');
+    const token = localStorage.getItem('access_token');
+    console.log("Token: " + token)
+    if (!token) {
+      navigate('/');
+      return;
+    }
 
-        if (!accessToken) {
-          throw new Error('No access token found');
-        }
+    const API_BASE_URL = window.location.hostname === 'localhost'
+        ? 'http://127.0.0.1:8000'
+        : 'https://pcp-backend-f4a2.onrender.com';
 
-        const response = await fetch(`${API_BASE_URL}/protected/`, {
-          method: 'GET',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${accessToken}`,
-          },
-        });
-
-        if (!response.ok) {
-          throw new Error(`HTTP error! status: ${response.status}`);
-        }
-
-        const data = await response.json();
-        console.log('Protected data:', data);
-        if (data.email) {
-          localStorage.setItem('user', JSON.stringify({ email: data.email }));
-          setUserEmail(data.email);
-        }
-      } catch (error) {
-        console.error('Failed to fetch data:', error);
-      }
-    };
-    fetchData();
-  }, []);
+    axios.get(`${API_BASE_URL}/api/dashboard/`, {
+      headers: { Authorization: `Bearer ${token}` }
+    })
+    .then(response => {
+      setEmail(response.data.email);
+      setUsername(response.data.username);
+    })
+    .catch(err => {
+      if (err.response && err.response.status === 401) navigate('/');
+    });
+  }, [navigate]);
 
   return (
     <div className={styles.dashboard}>
@@ -58,7 +41,7 @@ const Dashboard = () => {
           <div className={styles.logo}>NWU</div>
           <div className={styles.brandText}>
             <h2>Project Collaboration Portal</h2>
-            <small>{userEmail}</small>
+            <small>{email}</small>
           </div>
         </div>
         <nav className={styles.nav}>
@@ -91,8 +74,7 @@ const Dashboard = () => {
             <button className={styles.iconBtn} title="Notifications"><FontAwesomeIcon icon={faBell} /></button>
             <button className={styles.iconBtn} title="Settings"><FontAwesomeIcon icon={faGear} /></button>
             <div className={styles.user}>
-              <div className={styles.avatar}>JM</div>
-              <span className={styles.username}>John M.</span>
+              <span className={styles.username}>{username}</span>
               <button className={styles.iconBtn} title="Logout"><FontAwesomeIcon icon={faSignOutAlt} /></button>
             </div>
           </div>
