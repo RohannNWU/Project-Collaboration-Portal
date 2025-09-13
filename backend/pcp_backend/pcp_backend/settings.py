@@ -64,10 +64,10 @@ WSGI_APPLICATION = 'pcp_backend.wsgi.application'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql',
-        'NAME': 'postgres',
+        'NAME': 'pcp',
         'USER': 'postgres',
-        'PASSWORD': 'pcpadmin123',  # Replace with your actual password
-        'HOST': '127.0.0.1',
+        'PASSWORD': 'Pcpadmin@2025',  # Replace with your actual password
+        'HOST': '34.35.89.15',
         'PORT': '5432',
     }
 }
