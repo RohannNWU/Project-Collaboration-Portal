@@ -2,15 +2,16 @@ import React, { useRef, useState, useEffect } from 'react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faFolder, faCheckCircle, faUsers, faCalendar, faCodeBranch, faFile, faInbox, faBell, faGear, faSignOutAlt } from '@fortawesome/free-solid-svg-icons';
-import { useNavigate } from "react-router-dom";
+import { faFolder, faCheckCircle, faUsers, faCalendar, faCodeBranch, faFile, faInbox, faBell, faSignOutAlt } from '@fortawesome/free-solid-svg-icons';
+import { faCog, faSearch, faPlus, faComment, faUpload, faProjectDiagram, faUserCheck, faEnvelope } from '@fortawesome/free-solid-svg-icons';
+import styles from './Dashboard.module.css';
 
 //----------------------------------------
 //  Dashboard Page Component
 //----------------------------------------
 
 const Dashboard = () => {
-  const [email, setEmail] = useState(getUserEmail());
+  const [email, setEmail] = useState('');
   const [username, setUsername] = useState('');
   const navigate = useNavigate();
   const calendarRef = useRef(null);

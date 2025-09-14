@@ -8,48 +8,32 @@ import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import Login from './components/Login';
 import Dashboard from './components/Dashboard';
 import Signup from './components/Signup';
-<<<<<<< HEAD
-import Calendar from './components/Calendar';   // ✅ Import Calendar
-=======
 import NewProject from './components/NewProject';
-
->>>>>>> rohann
+import Calendar from './components/Calendar';
 
 function App() {
   return (
     <Router>
         <Routes>
-<<<<<<< HEAD
-          <Route path="/login" element={<Login />} />
-          
+          <Route path="/" element={<Login />} />
+          <Route path="/adduser" element={<Signup />} />
           <Route
             path="/dashboard"
             element={
-              <ProtectedRoute>
-                <Dashboard />
-              </ProtectedRoute>
+              <Dashboard />
             }
           />
-
+          <Route path="/new-project" element={<NewProject />} />
           {/*----------------------------------------
           - Protected Calendar Route
           ----------------------------------------*/}
-          <Route
-            path="/calendar"
-            element={
-              <ProtectedRoute>
+           <Route
+              path="/calendar"
+              element={
                 <Calendar />
-              </ProtectedRoute>
-            }
-          />
-
-=======
->>>>>>> rohann
-          <Route path="/" element={<Login />} />
-          <Route path="/dashboard" element={<Dashboard />} />
-          <Route path="/adduser" element={<Signup />} />
-          <Route path="/newproject" element={<NewProject />} />
-        </Routes>
+              }
+        />
+      </Routes>
     </Router>
   );
 }
