@@ -1,11 +1,19 @@
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
-from .models import User
+from rest_framework.decorators import api_view, permission_classes
+from rest_framework.permissions import IsAuthenticated
+from .models import User, Project, Task, Message, Document, ActivityLog, ProjectMember
+from .serializers import (
+    UserSerializer, ProjectSerializer, TaskSerializer, MessageSerializer,
+    DocumentSerializer, ActivityLogSerializer, DashboardStatsSerializer
+)
 from rest_framework_simplejwt.tokens import UntypedToken, AccessToken
 from rest_framework_simplejwt.exceptions import InvalidToken
 from datetime import datetime, timedelta
 from django.db import connection
+from django.db.models import Q, Count
+from django.utils import timezone
 import bcrypt
 import binascii
 
@@ -19,6 +27,10 @@ class LoginView(APIView):
 
             if not bcrypt.checkpw(password.encode('utf-8'), hash_bytes):
                 return Response({'error': 'Invalid credentials'}, status=status.HTTP_401_UNAUTHORIZED)
+            
+            # Update last login
+            user.last_login = timezone.now()
+            user.save()
             
             current_time = datetime.utcnow()
             access = AccessToken()
@@ -46,7 +58,51 @@ class DashboardView(APIView):
             payload = UntypedToken(token).payload
             user_email = payload.get('user_email')
             user = User.objects.get(email=user_email)
-            return Response({'email': user.email, 'username': user.fname + ' ' + user.lname})
+            
+            # Get dashboard statistics
+            now = timezone.now()
+            week_from_now = now + timedelta(days=7)
+            
+            # User's projects (as owner or member)
+            user_projects = Project.objects.filter(
+                Q(owner=user) | Q(members=user)
+            ).distinct()
+            
+            active_projects = user_projects.filter(status__in=['planning', 'in_progress']).count()
+            
+            # Tasks assigned to user
+            user_tasks = Task.objects.filter(assignee=user)
+            tasks_due_this_week = user_tasks.filter(
+                due_date__gte=now,
+                due_date__lte=week_from_now,
+                status__in=['todo', 'in_progress']
+            ).count()
+            
+            unread_messages = Message.objects.filter(recipient=user, is_read=False).count()
+            
+            # Recent activities
+            recent_activities = ActivityLog.objects.filter(
+                project__in=user_projects
+            )[:10]
+            
+            # Upcoming deadlines
+            upcoming_deadlines = user_tasks.filter(
+                due_date__gte=now,
+                status__in=['todo', 'in_progress']
+            ).order_by('due_date')[:5]
+            
+            return Response({
+                'email': user.email,
+                'username': user.fname + ' ' + user.lname,
+                'stats': {
+                    'active_projects': active_projects,
+                    'tasks_due_this_week': tasks_due_this_week,
+                    'unread_messages': unread_messages,
+                },
+                'recent_activities': ActivityLogSerializer(recent_activities, many=True).data,
+                'upcoming_deadlines': TaskSerializer(upcoming_deadlines, many=True).data,
+                'projects': ProjectSerializer(user_projects[:5], many=True).data
+            })
         except InvalidToken:
             return Response({'error': 'Invalid token'}, status=status.HTTP_401_UNAUTHORIZED)
         except User.DoesNotExist:
@@ -74,3 +130,249 @@ class AddUserView(APIView):
             return Response({'message': 'User added successfully', 'id': user_email}, status=status.HTTP_201_CREATED)
         except Exception as e:
             return Response({'error': f'Failed to add user: {str(e)}'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+class ProjectListCreateView(APIView):
+    def get_user_from_token(self, request):
+        auth_header = request.headers.get('Authorization')
+        if not auth_header or not auth_header.startswith('Bearer '):
+            return None
+        token = auth_header.split(' ')[1]
+        try:
+            payload = UntypedToken(token).payload
+            user_email = payload.get('user_email')
+            return User.objects.get(email=user_email)
+        except:
+            return None
+
+    def get(self, request):
+        user = self.get_user_from_token(request)
+        if not user:
+            return Response({'error': 'Authentication required'}, status=status.HTTP_401_UNAUTHORIZED)
+        
+        # Get projects where user is owner or member
+        projects = Project.objects.filter(
+            Q(owner=user) | Q(members=user)
+        ).distinct().order_by('-updated_at')
+        
+        serializer = ProjectSerializer(projects, many=True)
+        return Response(serializer.data)
+
+    def post(self, request):
+        user = self.get_user_from_token(request)
+        if not user:
+            return Response({'error': 'Authentication required'}, status=status.HTTP_401_UNAUTHORIZED)
+        
+        data = request.data.copy()
+        data['owner'] = user.email
+        
+        try:
+            project = Project.objects.create(
+                name=data.get('name'),
+                description=data.get('description', ''),
+                owner=user,
+                status=data.get('status', 'planning'),
+                priority=data.get('priority', 'medium'),
+                start_date=data.get('start_date'),
+                due_date=data.get('due_date')
+            )
+            
+            # Log activity
+            ActivityLog.objects.create(
+                user=user,
+                project=project,
+                action_type='project_created',
+                description=f'Created project: {project.name}'
+            )
+            
+            serializer = ProjectSerializer(project)
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+        except Exception as e:
+            return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
+class TaskListCreateView(APIView):
+    def get_user_from_token(self, request):
+        auth_header = request.headers.get('Authorization')
+        if not auth_header or not auth_header.startswith('Bearer '):
+            return None
+        token = auth_header.split(' ')[1]
+        try:
+            payload = UntypedToken(token).payload
+            user_email = payload.get('user_email')
+            return User.objects.get(email=user_email)
+        except:
+            return None
+
+    def get(self, request):
+        user = self.get_user_from_token(request)
+        if not user:
+            return Response({'error': 'Authentication required'}, status=status.HTTP_401_UNAUTHORIZED)
+        
+        # Get tasks assigned to user or in projects they're part of
+        user_projects = Project.objects.filter(
+            Q(owner=user) | Q(members=user)
+        ).distinct()
+        
+        tasks = Task.objects.filter(
+            Q(assignee=user) | Q(project__in=user_projects)
+        ).distinct().order_by('-created_at')
+        
+        serializer = TaskSerializer(tasks, many=True)
+        return Response(serializer.data)
+
+    def post(self, request):
+        user = self.get_user_from_token(request)
+        if not user:
+            return Response({'error': 'Authentication required'}, status=status.HTTP_401_UNAUTHORIZED)
+        
+        try:
+            project = Project.objects.get(id=request.data.get('project_id'))
+            
+            # Check if user has access to this project
+            if not (project.owner == user or project.members.filter(email=user.email).exists()):
+                return Response({'error': 'Access denied'}, status=status.HTTP_403_FORBIDDEN)
+            
+            task = Task.objects.create(
+                title=request.data.get('title'),
+                description=request.data.get('description', ''),
+                project=project,
+                creator=user,
+                assignee_id=request.data.get('assignee_email'),
+                status=request.data.get('status', 'todo'),
+                priority=request.data.get('priority', 'medium'),
+                due_date=request.data.get('due_date')
+            )
+            
+            # Log activity
+            ActivityLog.objects.create(
+                user=user,
+                project=project,
+                action_type='task_created',
+                description=f'Created task: {task.title}'
+            )
+            
+            serializer = TaskSerializer(task)
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+        except Exception as e:
+            return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
+class MessageListCreateView(APIView):
+    def get_user_from_token(self, request):
+        auth_header = request.headers.get('Authorization')
+        if not auth_header or not auth_header.startswith('Bearer '):
+            return None
+        token = auth_header.split(' ')[1]
+        try:
+            payload = UntypedToken(token).payload
+            user_email = payload.get('user_email')
+            return User.objects.get(email=user_email)
+        except:
+            return None
+
+    def get(self, request):
+        user = self.get_user_from_token(request)
+        if not user:
+            return Response({'error': 'Authentication required'}, status=status.HTTP_401_UNAUTHORIZED)
+        
+        messages = Message.objects.filter(recipient=user).order_by('-created_at')
+        serializer = MessageSerializer(messages, many=True)
+        return Response(serializer.data)
+
+    def post(self, request):
+        user = self.get_user_from_token(request)
+        if not user:
+            return Response({'error': 'Authentication required'}, status=status.HTTP_401_UNAUTHORIZED)
+        
+        try:
+            recipient = User.objects.get(email=request.data.get('recipient_email'))
+            
+            message = Message.objects.create(
+                sender=user,
+                recipient=recipient,
+                project_id=request.data.get('project_id'),
+                message_type=request.data.get('message_type', 'direct'),
+                subject=request.data.get('subject'),
+                content=request.data.get('content')
+            )
+            
+            serializer = MessageSerializer(message)
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+        except Exception as e:
+            return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
+@api_view(['PATCH'])
+def mark_message_read(request, message_id):
+    auth_header = request.headers.get('Authorization')
+    if not auth_header or not auth_header.startswith('Bearer '):
+        return Response({'error': 'Authentication required'}, status=status.HTTP_401_UNAUTHORIZED)
+    
+    token = auth_header.split(' ')[1]
+    try:
+        payload = UntypedToken(token).payload
+        user_email = payload.get('user_email')
+        user = User.objects.get(email=user_email)
+        
+        message = Message.objects.get(id=message_id, recipient=user)
+        message.is_read = True
+        message.save()
+        
+        return Response({'message': 'Message marked as read'})
+    except Exception as e:
+        return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
+@api_view(['GET'])
+def user_profile(request):
+    auth_header = request.headers.get('Authorization')
+    if not auth_header or not auth_header.startswith('Bearer '):
+        return Response({'error': 'Authentication required'}, status=status.HTTP_401_UNAUTHORIZED)
+    
+    token = auth_header.split(' ')[1]
+    try:
+        payload = UntypedToken(token).payload
+        user_email = payload.get('user_email')
+        user = User.objects.get(email=user_email)
+        
+        serializer = UserSerializer(user)
+        return Response(serializer.data)
+    except Exception as e:
+        return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
+@api_view(['GET'])
+def project_analytics(request, project_id):
+    auth_header = request.headers.get('Authorization')
+    if not auth_header or not auth_header.startswith('Bearer '):
+        return Response({'error': 'Authentication required'}, status=status.HTTP_401_UNAUTHORIZED)
+    
+    token = auth_header.split(' ')[1]
+    try:
+        payload = UntypedToken(token).payload
+        user_email = payload.get('user_email')
+        user = User.objects.get(email=user_email)
+        
+        project = Project.objects.get(id=project_id)
+        
+        # Check access
+        if not (project.owner == user or project.members.filter(email=user.email).exists()):
+            return Response({'error': 'Access denied'}, status=status.HTTP_403_FORBIDDEN)
+        
+        # Get analytics data
+        total_tasks = project.tasks.count()
+        completed_tasks = project.tasks.filter(status='completed').count()
+        overdue_tasks = project.tasks.filter(
+            due_date__lt=timezone.now(),
+            status__in=['todo', 'in_progress']
+        ).count()
+        
+        task_status_breakdown = project.tasks.values('status').annotate(count=Count('status'))
+        
+        return Response({
+            'project': ProjectSerializer(project).data,
+            'analytics': {
+                'total_tasks': total_tasks,
+                'completed_tasks': completed_tasks,
+                'overdue_tasks': overdue_tasks,
+                'completion_rate': (completed_tasks / total_tasks * 100) if total_tasks > 0 else 0,
+                'task_status_breakdown': list(task_status_breakdown)
+            }
+        })
+    except Exception as e:
+        return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
