@@ -1,75 +1,76 @@
-from django.conf import settings
-from django.http import JsonResponse
-from django.shortcuts import render
-from rest_framework import status
-from rest_framework.permissions import IsAuthenticated, AllowAny
-from rest_framework.response import Response
 from rest_framework.views import APIView
-from rest_framework.decorators import api_view, permission_classes
-from rest_framework_simplejwt.tokens import RefreshToken
-from rest_framework_simplejwt.tokens import AccessToken
+from rest_framework.response import Response
+from rest_framework import status
+from .models import User
+from rest_framework_simplejwt.tokens import UntypedToken, AccessToken
+from rest_framework_simplejwt.exceptions import InvalidToken
+from datetime import datetime, timedelta
+from django.db import connection
 import bcrypt
-import json
-
-def register_user(request):
-    if request.method == 'POST':
-        try:
-            data = json.loads(request.body)
-            email = data.get('email')
-            password = data.get('password')
-
-            if not email or not password:
-                return JsonResponse({'message': 'Email and password are required'}, status=400)
-
-            if settings.USERS_COLLECTION.find_one({'email': email}):
-                return JsonResponse({'message': 'Email already registered'}, status=400)
-
-            hashed_password = bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt())
-            settings.USERS_COLLECTION.insert_one({
-                'email': email,
-                'password': hashed_password,
-            })
-
-            return JsonResponse({'message': 'Registration successful'}, status=201)
-        except json.JSONDecodeError:
-            return JsonResponse({'message': 'Invalid request format'}, status=400)
-        except Exception as e:
-            return JsonResponse({'message': str(e)}, status=500)
-    return JsonResponse({'message': 'Invalid request method'}, status=405)
+import binascii
 
 class LoginView(APIView):
-    def options(self, request, *args, **kwargs):
-        return Response(status=status.HTTP_200_OK)
-
     def post(self, request):
         email = request.data.get('email')
         password = request.data.get('password')
+        try:
+            user = User.objects.get(email=email)
+            hash_bytes = binascii.unhexlify(user.password[2:])
 
-        if not email or not password:
-            return Response({'success': False, 'message': 'Email and password are required'}, status=status.HTTP_400_BAD_REQUEST)
+            if not bcrypt.checkpw(password.encode('utf-8'), hash_bytes):
+                return Response({'error': 'Invalid credentials'}, status=status.HTTP_401_UNAUTHORIZED)
+            
+            current_time = datetime.utcnow()
+            access = AccessToken()
+            access.set_exp(from_time=current_time, lifetime=timedelta(hours=1))
+            access.payload['user_email'] = user.email
+            access.payload['fname'] = user.fname
+            access.payload['lname'] = user.lname
+            username = user.fname + ' ' + user.lname
+            return Response({
+                'access': str(access),
+                'username': username,
+                'email': user.email
+            })
+        except User.DoesNotExist:
+            return Response({'error': 'Invalid credentials'}, status=status.HTTP_401_UNAUTHORIZED)
 
-        user = settings.USERS_COLLECTION.find_one({'email': email})
-
-        if not user or not bcrypt.checkpw(password.encode('utf-8'), user['password']):
-            return Response({'success': False, 'message': 'Invalid email or password'}, status=status.HTTP_401_UNAUTHORIZED)
-
-        refresh = RefreshToken()
-        refresh['email'] = email
-        refresh['user_id'] = str(user['_id'])
-
-        return Response({
-            'success': True,
-            'access_token': str(refresh.access_token),
-            'refresh_token': str(refresh),
-            'user': {'email': email, 'user_id': str(user['_id'])}
-        }, status=status.HTTP_200_OK)
-
-class ProtectedView(APIView):
-    permission_classes = [IsAuthenticated]  # Use DRF's authentication
-
+class DashboardView(APIView):
     def get(self, request):
-        user_id = request.user.user_id  # Access user_id from the validated token
-        return Response({'message': f'This is a protected endpoint! User ID: {user_id}'}, status=status.HTTP_200_OK)
+        auth_header = request.headers.get('Authorization')
+        if not auth_header or not auth_header.startswith('Bearer '):
+            return Response({'error': 'Authentication required'}, status=status.HTTP_401_UNAUTHORIZED)
+        token = auth_header.split(' ')[1]
+        try:
+            UntypedToken(token)
+            payload = UntypedToken(token).payload
+            user_email = payload.get('user_email')
+            user = User.objects.get(email=user_email)
+            return Response({'email': user.email, 'username': user.fname + ' ' + user.lname})
+        except InvalidToken:
+            return Response({'error': 'Invalid token'}, status=status.HTTP_401_UNAUTHORIZED)
+        except User.DoesNotExist:
+            return Response({'error': 'User not found'}, status=status.HTTP_401_UNAUTHORIZED)
 
-def landing_page(request):
-    return render(request, 'landingpage.html')
+class AddUserView(APIView):
+    def post(self, request):
+        try:
+            user_email = request.data.get('email')
+            fname = request.data.get('fname')
+            lname = request.data.get('lname')
+            password = request.data.get('password')
+
+            # Validate inputs
+            if not all([user_email, fname, lname, password]):
+                return Response({'error': 'All fields (email address, first name, last name, password) are required'}, status=status.HTTP_400_BAD_REQUEST)
+
+            hashed_password = bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt())
+            # Insert new user with raw SQL
+            with connection.cursor() as cursor:
+                cursor.execute(
+                    "INSERT INTO pcpusers (email, fname, lname, password) VALUES (%s, %s, %s, %s)",
+                    [user_email, fname, lname, hashed_password]
+                )
+            return Response({'message': 'User added successfully', 'id': user_email}, status=status.HTTP_201_CREATED)
+        except Exception as e:
+            return Response({'error': f'Failed to add user: {str(e)}'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)

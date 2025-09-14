@@ -5,18 +5,21 @@
 
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
-import { AuthProvider } from './context/AuthProvider';
-import ProtectedRoute from './components/ProtectedRoute';
 import Login from './components/Login';
 import Dashboard from './components/Dashboard';
 import Signup from './components/Signup';
+<<<<<<< HEAD
 import Calendar from './components/Calendar';   // ✅ Import Calendar
+=======
+import NewProject from './components/NewProject';
+
+>>>>>>> rohann
 
 function App() {
   return (
     <Router>
-      <AuthProvider>
         <Routes>
+<<<<<<< HEAD
           <Route path="/login" element={<Login />} />
           
           <Route
@@ -40,10 +43,13 @@ function App() {
             }
           />
 
+=======
+>>>>>>> rohann
           <Route path="/" element={<Login />} />
-          <Route path="/signup" element={<Signup />} />
+          <Route path="/dashboard" element={<Dashboard />} />
+          <Route path="/adduser" element={<Signup />} />
+          <Route path="/newproject" element={<NewProject />} />
         </Routes>
-      </AuthProvider>
     </Router>
   );
 }
