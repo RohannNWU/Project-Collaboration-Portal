@@ -29,13 +29,14 @@ const Dashboard = () => {
 
   useEffect(() => {
     const token = localStorage.getItem('access_token');
-    console.log("Token: " + token);
     if (!token) {
       navigate('/');
       return;
     }
 
-    const API_BASE_URL = process.env.REACT_APP_API_URL || 'https://pcp-backend-f4a2.onrender.com';
+    const API_BASE_URL = window.location.hostname === 'localhost'
+        ? 'http://127.0.0.1:8000'
+        : 'https://pcp-backend-f4a2.onrender.com';
 
     axios.get(`${API_BASE_URL}/api/dashboard/`, {
       headers: { Authorization: `Bearer ${token}` }
@@ -126,6 +127,10 @@ const Dashboard = () => {
     navigate("/");
   };
 
+  const createNewProject = () => {
+    navigate('/newproject');
+  };
+
   return (
     <div className={styles.dashboard}>
       {/* Sidebar */}
@@ -149,7 +154,7 @@ const Dashboard = () => {
         </nav>
 
         <div className={styles.quickActions}>
-          <button className={styles.qaBtn}><FontAwesomeIcon icon={faPlus} /> New Project</button>
+          <button className={styles.qaBtn} onClick={createNewProject}><FontAwesomeIcon icon={faPlus} /> New Project</button>
           <button className={styles.qaBtn}><FontAwesomeIcon icon={faPlus} /> New Task</button>
           <button className={styles.qaBtn}><FontAwesomeIcon icon={faComment} /> Message Team</button>
           <button className={styles.qaBtn}><FontAwesomeIcon icon={faUpload} /> Upload File</button>
@@ -205,7 +210,7 @@ const Dashboard = () => {
           <div className={styles.panelHead}>
             <h2>Projects Overview</h2>
           </div>
-          <button className={styles.addBtn}>+ Add Project</button>
+          <button className={styles.addBtn} onClick={createNewProject}>+ Add Project</button>
           <table className={styles.table}>
             <thead>
               <tr>
