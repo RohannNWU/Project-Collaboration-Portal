@@ -2,47 +2,12 @@ import React, { useRef, useState, useEffect } from 'react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-<<<<<<< HEAD
 import { faFolder, faCheckCircle, faUsers, faCalendar, faCodeBranch, faFile, faInbox, faBell, faGear, faSignOutAlt } from '@fortawesome/free-solid-svg-icons';
 import { useNavigate } from "react-router-dom";
 
 //----------------------------------------
 //  Dashboard Page Component
 //----------------------------------------
-
-const Dashboard = () => {
-  //----------------------------------------
-  // Initialize navigation hook
-  //----------------------------------------
-  const navigate = useNavigate();
-
-  useEffect(() => {
-    //----------------------------------------
-    // Fetch protected data on component mount
-    //----------------------------------------
-    const fetchData = async () => {
-      try {
-        const API_BASE_URL = window.location.hostname === 'localhost'
-          ? 'http://127.0.0.1:8000'
-          : 'https://pcp-backend-f4a2.onrender.com';
-        const accessToken = localStorage.getItem('access_token');
-=======
-import {
-  faFolder, faCheckCircle, faUsers, faCalendar, faCodeBranch, faFile, faInbox,
-  faBell, faCog, faSignOutAlt, faPlus, faSearch, faEnvelope, faProjectDiagram,
-  faUserCheck, faComment, faUpload
-} from '@fortawesome/free-solid-svg-icons';
-import styles from './Dashboard.module.css';
-
-const getUserEmail = () => {
-  try {
-    const storedUser = localStorage.getItem('user');
-    return storedUser ? JSON.parse(storedUser).email : 'Anonymous User';
-  } catch (e) {
-    console.error('Failed to parse user from localStorage:', e);
-    return 'Student';
-  }
-};
 
 const Dashboard = () => {
   const [email, setEmail] = useState(getUserEmail());
@@ -58,7 +23,6 @@ const Dashboard = () => {
       navigate('/');
       return;
     }
->>>>>>> rohann
 
     const API_BASE_URL = window.location.hostname === 'localhost'
         ? 'http://127.0.0.1:8000'
@@ -243,16 +207,13 @@ const Dashboard = () => {
         {/* Projects Table */}
         <section className={styles.panel}>
           <div className={styles.panelHead}>
-<<<<<<< HEAD
             <h2>My Projects</h2>
             <div className={styles.tabs}>
               <button className={`${styles.tab} ${styles.active}`} data-filter="all">All</button>
               <button className={styles.tab} data-filter="On Track">On Track</button>
               <button className={styles.tab} data-filter="Review">Review</button>
             </div>
-=======
             <h2>Projects Overview</h2>
->>>>>>> rohann
           </div>
           <button className={styles.addBtn} onClick={createNewProject}>+ Add Project</button>
           <table className={styles.table}>
