@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>NWU Marking & Grading Dashboard</title>
+  <link rel="stylesheet" href="mark&gradeStyle.css" />
+</head>
+<body>
+  <header>
+    <h1>📘 NWU Project Collaboration Portal</h1>
+    <h2>Marking & Grading Dashboard</h2>
+  </header>
+
+  <section class="role-selector">
+    <label for="role">Select Role:</label>
+    <select id="role" onchange="toggleRolePanel()">
+      <option value="">-- Choose Role --</option>
+      <option value="supervisor">Supervisor</option>
+      <option value="student">Student / Group Leader</option>
+    </select>
+  </section>
+
+  <!-- Supervisor Panel -->
+  <section id="supervisorPanel" class="panel hidden">
+    <h3>🧑‍🏫 Supervisor Panel</h3>
+
+    <div class="card">
+      <h4>Manage Grading Tasks</h4>
+      <input type="text" placeholder="Task Title" />
+      <input type="date" />
+      <textarea placeholder="Task Description"></textarea>
+      <button onclick="addTask()">Add Task</button>
+      <button onclick="deleteTask()">Delete Task</button>
+    </div>
+
+    <div class="card">
+      <h4>Grade Submission</h4>
+      <select>
+        <option>Select Student/Group</option>
+      </select>
+      <input type="text" placeholder="Grade (e.g. 85%, B+)" />
+      <textarea placeholder="Feedback"></textarea>
+      <input type="file" />
+      <button>Submit Grade</button>
+    </div>
+  </section>
+
+  <!-- Student Panel -->
+  <section id="studentPanel" class="panel hidden">
+    <h3>👥 Student / Group Leader Panel</h3>
+
+    <div class="card">
+      <h4>View Grades & Feedback</h4>
+      <p><strong>Task:</strong> Final Report</p>
+      <p><strong>Grade:</strong> 88%</p>
+      <p><strong>Feedback:</strong> Excellent work!</p>
+      <button>Download Feedback</button>
+    </div>
+
+    <div class="card">
+      <h4>Submit Task</h4>
+      <input type="text" placeholder="Task Title" />
+      <textarea placeholder="Task Description"></textarea>
+      <input type="file" />
+      <button>Submit Task</button>
+    </div>
+  </section>
+
+  <footer>
+    <p>© 2025 North-West University | Academic Collaboration Portal</p>
+  </footer>
+
+  <script src="script.js"></script>
+</body>
+</html>
