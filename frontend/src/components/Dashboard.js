@@ -22,6 +22,7 @@ const getUserEmail = () => {
 const Dashboard = () => {
   const [email, setEmail] = useState(getUserEmail());
   const [username, setUsername] = useState('');
+  const [initial, setInitial] = useState('');
   const navigate = useNavigate();
   const calendarRef = useRef(null);
   const progressChartRef = useRef(null);
@@ -44,6 +45,7 @@ const Dashboard = () => {
       .then(response => {
         setEmail(response.data.email);
         setUsername(response.data.username);
+        setInitial(response.data.username.split(' ').map(word => word.charAt(0).toUpperCase()).join(''));
       })
       .catch(err => {
         if (err.response && err.response.status === 401) {
@@ -136,9 +138,9 @@ const Dashboard = () => {
       {/* Sidebar */}
       <aside className={styles.sidebar}>
         <div className={styles.brand}>
-          <div className={styles.logo}>NWU</div>
+          <div className={styles.logo}>{initial}</div>
           <div className={styles.brandText}>
-            <h2>Project Collaboration Portal</h2>
+            <h2>{username}</h2>
             <small>{email}</small>
           </div>
         </div>
@@ -166,7 +168,6 @@ const Dashboard = () => {
         <header className={styles.topbar}>
           <div className={styles.tbLeft}>
             <h1>Project Collaboration Portal</h1>
-            <span className={styles.badge}>Student</span>
           </div>
           <div className={styles.tbRight}>
             <div className={styles.search}>
@@ -180,8 +181,6 @@ const Dashboard = () => {
               <FontAwesomeIcon icon={faCog} />
             </button>
             <div className={styles.user}>
-              <span className={styles.username}>{username}</span>
-              <div className={styles.avatar}>JM</div>
               <button className={styles.logoutBtn} onClick={logout} title="Logout">
                 <FontAwesomeIcon icon={faSignOutAlt} />
               </button>
