@@ -12,3 +12,13 @@ class User(models.Model):
 
     def __str__(self):
         return self.email
+
+class Project(models.Model):
+    notif_id = models.AutoField(primary_key=True, db_column='notif_id')
+    task_id = models.IntegerField(db_column='task_id')
+    due_date = models.DateField(db_column='due_date')
+    cm_id = models.IntegerField(db_column='cm_id')
+    feedback = models.CharField(max_length=255, db_column='feedback')
+    grade = models.IntegerField(db_column='grade')
+    project_name = models.CharField(max_length=100, db_column='project_name')
+

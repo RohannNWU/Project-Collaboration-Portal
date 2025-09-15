@@ -74,3 +74,20 @@ class AddUserView(APIView):
             return Response({'message': 'User added successfully', 'id': user_email}, status=status.HTTP_201_CREATED)
         except Exception as e:
             return Response({'error': f'Failed to add user: {str(e)}'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        
+class NewProjectView(APIView):
+    def post(self, request):
+        project_name = request.data.get('projectname')
+        due_date = request.data.get('duedate')
+        project_members = request.data.get('projectmembers')
+
+        if not all([project_name, due_date, project_members]):
+                return Response({'error': 'All fields are required'}, status=status.HTTP_400_BAD_REQUEST)
+        
+        with connection.cursor() as cursor:
+            cursor.execute(
+                "INSERT INTO project (project_name, due_date, project_members) VALUES (%s, %s, %s)",
+                [project_name, due_date, project_members]
+            )
+        return Response({'message': 'Project added successfully'}, status=status.HTTP_201_CREATED)
+        
