@@ -1,134 +1,209 @@
 .fileManager {
-    background: #ede7e7;
-    padding: 1.5rem;
-    border-radius: 12px;
-    box-shadow: 0 2px 6px rgba(0,0,0,0.1);
-    color: #333;
-  }
-  
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
+  width: 100%;
+  max-width: 900px;
+  overflow: hidden;
+}
+
+/* Header */
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 20px;
+  background: linear-gradient(90deg, #8e44ad 0%, #5e3370 100%);
+  color: white;
+  position: relative;
+}
+
+.backBtn {
+  background: rgba(255, 255, 255, 0.2);
+  border: none;
+  color: white;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.3s;
+}
+
+.backBtn:hover {
+  background: rgba(255, 255, 255, 0.3);
+  transform: translateX(-3px);
+}
+
+.header h2 {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  font-weight: 600;
+}
+
+.uploadBtn {
+  background: rgba(255, 255, 255, 0.2);
+  border: 1px solid rgba(255, 255, 255, 0.5);
+  color: white;
+  padding: 10px 20px;
+  border-radius: 30px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  transition: all 0.3s;
+}
+
+.uploadBtn:hover {
+  background: rgba(0, 255, 4, 0.3);
+}
+
+/* Table */
+.fileTable {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.fileTable thead {
+  background-color: #f8f9fa;
+}
+
+.fileTable th {
+  text-align: left;
+  padding: 16px 20px;
+  color: #495057;
+  font-weight: 600;
+  border-bottom: 2px solid #e9ecef;
+}
+
+.fileTable td {
+  padding: 16px 20px;
+  border-bottom: 1px solid #e9ecef;
+}
+
+.fileTable tr:hover {
+  background-color: #f8f9fa;
+}
+
+.fileName {
+  font-weight: 500;
+  color: #212529;
+  margin-right: 10px;
+}
+
+.actions {
+  text-align: right;
+  white-space: nowrap;
+}
+
+.iconBtn {
+  border: none;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  margin-left: 8px;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.view {
+  background-color: #e9f7fe;
+  color: #000000;
+}
+.view:hover {
+  background-color: #8e44ad;
+  color: white;
+}
+
+.download {
+  background-color: #e8f5e9;
+  color: #000000;
+}
+.download:hover {
+  background-color: #27ae60;
+  color: white;
+}
+
+.delete {
+  background-color: #feeaea;
+  color: #000000;
+}
+.delete:hover {
+  background-color: #e74c3c;
+  color: white;
+}
+
+.renameIcon {
+  color: #6c757d;
+  cursor: pointer;
+  margin-left: 10px;
+  opacity: 0.7;
+  transition: all 0.2s;
+}
+
+.renameIcon:hover {
+  color: #8e44ad;
+  opacity: 1;
+}
+
+.saveBtn {
+  display: block;
+  width: calc(100% - 40px);
+  margin: 20px;
+  padding: 14px;
+  background: linear-gradient(90deg, #8e44ad 0%, #5e3370 100%);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s;
+}
+
+.saveBtn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+}
+
+/* Responsive */
+@media (max-width: 600px) {
   .header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 1rem;
+    flex-direction: column;
+    gap: 15px;
+    padding: 15px;
   }
-  
-  .headerRow {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding-bottom: 1rem;
-    border-bottom: 1px solid #eee;
+
+  .header h2 {
+    position: static;
+    transform: none;
+    order: 2;
   }
-  
+
   .backBtn {
-    background: none;
-    border: none;
-    font-size: 1.2rem;
-    cursor: pointer;
-    color: purple;
+    align-self: flex-start;
+    order: 1;
   }
-  
-  .title {
-    flex-grow: 1;
-    text-align: center;
-    margin: 0;
-    font-size: 1.6rem;
-  }
-  
+
   .uploadBtn {
-    background-color: #4CAF50;
-    color: white;
-    border: none;
-    padding: 0.5rem 1rem;
-    cursor: pointer;
-    border-radius: 4px;
-    font-size: 0.9rem;
+    order: 3;
+    align-self: stretch;
+    justify-content: center;
   }
-  
-  .uploadBtn:hover {
-    background-color: #4a0072;
-  }
-  
+
   .fileTable {
-    width: 100%;
-    border-collapse: collapse;
-    margin-bottom: 1rem;
+    display: block;
+    overflow-x: auto;
   }
-  
-  .fileTable th, .fileTable td {
-    padding: 0.75rem;
-    text-align: left;
-    border-bottom: 1px solid #eee;
+
+  .fileTable th,
+  .fileTable td {
+    padding: 12px 15px;
   }
-  
-  .fileName {
-    font-weight: 500;
-    margin-right: 0.5rem;
-  }
-  
-  .renameIcon {
-    color: #007bff; /* Blue */
-    cursor: pointer;
-    margin-left: 0.4rem;
-  }
-  
-  .renameIcon:hover {
-    color: #0056b3;
-  }
-  
-  .actions {
-    text-align: right;
-    white-space: nowrap;
-    padding-right: 1rem;
-  }
-  
-  .iconBtn {
-    border: none;
-    background: none;
-    cursor: pointer;
-    font-size: 1rem;
-    margin-left: 0.5rem;
-    transition: transform 0.2s;
-  }
-  
-  .iconBtn:hover {
-    transform: scale(1.2);
-  }
-  
-  .view {
-    color: black;
-  }
-  .view:hover {
-    color: blue;
-  }
-  
-  .download {
-    color: black;
-  }
-  .download:hover {
-    color: green;
-  }
-  
-  .delete {
-    color: black;
-  }
-  
-  .delete:hover {
-    color: #b71c1c;
-  }
-  
-  .saveBtn {
-    background-color: #6a1b9a; /* Purple */
-    color: #fff;
-    padding: 0.6rem 1.2rem;
-    border: none;
-    border-radius: 6px;
-    cursor: pointer;
-    font-size: 1rem;
-  }
-  
-  .saveBtn:hover {
-    background-color: #4a0072;
-  }
-  
+}
