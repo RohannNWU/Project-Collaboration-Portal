@@ -13,6 +13,7 @@ class LoginView(APIView):
     def post(self, request):
         email = request.data.get('email')
         password = request.data.get('password')
+
         try:
             user = User.objects.get(email=email)
             hash_bytes = binascii.unhexlify(user.password[2:])
@@ -77,17 +78,32 @@ class AddUserView(APIView):
         
 class NewProjectView(APIView):
     def post(self, request):
-        project_name = request.data.get('projectname')
-        due_date = request.data.get('duedate')
-        project_members = request.data.get('projectmembers')
+        try:
+            notif_id = 1
+            task_id = 1
+            due_date = request.data.get('duedate')
+            cm_id = 1
+            feedback = 'none'
+            grade = 0
+            project_name = request.data.get('projectname')
+            
+            # email = request.data.get('email')
+            role = "Supervisor"
 
-        if not all([project_name, due_date, project_members]):
-                return Response({'error': 'All fields are required'}, status=status.HTTP_400_BAD_REQUEST)
-        
-        with connection.cursor() as cursor:
-            cursor.execute(
-                "INSERT INTO project (project_name, due_date, project_members) VALUES (%s, %s, %s)",
-                [project_name, due_date, project_members]
-            )
-        return Response({'message': 'Project added successfully'}, status=status.HTTP_201_CREATED)
-        
+            project_members = request.data.get('projectmembers')
+            # roles = "Student"
+
+            print(notif_id, ', ', task_id, ', ', due_date, ', ', cm_id, ', ', feedback, ', ', grade, ', ', project_name)
+
+            # Validate inputs
+            if not all([project_name, due_date, project_members]):
+                    return Response({'error': 'All fields are required'}, status=status.HTTP_400_BAD_REQUEST)
+            
+            with connection.cursor() as cursor:
+                cursor.execute(
+                    "INSERT INTO project (notif_id, task_id, due_date, cm_id, feedback, grade, project_name) VALUES (%s, %s, %s, %s, %s, %s, %s)",
+                    [notif_id, task_id, due_date, cm_id, feedback, grade, project_name]
+                )
+            return Response({'message': 'Project added successfully'}, status=status.HTTP_201_CREATED)
+        except Exception as e:
+            return Response({'error': f'Failed to add project: {e}'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)

@@ -9,7 +9,7 @@ const NewProject = () => {
     const [projectname, setProjectname] = useState('');
     const [duedate, setDuedate] = useState('');
     const [projectmembers, setProjectmembers] = useState('');
-    const [error, setError] = useState('');
+    const [message, setMessage] = useState('');
     const navigate = useNavigate();
 
     useEffect(() => {
@@ -44,9 +44,9 @@ const NewProject = () => {
             ? 'http://127.0.0.1:8000'
             : 'https://pcp-backend-f4a2.onrender.com';
             const response = await axios.post(`${API_BASE_URL}/api/newproject/`, { projectname, duedate, projectmembers });
-            setError(response.data.message);
+            setMessage(response.data.message);
         } catch (err) {
-            setError("Failed to create project")
+            setMessage("Failed to create project")
         }
     };
 
@@ -93,7 +93,7 @@ const NewProject = () => {
             </form>
 
             <button onClick={() => navigate('/dashboard')}>Back to Dashboard</button>
-            <p>{error}</p>
+            <p>{message}</p>
         </div>
     );
 };

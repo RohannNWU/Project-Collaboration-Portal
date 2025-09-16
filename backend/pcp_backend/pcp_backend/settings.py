@@ -67,7 +67,7 @@ DATABASES = {
         'NAME': 'pcp',
         'USER': 'postgres',
         'PASSWORD': 'Pcpadmin@2025',  # Replace with your actual password
-        'HOST': '34.35.89.15',
+        'HOST': '34.35.89.15', # 127.0.0.1 - local testing
         'PORT': '5432',
     }
 }
