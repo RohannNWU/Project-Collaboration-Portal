@@ -1,9 +1,16 @@
 import React, { useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import styles from './Dashboard.module.css';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faFolder, faCheckCircle, faUsers, faCalendar, faCodeBranch, faFile, faInbox, faBell, faGear, faSignOutAlt } from '@fortawesome/free-solid-svg-icons';
 
 const Dashboard = () => {
+  const navigate = useNavigate();
+
+  const handleUploadClick = () => {
+    navigate('/upload-collaborative-documentation');
+  };
+
   useEffect(() => {
     const fetchData = async () => {
       try {
@@ -60,7 +67,7 @@ const Dashboard = () => {
           <button className={styles.qaBtn} id="qa-new-project">＋ New Project</button>
           <button className={styles.qaBtn} id="qa-new-task">＋ New Task</button>
           <button className={styles.qaBtn} id="qa-message-team">💬 Message Team</button>
-          <button className={styles.qaBtn} id="qa-upload">⬆️ Upload File</button>
+          <button className={styles.qaBtn} id="qa-upload" onClick={handleUploadClick}>⬆️ Upload File</button>
         </div>
       </aside>
       <main className={styles.main}>
