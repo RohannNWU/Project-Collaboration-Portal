@@ -1,0 +1,194 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Project Collaboration Portal</title>
+  <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/index.global.min.js"></script>
+</head>
+<body>
+  <div class="dashboard-container">
+    <!-- Sidebar -->
+    <aside class="sidebar">
+      <div class="brand">
+        <div class="logo">NWU</div>
+        <div class="brand-text">
+          <h2>Project Collaboration Portal</h2>
+          <small>Student</small>
+        </div>
+      </div>
+      <nav class="nav">
+        <button class="nav-btn"><i class="fas fa-folder"></i> My Projects</button>
+        <button class="nav-btn"><i class="fas fa-tasks"></i> My Tasks</button>
+        <button class="nav-btn"><i class="fas fa-users"></i> Teams</button>
+        <button class="nav-btn"><i class="fas fa-calendar"></i> Calendar</button>
+        <button class="nav-btn"><i class="fab fa-github"></i> Repos</button>
+        <button class="nav-btn"><i class="fas fa-file"></i> Documents</button>
+        <button class="nav-btn"><i class="fas fa-inbox"></i> Inbox</button>
+      </nav>
+      <div class="quick-actions">
+        <button class="qa-btn"><i class="fas fa-plus"></i> New Project</button>
+        <button class="qa-btn"><i class="fas fa-plus"></i> New Task</button>
+        <button class="qa-btn"><i class="fas fa-comment"></i> Message Team</button>
+        <button class="qa-btn"><i class="fas fa-upload"></i> Upload File</button>
+      </div>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="main">
+      <header class="topbar">
+        <div class="tb-left">
+          <h1>Project Collaboration Portal</h1>
+          <span class="badge">Student</span>
+        </div>
+        <div class="tb-right">
+          <div class="search">
+            <input type="text" placeholder="Search projects, tasks, people…">
+            <svg class="search-ico" viewBox="0 0 24 24"><path d="M10 18a8 8 0 1 1 5.293-14.293A8 8 0 0 1 10 18Zm11 3-6-6"/></svg>
+          </div>
+          <button class="icon-btn" title="Notifications"><i class="fas fa-bell"></i></button>
+          <button class="icon-btn" title="Settings"><i class="fas fa-cog"></i></button>
+          <div class="user">
+            <div class="avatar">JM</div>
+            <span class="username">John M.</span>
+            <button class="logout-btn" onclick="logout()">Logout</button>
+          </div>
+        </div>
+      </header>
+
+      <!-- KPIs -->
+      <section class="cards">
+        <div class="card">
+          <p>Active Projects</p>
+          <h2 id="kpi-projects">3</h2>
+        </div>
+        <div class="card">
+          <p>Tasks Due This Week</p>
+          <h2 id="kpi-tasks-week">7</h2>
+        </div>
+        <div class="card">
+          <p>Unread Messages</p>
+          <h2 id="kpi-messages">2</h2>
+        </div>
+      </section>
+
+      <!-- Projects Table -->
+      <section class="panel">
+        <div class="panel-head">
+          <h2>Projects Overview</h2>
+        </div>
+        <button class="add-btn">+ Add Project</button>
+        <table>
+          <thead>
+            <tr>
+              <th>Name</th>
+              <th>Progress</th>
+              <th>Due Date</th>
+              <th>Action</th>
+              <th>Supervisor</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>CMPG 321</td>
+              <td><div class="progress-bar"><div class="progress" style="width: 80%;"></div></div></td>
+              <td>11/11/2025</td>
+              <td><button class="edit-btn">Edit</button></td>
+              <td><input type="checkbox"></td>
+            </tr>
+            <tr>
+              <td>CMPG 323</td>
+              <td><div class="progress-bar"><div class="progress" style="width: 50%;"></div></div></td>
+              <td>06/10/2025</td>
+              <td><button class="edit-btn">Edit</button></td>
+              <td><input type="checkbox"></td>
+            </tr>
+            <tr>
+              <td>CMPG 311</td>
+              <td><div class="progress-bar"><div class="progress" style="width: 20%;"></div></div></td>
+              <td>21/09/2025</td>
+              <td><button class="edit-btn">Edit</button></td>
+              <td><input type="checkbox"></td>
+            </tr>
+          </tbody>
+        </table>
+      </section>
+
+      <!-- Charts -->
+      <section class="charts">
+        <div class="chart-card">
+          <div class="panel-head"><h3>Weekly Progress</h3></div>
+          <canvas id="progressChart"></canvas>
+        </div>
+        <div class="chart-card">
+          <div class="panel-head"><h3>Workload by Area</h3></div>
+          <canvas id="workloadChart"></canvas>
+        </div>
+      </section>
+    </main>
+
+    <!-- Right Sidebar -->
+    <aside class="rightbar">
+      <section class="panel">
+        <div class="panel-head">
+          <h3>Upcoming Deadlines</h3>
+          <button class="icon-btn"><i class="fas fa-calendar"></i></button>
+        </div>
+        <ul class="list">
+          <li><i class="fas fa-project-diagram"></i> CMPG 311 - Sep 21</li>
+          <li><i class="fas fa-project-diagram"></i> CMPG 323 - Oct 6</li>
+          <li><i class="fas fa-project-diagram"></i> CMPG 321 - Nov 11</li>
+        </ul>
+      </section>
+
+      <section class="panel">
+        <div class="panel-head">
+          <h3>Team Activity</h3>
+          <span class="live">Live</span>
+        </div>
+        <ul class="list">
+          <li><i class="fas fa-user-check"></i> Sarah updated CMPG 323 documentation</li>
+          <li><i class="fas fa-user-check"></i> Michael completed task: API integration</li>
+          <li><i class="fas fa-user-check"></i> You uploaded meeting_notes.pdf</li>
+        </ul>
+      </section>
+
+      <section class="panel">
+        <div class="panel-head">
+          <h3>Inbox</h3>
+          <button class="icon-btn"><i class="fas fa-inbox"></i></button>
+        </div>
+        <ul class="list">
+          <li><i class="fas fa-envelope"></i> Dr. Smith - Project feedback</li>
+          <li><i class="fas fa-envelope"></i> Team - Meeting reminder</li>
+          <li><i class="fas fa-envelope"></i> System - Weekly digest</li>
+        </ul>
+      </section>
+
+      <section class="panel">
+        <div class="panel-head"><h3>Getting Started</h3></div>
+        <ul class="bullet">
+          <li>Connect your Git repository</li>
+          <li>Invite teammates to your workspace</li>
+          <li>Create your first sprint board</li>
+          <li>Enable calendar sync</li>
+        </ul>
+      </section>
+
+      <section class="panel">
+        <div class="panel-head"><h3>Student Calendar</h3></div>
+        <div id="calendar"></div>
+      </section>
+
+      <footer class="footer">
+        © <span id="year"></span> Project Collaboration Portal · Student Dashboard
+      </footer>
+    </aside>
+  </div>
+  <script src="Hloni.js"></script>
+</body>
+</html>
