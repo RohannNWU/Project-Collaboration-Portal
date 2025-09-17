@@ -3,23 +3,27 @@
   display: flex;
   flex-direction: column;
   align-items: center;
+  min-height: 100vh;
   justify-content: center;
+  background: var(--bg);
 }
-input {
-  margin: 10px;
+.formGroup {
+  margin-bottom: 15px;
+}
+.input {
   padding: 8px;
   width: 200px;
   border: 1px solid var(--border);
   border-radius: 4px;
 }
-.message {
-  color: #ec2323
+.error {
+  color: #ff4d4f;
 }
-button {
-  align-items: center;
-  justify-content: center;
-  margin: 10px;
-  padding: 8px;
+.success {
+  color: #0f6848;
+}
+.registerButton {
+  padding: 10px;
   background: var(--nwu-turquoise);
   color: white;
   border: none;

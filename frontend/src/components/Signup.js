@@ -1,72 +1,77 @@
 import React, { useState } from 'react';
-import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 import styles from './Signup.module.css';
 
-const AddUser = () => {
+const Signup = () => {
   const [email, setEmail] = useState('');
-  const [fname, setFname] = useState('');
-  const [lname, setLname] = useState('');
   const [password, setPassword] = useState('');
-  const [message, setMessage] = useState('');
+  const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
   const navigate = useNavigate();
 
-  const handleAddUser = async () => {
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setError('');
+    setSuccess('');
+
     try {
       const API_BASE_URL = window.location.hostname === 'localhost'
         ? 'http://127.0.0.1:8000'
         : 'https://pcp-backend-f4a2.onrender.com';
-      const response = await axios.post(
-        `${API_BASE_URL}/api/adduser/`,
-        {
-          email: email,
-          fname: fname,
-          lname: lname,
-          password: password
+      const response = await fetch(`${API_BASE_URL}/api/register/`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
         },
-      );
-      setMessage(response.data.message);
-    } catch (error) {
-      setMessage(error.response?.data.error || 'Failed to add user');
+        body: JSON.stringify({ email, password }),
+      });
+
+      if (response.ok) {
+        setSuccess('Registration successful!');
+        setEmail('');
+        setPassword('');
+        navigate('/login');
+      } else {
+        const data = await response.json();
+        setError(data.message || 'Registration failed. Please try again.');
+      }
+    } catch (err) {
+      setError('An error occurred. Please try again later.');
     }
   };
 
   return (
-    <div>
-      <div className={styles.signupContainer}>
-        <h2>Add New User</h2>
-        <input
-          type="text"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          placeholder="Email Address"
-        />
-        <input
-          type="text"
-          value={fname}
-          onChange={(e) => setFname(e.target.value)}
-          placeholder="First Name"
-        />
-        <input
-          type='text'
-          value={lname}
-          onChange={(e) => setLname(e.target.value)}
-          placeholder='Last Name'
-        />
-        <input
-          type="password"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          placeholder="Password"
-        />
-      </div>
-      <div>
-        <button onClick={handleAddUser}>Add User</button>
-        <button onClick={() => navigate('/')}>Back to Login</button>
-        {message && <p className={styles.message}>{message}</p>}
-      </div>
+    <div className={styles.signupContainer}>
+      <h2>Sign Up</h2>
+      <form onSubmit={handleSubmit}>
+        <div className={styles.formGroup}>
+          <label htmlFor="email">Email:</label>
+          <input
+            type="email"
+            id="email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            required
+            className={styles.input}
+          />
+        </div>
+        <div className={styles.formGroup}>
+          <label htmlFor="password">Password:</label>
+          <input
+            type="password"
+            id="password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            required
+            className={styles.input}
+          />
+        </div>
+        {error && <p className={styles.error}>{error}</p>}
+        {success && <p className={styles.success}>{success}</p>}
+        <button type="submit" className={styles.registerButton}>Register</button>
+      </form>
     </div>
   );
 };
 
-export default AddUser;
+export default Signup;
