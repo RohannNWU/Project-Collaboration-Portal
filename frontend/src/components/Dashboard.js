@@ -35,7 +35,7 @@ const Dashboard = () => {
       return;
     }
 
-    const API_BASE_URL = process.env.REACT_APP_API_URL || 'https://pcp-backend-f4a2.onrender.com';
+    const API_BASE_URL = window.location.hostname === 'localhost' ? 'http://127.0.0.1:8000': 'https://pcp-backend-f4a2.onrender.com';
 
     axios.get(`${API_BASE_URL}/api/dashboard/`, {
       headers: { Authorization: `Bearer ${token}` }
@@ -126,14 +126,18 @@ const Dashboard = () => {
     navigate("/");
   };
 
+  const calendar = () => {
+    navigate("/calendar",{state: {email: email}});
+    }
+
   return (
     <div className={styles.dashboard}>
       {/* Sidebar */}
       <aside className={styles.sidebar}>
         <div className={styles.brand}>
-          <div className={styles.logo}>NWU</div>
+          <div className={styles.logo}>{username.split(' ').map(word => word.charAt(0).toUpperCase()).join('')}</div>
           <div className={styles.brandText}>
-            <h2>Project Collaboration Portal</h2>
+            <h2>{username}</h2>
             <small>{email}</small>
           </div>
         </div>
@@ -142,7 +146,7 @@ const Dashboard = () => {
           <button className={styles.navBtn}><FontAwesomeIcon icon={faFolder} /> My Projects</button>
           <button className={styles.navBtn}><FontAwesomeIcon icon={faCheckCircle} /> My Tasks</button>
           <button className={styles.navBtn}><FontAwesomeIcon icon={faUsers} /> Teams</button>
-          <button className={styles.navBtn}><FontAwesomeIcon icon={faCalendar} /> Calendar</button>
+          <button className={styles.navBtn} onClick={calendar}><FontAwesomeIcon icon={faCalendar} /> Calendar</button>
           <button className={styles.navBtn}><FontAwesomeIcon icon={faCodeBranch} /> Repos</button>
           <button className={styles.navBtn}><FontAwesomeIcon icon={faFile} /> Documents</button>
           <button className={styles.navBtn}><FontAwesomeIcon icon={faInbox} /> Inbox</button>

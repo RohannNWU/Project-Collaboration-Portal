@@ -68,7 +68,7 @@ class AddUserView(APIView):
             # Insert new user with raw SQL
             with connection.cursor() as cursor:
                 cursor.execute(
-                    "INSERT INTO pcpusers (email, fname, lname, password) VALUES (%s, %s, %s, %s)",
+                    "INSERT INTO pcpuser (email, fname, lname, password) VALUES (%s, %s, %s, %s)",
                     [user_email, fname, lname, hashed_password]
                 )
             return Response({'message': 'User added successfully', 'id': user_email}, status=status.HTTP_201_CREATED)

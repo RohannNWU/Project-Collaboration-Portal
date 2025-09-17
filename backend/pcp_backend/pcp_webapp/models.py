@@ -8,7 +8,7 @@ class User(models.Model):
 
     class Meta:
         managed = False
-        db_table = 'pcpusers'  # Adjust if schema differs
+        db_table = 'pcpuser'  # Adjust if schema differs
 
     def __str__(self):
         return self.email
