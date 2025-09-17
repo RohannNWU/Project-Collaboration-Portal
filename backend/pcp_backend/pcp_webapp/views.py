@@ -76,8 +76,7 @@ class AddUserView(APIView):
             return Response({'message': 'User added successfully', 'id': user_email}, status=status.HTTP_201_CREATED)
         except Exception as e:
             return Response({'error': f'Failed to add user: {str(e)}'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-        
-#Calander VIEW
+
 class CalendarView(APIView):
     def get(self, request):
         auth_header = request.headers.get('Authorization')
@@ -95,7 +94,7 @@ class CalendarView(APIView):
             sast_tz = pytz.timezone('Africa/Johannesburg')
             current_time = datetime.now(sast_tz).strftime('%Y/%m/%d - %H:%M')
             
-            # Fetch project_id for the logged-in user from user_project table
+            # Fetch project_ids for the logged-in user from user_project table
             with connection.cursor() as cursor:
                 cursor.execute("""
                     SELECT project_id 
@@ -132,7 +131,8 @@ class CalendarView(APIView):
             events = []
             # Add project due dates
             for proj in projects:
-                project_name, due_date = proj
+                # Ensure correct unpacking based on query (project_id, project_name, due_date)
+                project_id, project_name, due_date = proj  # Explicitly unpack 3 values
                 if due_date:
                     events.append({
                         'title': f'Project Due: {project_name}',
@@ -141,7 +141,8 @@ class CalendarView(APIView):
             
             # Add task due dates for tasks assigned to the user
             for task in tasks:
-                task_name, due_date, project_name = task
+                # Ensure correct unpacking based on query (task_id, task_name, due_date, project_name)
+                task_id, task_name, due_date, project_name = task  # Explicitly unpack 4 values
                 if due_date:
                     events.append({
                         'title': f'Task Due: {task_name} (Project: {project_name})',
