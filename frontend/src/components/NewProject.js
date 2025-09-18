@@ -10,7 +10,7 @@ const NewProject = () => {
     const [memberName, setMemberName] = useState('');
     const [project_members, setProjectMembers] = useState([]);
     const [message, setMessage] = useState('');
-    const navigate = useNavigate();   
+    const navigate = useNavigate();
 
     useEffect(() => {
         const token = localStorage.getItem('access_token');
@@ -42,17 +42,19 @@ const NewProject = () => {
     const handleAddMember = (e) => {
         e.preventDefault();
         if (memberName.trim()) {
-            setProjectMembers([...project_members, memberName]);
-            setMemberName('');   
+            const emailWithDomain = `${memberName.trim()}@mynwu.ac.za`;
+            setProjectMembers([emailWithDomain, ...project_members]);
+            setMemberName('');
         }
     }
 
-    const createNewProject = async () => {
-        project_members.push(email);
+    const createNewProject = async (event) => {
+        event.preventDefault();
+        project_members.unshift(email);
         const API_BASE_URL = window.location.hostname === 'localhost'
             ? 'http://127.0.0.1:8000'
             : 'https://pcp-backend-f4a2.onrender.com';
-        
+
         const response = await axios.post(
             `${API_BASE_URL}/api/newproject/`,
             {
@@ -60,15 +62,18 @@ const NewProject = () => {
                 project_description: project_description,
                 project_due_date: project_due_date,
                 project_members: project_members
+            },
+            {
+                headers: { Authorization: `Bearer ${localStorage.getItem('access_token')}` }
             }
         );
         setMessage(response.data.message);
     }
 
-    return(
+    return (
         <div>
             <h1>New Project for {email}</h1>
-            <form>
+            <form onSubmit={createNewProject}>
                 <input
                     type="text"
                     placeholder="Project Name"
@@ -110,7 +115,7 @@ const NewProject = () => {
                     rows="8"
                 />
                 <br />
-                <button type="submit" onClick={createNewProject}>Create Project</button>
+                <button type="submit">Create Project</button>
                 {message && <p>{message}</p>}
             </form>
             <button onClick={() => navigate('/dashboard')}>Back to Dashboard</button>

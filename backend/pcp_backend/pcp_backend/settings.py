@@ -109,7 +109,9 @@ CORS_ALLOWED_ORIGINS = [
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 # Disable authentication backends
-AUTHENTICATION_BACKENDS = []
+AUTHENTICATION_BACKENDS = [
+    'django.contrib.auth.backends.ModelBackend',
+]
 
 # REST Framework - Disable default JWT authentication
 REST_FRAMEWORK = {

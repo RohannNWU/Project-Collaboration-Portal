@@ -4,6 +4,7 @@ import Login from './components/Login';
 import Dashboard from './components/Dashboard';
 import Signup from './components/Signup';
 import NewProject from './components/NewProject';
+import EditProject from './components/EditProject';
 
 function App() {
   return (
@@ -13,6 +14,7 @@ function App() {
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/adduser" element={<Signup />} />
           <Route path="/newproject" element={<NewProject />} />
+          <Route path="/editproject" element={<EditProject />} />
         </Routes>
     </Router>
   );

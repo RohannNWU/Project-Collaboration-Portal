@@ -9,19 +9,10 @@ import {
 } from '@fortawesome/free-solid-svg-icons';
 import styles from './Dashboard.module.css';
 
-const getUserEmail = () => {
-  try {
-    const storedUser = localStorage.getItem('user');
-    return storedUser ? JSON.parse(storedUser).email : 'Anonymous User';
-  } catch (e) {
-    console.error('Failed to parse user from localStorage:', e);
-    return 'Student';
-  }
-};
-
 const Dashboard = () => {
-  const [email, setEmail] = useState(getUserEmail());
+  const [email, setEmail] = useState('');
   const [username, setUsername] = useState('');
+  const [projects, setProjects] = useState([]); // Fixed: Properly define state with setter
   const navigate = useNavigate();
   const calendarRef = useRef(null);
   const progressChartRef = useRef(null);
@@ -44,13 +35,16 @@ const Dashboard = () => {
       .then(response => {
         setEmail(response.data.email);
         setUsername(response.data.username);
+        setProjects(response.data.projects || []);
       })
       .catch(err => {
+        console.error('Error fetching dashboard data:', err);
         if (err.response && err.response.status === 401) {
+          localStorage.removeItem('access_token');
+          localStorage.removeItem('user');
           navigate('/');
         }
       });
-
     // Initialize calendar
     if (calendarRef.current && window.FullCalendar) {
       const calendar = new window.FullCalendar.Calendar(calendarRef.current, {
@@ -64,8 +58,6 @@ const Dashboard = () => {
         ]
       });
       calendar.render();
-
-      // Cleanup calendar on unmount
       return () => calendar.destroy();
     } else {
       console.warn('FullCalendar is not available');
@@ -111,7 +103,6 @@ const Dashboard = () => {
         }
       });
 
-      // Cleanup charts on unmount
       return () => {
         progressChart.destroy();
         workloadChart.destroy();
@@ -187,7 +178,7 @@ const Dashboard = () => {
         <section className={styles.cards}>
           <div className={styles.card}>
             <p>Active Projects</p>
-            <h2 id="kpi-projects">3</h2>
+            <h2 id="kpi-projects">{projects.length}</h2> {/* Dynamic count */}
           </div>
           <div className={styles.card}>
             <p>Tasks Due This Week</p>
@@ -216,39 +207,30 @@ const Dashboard = () => {
               </tr>
             </thead>
             <tbody>
-              <tr>
-                <td>CMPG 321</td>
-                <td>
-                  <div className={styles.progressBar}>
-                    <div className={styles.progress} style={{ width: '80%' }}></div>
-                  </div>
-                </td>
-                <td>11/11/2025</td>
-                <td><button className={styles.editBtn}>Edit</button></td>
-                <td><input type="checkbox" /></td>
-              </tr>
-              <tr>
-                <td>CMPG 323</td>
-                <td>
-                  <div className={styles.progressBar}>
-                    <div className={styles.progress} style={{ width: '50%' }}></div>
-                  </div>
-                </td>
-                <td>06/10/2025</td>
-                <td><button className={styles.editBtn}>Edit</button></td>
-                <td><input type="checkbox" /></td>
-              </tr>
-              <tr>
-                <td>CMPG 311</td>
-                <td>
-                  <div className={styles.progressBar}>
-                    <div className={styles.progress} style={{ width: '20%' }}></div>
-                  </div>
-                </td>
-                <td>21/09/2025</td>
-                <td><button className={styles.editBtn}>Edit</button></td>
-                <td><input type="checkbox" /></td>
-              </tr>
+              {projects.map((project, index) => (
+                <tr key={index}>
+                  <td>{project.project_name}</td>
+                  <td>
+                    <div className={styles.progressBar}>
+                      <div
+                        className={styles.progress}
+                        style={{ width: `${project.progress}%` }} // Fixed: Use dynamic progress
+                      ></div>
+                    </div>
+                  </td>
+                  <td>{project.dueDate}</td>
+                  <td>
+                    <button className={styles.editBtn} onClick={() => navigate('/editproject')}>Edit</button>
+                  </td>
+                  <td>
+                    <input
+                      type="checkbox"
+                      checked={project.role.toLowerCase() === 'supervisor'} // Set checked if role is supervisor
+                      readOnly // Prevent user from changing the checkbox
+                    />
+                  </td>
+                </tr>
+              ))}
             </tbody>
           </table>
         </section>
@@ -274,9 +256,11 @@ const Dashboard = () => {
             <button className={styles.iconBtn}><FontAwesomeIcon icon={faCalendar} /></button>
           </div>
           <ul className={styles.list}>
-            <li><FontAwesomeIcon icon={faProjectDiagram} /> CMPG 311 - Sep 21</li>
-            <li><FontAwesomeIcon icon={faProjectDiagram} /> CMPG 323 - Oct 6</li>
-            <li><FontAwesomeIcon icon={faProjectDiagram} /> CMPG 321 - Nov 11</li>
+            {projects.map((project, index) => (
+              <li key={index}>
+                <FontAwesomeIcon icon={faProjectDiagram} /> {project.code} - {project.dueDate}
+              </li>
+            ))}
           </ul>
         </section>
 
