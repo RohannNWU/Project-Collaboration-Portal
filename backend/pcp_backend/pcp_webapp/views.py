@@ -1,10 +1,10 @@
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
-from .models import User
+from .models import User, Project, User_Project
 from rest_framework_simplejwt.tokens import UntypedToken, AccessToken
 from rest_framework_simplejwt.exceptions import InvalidToken
-from datetime import datetime, timedelta
+from datetime import date, datetime, timedelta
 from django.db import connection
 import bcrypt
 import binascii
@@ -68,9 +68,36 @@ class AddUserView(APIView):
             # Insert new user with raw SQL
             with connection.cursor() as cursor:
                 cursor.execute(
-                    "INSERT INTO pcpusers (email, fname, lname, password) VALUES (%s, %s, %s, %s)",
+                    "INSERT INTO pcpuser (email, fname, lname, password) VALUES (%s, %s, %s, %s)",
                     [user_email, fname, lname, hashed_password]
                 )
             return Response({'message': 'User added successfully', 'id': user_email}, status=status.HTTP_201_CREATED)
         except Exception as e:
             return Response({'error': f'Failed to add user: {str(e)}'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        
+class AddProjectView(APIView):
+    def post(self, request):
+        try:
+            project_name = request.data.get('project_name')
+            project_description = request.data.get('project_description')
+            project_due_date = request.data.get('project_due_date')
+            created_on = date.today()
+            project_members = request.data.get('project_members', [])
+
+            with connection.cursor() as cursor:
+                cursor.execute(
+                    "INSERT INTO project (due_date, project_name, project_description, created_on) VALUES (%s, %s, %s, %s)",
+                    [project_due_date, project_name, project_description, created_on]
+                )
+                cursor.execute("SELECT LASTVAL()")
+                project_id = cursor.fetchone()[0]
+
+                for index, member_email in enumerate(project_members):
+                    role = 'supervisor' if index == 0 else 'student'
+                    cursor.execute(
+                        "INSERT INTO user_project (email, project_id, role) VALUES (%s, %s, %s)",
+                        [member_email, project_id, role]
+                    )
+            return Response({'message': 'Project added successfully'}, status=status.HTTP_201_CREATED)
+        except Exception as e:
+            return Response({'error': f'Failed to add project: {str(e)}'}, status=status.HTTP_500_INTERNAL)

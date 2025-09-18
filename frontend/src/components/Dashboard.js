@@ -29,13 +29,14 @@ const Dashboard = () => {
 
   useEffect(() => {
     const token = localStorage.getItem('access_token');
-    console.log("Token: " + token);
     if (!token) {
       navigate('/');
       return;
     }
 
-    const API_BASE_URL = process.env.REACT_APP_API_URL || 'https://pcp-backend-f4a2.onrender.com';
+    const API_BASE_URL = window.location.hostname === 'localhost'
+      ? 'http://127.0.0.1:8000'
+      : 'https://pcp-backend-f4a2.onrender.com';
 
     axios.get(`${API_BASE_URL}/api/dashboard/`, {
       headers: { Authorization: `Bearer ${token}` }
@@ -131,9 +132,9 @@ const Dashboard = () => {
       {/* Sidebar */}
       <aside className={styles.sidebar}>
         <div className={styles.brand}>
-          <div className={styles.logo}>NWU</div>
+          <div className={styles.logo}>{username.split(' ').map(word => word.charAt(0).toUpperCase()).join('')}</div>
           <div className={styles.brandText}>
-            <h2>Project Collaboration Portal</h2>
+            <h2>{username}</h2>
             <small>{email}</small>
           </div>
         </div>
@@ -175,8 +176,6 @@ const Dashboard = () => {
               <FontAwesomeIcon icon={faCog} />
             </button>
             <div className={styles.user}>
-              <span className={styles.username}>{username}</span>
-              <div className={styles.avatar}>JM</div>
               <button className={styles.logoutBtn} onClick={logout} title="Logout">
                 <FontAwesomeIcon icon={faSignOutAlt} />
               </button>
@@ -205,7 +204,7 @@ const Dashboard = () => {
           <div className={styles.panelHead}>
             <h2>Projects Overview</h2>
           </div>
-          <button className={styles.addBtn}>+ Add Project</button>
+          <button className={styles.addBtn} onClick={() => navigate('/newproject')}>+ Add Project</button>
           <table className={styles.table}>
             <thead>
               <tr>
