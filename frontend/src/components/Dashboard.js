@@ -9,19 +9,10 @@ import {
 } from '@fortawesome/free-solid-svg-icons';
 import styles from './Dashboard.module.css';
 
-const getUserEmail = () => {
-  try {
-    const storedUser = localStorage.getItem('user');
-    return storedUser ? JSON.parse(storedUser).email : 'Anonymous User';
-  } catch (e) {
-    console.error('Failed to parse user from localStorage:', e);
-    return 'Student';
-  }
-};
-
 const Dashboard = () => {
-  const [email, setEmail] = useState(getUserEmail());
+  const [email, setEmail] = useState('');
   const [username, setUsername] = useState('');
+  const [projects, setProjects] = useState([]);
   const navigate = useNavigate();
   const calendarRef = useRef(null);
   const progressChartRef = useRef(null);
@@ -29,13 +20,14 @@ const Dashboard = () => {
 
   useEffect(() => {
     const token = localStorage.getItem('access_token');
-    console.log("Token: " + token);
     if (!token) {
       navigate('/');
       return;
     }
 
-    const API_BASE_URL = window.location.hostname === 'localhost' ? 'http://127.0.0.1:8000': 'https://pcp-backend-f4a2.onrender.com';
+    const API_BASE_URL = window.location.hostname === 'localhost'
+      ? 'http://127.0.0.1:8000'
+      : 'https://pcp-backend-f4a2.onrender.com';
 
     axios.get(`${API_BASE_URL}/api/dashboard/`, {
       headers: { Authorization: `Bearer ${token}` }
@@ -43,9 +35,13 @@ const Dashboard = () => {
       .then(response => {
         setEmail(response.data.email);
         setUsername(response.data.username);
+        setProjects(response.data.projects || []);
       })
       .catch(err => {
+        console.error('Error fetching dashboard data:', err);
         if (err.response && err.response.status === 401) {
+          localStorage.removeItem('access_token');
+          localStorage.removeItem('user');
           navigate('/');
         }
       });
@@ -63,8 +59,6 @@ const Dashboard = () => {
         ]
       });
       calendar.render();
-
-      // Cleanup calendar on unmount
       return () => calendar.destroy();
     } else {
       console.warn('FullCalendar is not available');
@@ -110,7 +104,6 @@ const Dashboard = () => {
         }
       });
 
-      // Cleanup charts on unmount
       return () => {
         progressChart.destroy();
         workloadChart.destroy();
@@ -125,10 +118,6 @@ const Dashboard = () => {
     localStorage.removeItem('user');
     navigate("/");
   };
-
-  const calendar = () => {
-    navigate("/calendar",{state: {email: email}});
-    }
 
   return (
     <div className={styles.dashboard}>
@@ -146,7 +135,9 @@ const Dashboard = () => {
           <button className={styles.navBtn}><FontAwesomeIcon icon={faFolder} /> My Projects</button>
           <button className={styles.navBtn}><FontAwesomeIcon icon={faCheckCircle} /> My Tasks</button>
           <button className={styles.navBtn}><FontAwesomeIcon icon={faUsers} /> Teams</button>
-          <button className={styles.navBtn} onClick={calendar}><FontAwesomeIcon icon={faCalendar} /> Calendar</button>
+          <button className={styles.navBtn} onClick={() => navigate('/calendar')}>
+            <FontAwesomeIcon icon={faCalendar} /> Calendar
+          </button>
           <button className={styles.navBtn}><FontAwesomeIcon icon={faCodeBranch} /> Repos</button>
           <button className={styles.navBtn}><FontAwesomeIcon icon={faFile} /> Documents</button>
           <button className={styles.navBtn}><FontAwesomeIcon icon={faInbox} /> Inbox</button>
@@ -179,8 +170,6 @@ const Dashboard = () => {
               <FontAwesomeIcon icon={faCog} />
             </button>
             <div className={styles.user}>
-              <span className={styles.username}>{username}</span>
-              <div className={styles.avatar}>JM</div>
               <button className={styles.logoutBtn} onClick={logout} title="Logout">
                 <FontAwesomeIcon icon={faSignOutAlt} />
               </button>
@@ -192,7 +181,7 @@ const Dashboard = () => {
         <section className={styles.cards}>
           <div className={styles.card}>
             <p>Active Projects</p>
-            <h2 id="kpi-projects">3</h2>
+            <h2 id="kpi-projects">{projects.length}</h2>
           </div>
           <div className={styles.card}>
             <p>Tasks Due This Week</p>
@@ -209,7 +198,7 @@ const Dashboard = () => {
           <div className={styles.panelHead}>
             <h2>Projects Overview</h2>
           </div>
-          <button className={styles.addBtn}>+ Add Project</button>
+          <button className={styles.addBtn} onClick={() => navigate('/newproject')}>+ Add Project</button>
           <table className={styles.table}>
             <thead>
               <tr>
@@ -221,39 +210,30 @@ const Dashboard = () => {
               </tr>
             </thead>
             <tbody>
-              <tr>
-                <td>CMPG 321</td>
-                <td>
-                  <div className={styles.progressBar}>
-                    <div className={styles.progress} style={{ width: '80%' }}></div>
-                  </div>
-                </td>
-                <td>11/11/2025</td>
-                <td><button className={styles.editBtn}>Edit</button></td>
-                <td><input type="checkbox" /></td>
-              </tr>
-              <tr>
-                <td>CMPG 323</td>
-                <td>
-                  <div className={styles.progressBar}>
-                    <div className={styles.progress} style={{ width: '50%' }}></div>
-                  </div>
-                </td>
-                <td>06/10/2025</td>
-                <td><button className={styles.editBtn}>Edit</button></td>
-                <td><input type="checkbox" /></td>
-              </tr>
-              <tr>
-                <td>CMPG 311</td>
-                <td>
-                  <div className={styles.progressBar}>
-                    <div className={styles.progress} style={{ width: '20%' }}></div>
-                  </div>
-                </td>
-                <td>21/09/2025</td>
-                <td><button className={styles.editBtn}>Edit</button></td>
-                <td><input type="checkbox" /></td>
-              </tr>
+              {projects.map((project, index) => (
+                <tr key={index}>
+                  <td>{project.project_name}</td>
+                  <td>
+                    <div className={styles.progressBar}>
+                      <div
+                        className={styles.progress}
+                        style={{ width: `${project.progress}%` }}
+                      ></div>
+                    </div>
+                  </td>
+                  <td>{project.dueDate}</td>
+                  <td>
+                    <button className={styles.editBtn} onClick={() => navigate('/editproject', { state: { projectName: project.project_name } })}>Edit</button>
+                  </td>
+                  <td>
+                    <input
+                      type="checkbox"
+                      checked={project.role.toLowerCase() === 'supervisor'}
+                      readOnly
+                    />
+                  </td>
+                </tr>
+              ))}
             </tbody>
           </table>
         </section>
@@ -279,9 +259,11 @@ const Dashboard = () => {
             <button className={styles.iconBtn}><FontAwesomeIcon icon={faCalendar} /></button>
           </div>
           <ul className={styles.list}>
-            <li><FontAwesomeIcon icon={faProjectDiagram} /> CMPG 311 - Sep 21</li>
-            <li><FontAwesomeIcon icon={faProjectDiagram} /> CMPG 323 - Oct 6</li>
-            <li><FontAwesomeIcon icon={faProjectDiagram} /> CMPG 321 - Nov 11</li>
+            {projects.map((project, index) => (
+              <li key={index}>
+                <FontAwesomeIcon icon={faProjectDiagram} /> {project.project_name} - {project.dueDate}
+              </li>
+            ))}
           </ul>
         </section>
 
