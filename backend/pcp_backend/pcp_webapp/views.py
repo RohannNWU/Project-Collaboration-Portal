@@ -1,10 +1,13 @@
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
+from rest_framework import generics, permissions
 from rest_framework_simplejwt.tokens import UntypedToken, AccessToken
 from rest_framework_simplejwt.exceptions import InvalidToken
+from django.shortcuts import get_object_or_404
 from datetime import datetime, timedelta
-from .models import User, Project, UserProject
+from .models import User, Project, UserProject, ProjectChat, ChatMessage
+from .serializers import ChatMessageSerializer, ProjectChatSerializer
 import bcrypt
 
 class LoginView(APIView):
@@ -137,3 +140,47 @@ class AddProjectView(APIView):
             return Response({'error': 'One or more users not found'}, status=status.HTTP_400_BAD_REQUEST)
         except Exception as e:
             return Response({'error': f'Failed to add project: {str(e)}'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    
+
+
+
+# Chat room - Shaun's code 
+class ProjectChatView(generics.ListAPIView):
+    serializer_class = ProjectChatSerializer
+    permission_classes = [permissions.IsAdminUser]
+    
+    def get_queryset(self):
+        project_id = self.kwargs['project_id']
+        return ProjectChat.objects.filter(project_id=project_id)
+    
+
+# Getting messages in a chat room
+class ChatMessageListView(generics.ListAPIView):
+    serializer_class = ChatMessageSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get_queryset(self):
+        chat_id = self.kwargs['chat_id']
+        return ChatMessage.objects.filter(chat_room_id=chat_id).order_by('sent_at')
+    
+
+# Posting a new message in a chat room
+class ChatMessageCreateView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+
+    def post(self, request, chat_id):
+        chat_room = get_object_or_404(ProjectChat, pk=chat_id)
+
+        data = {
+            "chat_room": chat_room.pk,
+            "user": request.user.email, # provided that authentication is set up by someone somewhere
+            "content": request.data.get("content"),
+            "status": "sent",
+        }
+
+        serializer = ChatMessageSerializer(data=data)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data, status=201)
+        
+        return Response(serializer.errors, status=400)

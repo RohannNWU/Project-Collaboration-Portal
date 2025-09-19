@@ -1,4 +1,5 @@
 from django.db import models
+from django.conf import settings #Shaun's code
 
 class User(models.Model):
     email = models.CharField(max_length=100, unique=True, primary_key=True)
@@ -36,3 +37,34 @@ class UserProject(models.Model):
 
     def __str__(self):
         return f"{self.email} - {self.user_project_id}"
+    
+    
+# Project Chat (chat room per project) - Shaun's code
+class ProjectChat(models.Model):
+    pc_id = models.AutoField(primary_key=True)
+    project = models.ForeignKey(Project, on_delete=models.CASCADE)
+
+    class Meta:
+        managed = True
+        db_table = "PROJECT_CHAT"
+
+    def __str__(self):
+        return f"Chat for {self.project.project_name}"
+
+
+#Chat Message
+class ChatMessage(models.Model):
+    cm_id = models.AutoField(primary_key=True)
+    user_room = models.ForeignKey(ProjectChat, on_delete=models.CASCADE)
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    sent_at = models.DateTimeField(auto_now_add=True) # timestamp
+    content = models.TextField() # the message itself
+    status = models.CharField(max_length=20, default="sent") # could be: sent, delivered, seen
+
+    class Meta:
+        managed = True
+        db_table = "CHAT_MESSAGE"
+
+    def __str__(self):
+        return f"{self.user.email}: {self.content[:30]}..."
+

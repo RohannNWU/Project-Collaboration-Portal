@@ -27,6 +27,9 @@ INSTALLED_APPS = [
     'rest_framework',
     'corsheaders',
     'pcp_webapp',
+
+    #Shaun's adds
+    'channels'
 ]
 
 MIDDLEWARE = [
@@ -59,6 +62,13 @@ TEMPLATES = [
 ]
 
 WSGI_APPLICATION = 'pcp_backend.wsgi.application'
+ASGI_APPLICATION = 'pcp_backend.asgi.application' #Shaun's adds 
+
+CHANNEL_LAYERS = { 
+    "default": {
+        "BACKEND": "channels.layers.InMemoryChannelLayer", # to-use 'channels_redis.core.RedisChannelLayer' for production
+    },
+}
 
 # Database
 DATABASES = {
@@ -115,5 +125,15 @@ AUTHENTICATION_BACKENDS = [
 
 # REST Framework - Disable default JWT authentication
 REST_FRAMEWORK = {
-    'DEFAULT_AUTHENTICATION_CLASSES': (),
+    'DEFAULT_AUTHENTICATION_CLASSES': (
+        #Shaun's addds
+        'rest_framework_simplejwt.authentication.JWTAuthentication',
+    ),
+    'DEFAULT_PERMISSION_CLASSES': (
+        'rest_framework.permissions.IsAuthenticated',
+    )
 }
+
+#Media (for attachments) - if supported
+#MEDIA_URL = '/media/'
+#MEDIA_ROOT = BASE_DIR / 'media'
