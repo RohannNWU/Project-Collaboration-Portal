@@ -220,7 +220,7 @@ const Dashboard = () => {
                   </td>
                   <td>{project.dueDate}</td>
                   <td>
-                    <button className={styles.editBtn} onClick={() => navigate('/editproject')}>Edit</button>
+                    <button className={styles.editBtn} onClick={() => navigate('/editproject', { state: { projectName: project.project_name } })}>Edit</button>
                   </td>
                   <td>
                     <input
