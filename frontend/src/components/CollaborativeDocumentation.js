@@ -11,13 +11,6 @@ const CollaborativeDocumentation = () => {
 
   const features = [
     {
-      title: 'Dashboard',
-      description: 'Monitor project progress, team activity, and document statistics.',
-      path: '/dashboard-collaborative-documentation',
-      icon: '📊',
-      variant: 'primary'
-    },
-    {
       title: 'Upload Documents',
       description: 'Upload and organize documents for team collaboration.',
       path: '/upload-collaborative-documentation',
@@ -30,27 +23,6 @@ const CollaborativeDocumentation = () => {
       path: '/task-card-collaborative-documentation',
       icon: '✅',
       variant: 'warning'
-    },
-    {
-      title: 'Style Guide',
-      description: 'Maintain consistent design and branding guidelines.',
-      path: '/style-collaborative-documentation',
-      icon: '🎨',
-      variant: 'info'
-    },
-    {
-      title: 'App Overview',
-      description: 'Learn about the platform features and architecture.',
-      path: '/app-collaborative-documentation',
-      icon: '🏗️',
-      variant: 'secondary'
-    },
-    {
-      title: 'Create New Task',
-      description: 'Add new tasks and assign them to team members.',
-      path: '/new-task-collaborative-documentation',
-      icon: '➕',
-      variant: 'primary'
     }
   ];
 

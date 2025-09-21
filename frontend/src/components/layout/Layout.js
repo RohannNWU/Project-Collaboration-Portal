@@ -7,13 +7,7 @@ const Layout = ({ children, title, subtitle }) => {
 
   const navigationItems = [
     { path: '/', label: 'Home', exact: true },
-    { path: '/collaborative-documentation', label: 'Documentation' },
-    { path: '/dashboard-collaborative-documentation', label: 'Dashboard' },
-    { path: '/upload-collaborative-documentation', label: 'Upload' },
-    { path: '/task-card-collaborative-documentation', label: 'Tasks' },
-    { path: '/style-collaborative-documentation', label: 'Style Guide' },
-    { path: '/app-collaborative-documentation', label: 'App Overview' },
-    { path: '/new-task-collaborative-documentation', label: 'New Task' }
+    { path: '/upload-collaborative-documentation', label: 'Upload' }
   ];
 
   const isActiveRoute = (path, exact = false) => {

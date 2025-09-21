@@ -4,8 +4,15 @@ import Card from './common/Card';
 import Button from './common/Button';
 import Alert from './common/Alert';
 import Loading from './common/Loading';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { 
+  faUpload, faFile, faCheckCircle, faCloudUploadAlt, faFileAlt,
+  faFilePdf, faFileWord, faFileExcel, faFilePowerpoint, faFileCode,
+  faTrash, faEye, faDownload, faUsers, faCalendarAlt
+} from '@fortawesome/free-solid-svg-icons';
 import { useApp } from '../context/AppContext';
 import styles from '../styles/common.module.css';
+import dashboardStyles from './Dashboard.module.css';
 
 const UploadCollabDoc = () => {
   const { addDocument, loading, setLoading } = useApp();
@@ -99,139 +106,320 @@ const UploadCollabDoc = () => {
       title="Upload Collaborative Document" 
       subtitle="Share documents with your team for better collaboration"
     >
-      <div style={{ maxWidth: '800px', margin: '0 auto' }}>
-        {/* Upload Area */}
-        <Card className={styles.mb4}>
-          <div
-            onDrop={handleDrop}
-            onDragOver={handleDragOver}
-            onDragLeave={handleDragLeave}
-            style={{
-              border: `2px dashed ${dragOver ? 'var(--color-primary)' : 'var(--color-gray)'}`,
-              borderRadius: 'var(--border-radius-lg)',
-              padding: 'var(--spacing-xxxl)',
-              textAlign: 'center',
-              backgroundColor: dragOver ? 'var(--color-primary-light)' : 'var(--bg-secondary)',
-              transition: 'all var(--transition-normal)',
-              cursor: 'pointer'
-            }}
-          >
-            <div style={{ fontSize: 'var(--font-size-display)', marginBottom: 'var(--spacing-md)' }}>
-              📁
-            </div>
-            <h3 style={{ marginBottom: 'var(--spacing-sm)', color: 'var(--text-primary)' }}>
-              {dragOver ? 'Drop your file here' : 'Upload Your Document'}
-            </h3>
-            <p style={{ color: 'var(--text-secondary)', marginBottom: 'var(--spacing-lg)' }}>
-              Drag and drop a file here, or click to select a file
+      {/* Modern Upload Interface - Dashboard Style */}
+      <div className={dashboardStyles.main} style={{ padding: '0', background: 'transparent' }}>
+        
+        {/* Upload Statistics */}
+        <section className={dashboardStyles.cards} style={{ marginBottom: '30px' }}>
+          <div className={dashboardStyles.card} style={{ cursor: 'default' }}>
+            <p style={{ margin: '0 0 10px 0', color: '#666', fontSize: '14px' }}>
+              <FontAwesomeIcon icon={faFile} style={{ marginRight: '8px', color: '#3498db' }} />
+              Total Documents
             </p>
-            
-            <input 
-              type="file" 
-              onChange={handleFileSelect}
-              accept=".pdf,.doc,.docx,.txt,.md,.xlsx,.xls,.pptx,.ppt"
-              style={{ display: 'none' }}
-              id="fileInput"
-            />
-            <label htmlFor="fileInput">
-              <Button variant="primary" size="lg" style={{ pointerEvents: 'none' }}>
-                📎 Choose File
-              </Button>
-            </label>
-            
-            {selectedFile && (
-              <div style={{ 
-                marginTop: 'var(--spacing-lg)', 
-                padding: 'var(--spacing-md)',
-                backgroundColor: 'var(--bg-primary)',
-                borderRadius: 'var(--border-radius-md)',
-                border: 'var(--border)'
-              }}>
-                <h4 style={{ margin: '0 0 var(--spacing-sm) 0', color: 'var(--color-success)' }}>
-                  ✅ File Selected
-                </h4>
-                <p style={{ margin: '0 0 var(--spacing-xs) 0' }}>
-                  <strong>Name:</strong> {selectedFile.name}
-                </p>
-                <p style={{ margin: '0 0 var(--spacing-md) 0' }}>
-                  <strong>Size:</strong> {formatFileSize(selectedFile.size)}
-                </p>
-                <Button onClick={handleUpload} variant="success" size="lg">
-                  🚀 Upload Document
-                </Button>
-              </div>
-            )}
+            <h2 style={{ margin: '0', fontSize: '32px', fontWeight: 'bold', color: '#2c3e50' }}>
+              24
+            </h2>
+            <small style={{ color: '#95a5a6', fontSize: '12px' }}>In your workspace</small>
           </div>
-        </Card>
+          <div className={dashboardStyles.card} style={{ cursor: 'default' }}>
+            <p style={{ margin: '0 0 10px 0', color: '#666', fontSize: '14px' }}>
+              <FontAwesomeIcon icon={faCloudUploadAlt} style={{ marginRight: '8px', color: '#27ae60' }} />
+              Recent Uploads
+            </p>
+            <h2 style={{ margin: '0', fontSize: '32px', fontWeight: 'bold', color: '#27ae60' }}>
+              8
+            </h2>
+            <small style={{ color: '#95a5a6', fontSize: '12px' }}>This week</small>
+          </div>
+          <div className={dashboardStyles.card} style={{ cursor: 'default' }}>
+            <p style={{ margin: '0 0 10px 0', color: '#666', fontSize: '14px' }}>
+              <FontAwesomeIcon icon={faUsers} style={{ marginRight: '8px', color: '#9b59b6' }} />
+              Shared Files
+            </p>
+            <h2 style={{ margin: '0', fontSize: '32px', fontWeight: 'bold', color: '#9b59b6' }}>
+              16
+            </h2>
+            <small style={{ color: '#95a5a6', fontSize: '12px' }}>Team accessible</small>
+          </div>
+          <div className={dashboardStyles.card} style={{ cursor: 'default' }}>
+            <p style={{ margin: '0 0 10px 0', color: '#666', fontSize: '14px' }}>
+              <FontAwesomeIcon icon={faCheckCircle} style={{ marginRight: '8px', color: '#e67e22' }} />
+              Storage Used
+            </p>
+            <h2 style={{ margin: '0', fontSize: '32px', fontWeight: 'bold', color: '#e67e22' }}>
+              2.4GB
+            </h2>
+            <small style={{ color: '#95a5a6', fontSize: '12px' }}>of 10GB available</small>
+          </div>
+        </section>
+
+        {/* Modern Upload Area */}
+        <section className={dashboardStyles.panel} style={{ marginBottom: '25px' }}>
+          <div className={dashboardStyles.panelHead}>
+            <h2 style={{ margin: '0', fontSize: '20px', fontWeight: '600', color: '#2c3e50' }}>
+              <FontAwesomeIcon icon={faUpload} style={{ marginRight: '10px', color: '#3498db' }} />
+              Upload New Document
+            </h2>
+          </div>
+          
+          <div style={{ padding: '30px' }}>
+            <div
+              onDrop={handleDrop}
+              onDragOver={handleDragOver}
+              onDragLeave={handleDragLeave}
+              style={{
+                border: `3px dashed ${dragOver ? '#3498db' : '#bdc3c7'}`,
+                borderRadius: '12px',
+                padding: '50px 30px',
+                textAlign: 'center',
+                backgroundColor: dragOver ? '#ecf0f1' : '#f8f9fa',
+                transition: 'all 0.3s ease',
+                cursor: 'pointer',
+                position: 'relative'
+              }}
+            >
+              <div style={{ 
+                fontSize: '64px', 
+                marginBottom: '20px',
+                color: dragOver ? '#3498db' : '#95a5a6'
+              }}>
+                <FontAwesomeIcon icon={faCloudUploadAlt} />
+              </div>
+              <h3 style={{ 
+                marginBottom: '10px', 
+                color: '#2c3e50',
+                fontSize: '24px',
+                fontWeight: '600'
+              }}>
+                {dragOver ? 'Drop your file here' : 'Upload Your Document'}
+              </h3>
+              <p style={{ 
+                color: '#7f8c8d', 
+                marginBottom: '25px',
+                fontSize: '16px',
+                lineHeight: '1.5'
+              }}>
+                Drag and drop a file here, or click the button below to select a file
+              </p>
+              
+              <input 
+                type="file" 
+                onChange={handleFileSelect}
+                accept=".pdf,.doc,.docx,.txt,.md,.xlsx,.xls,.pptx,.ppt"
+                style={{ display: 'none' }}
+                id="fileInput"
+              />
+              <label htmlFor="fileInput">
+                <button 
+                  className={dashboardStyles.qaBtn}
+                  style={{ 
+                    pointerEvents: 'none',
+                    padding: '12px 30px',
+                    fontSize: '16px',
+                    fontWeight: '600'
+                  }}
+                >
+                  <FontAwesomeIcon icon={faFile} style={{ marginRight: '8px' }} />
+                  Choose File
+                </button>
+              </label>
+            
+              {selectedFile && (
+                <div style={{ 
+                  marginTop: '25px', 
+                  padding: '20px',
+                  backgroundColor: '#e8f5e8',
+                  borderRadius: '8px',
+                  border: '2px solid #27ae60',
+                  textAlign: 'left'
+                }}>
+                  <h4 style={{ margin: '0 0 15px 0', color: '#27ae60', fontSize: '18px', fontWeight: '600' }}>
+                    <FontAwesomeIcon icon={faCheckCircle} style={{ marginRight: '8px' }} />
+                    File Selected
+                  </h4>
+                  <p style={{ margin: '0 0 8px 0', color: '#2c3e50' }}>
+                    <strong>Name:</strong> {selectedFile.name}
+                  </p>
+                  <p style={{ margin: '0 0 20px 0', color: '#2c3e50' }}>
+                    <strong>Size:</strong> {formatFileSize(selectedFile.size)}
+                  </p>
+                  <button 
+                    onClick={handleUpload}
+                    className={dashboardStyles.qaBtn}
+                    style={{ 
+                      backgroundColor: '#27ae60',
+                      borderColor: '#27ae60',
+                      padding: '12px 24px',
+                      fontSize: '16px',
+                      fontWeight: '600'
+                    }}
+                  >
+                    <FontAwesomeIcon icon={faUpload} style={{ marginRight: '8px' }} />
+                    Upload Document
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
+        </section>
 
         {/* Status Messages */}
         {uploadStatus && (
-          <Alert 
-            variant={uploadStatus.includes('successfully') ? 'success' : 'danger'}
-            onClose={() => setUploadStatus('')}
-            className={styles.mb4}
-          >
+          <div style={{
+            padding: '15px 20px',
+            marginBottom: '25px',
+            borderRadius: '8px',
+            backgroundColor: uploadStatus.includes('successfully') ? '#d4edda' : '#f8d7da',
+            border: `1px solid ${uploadStatus.includes('successfully') ? '#c3e6cb' : '#f5c6cb'}`,
+            color: uploadStatus.includes('successfully') ? '#155724' : '#721c24'
+          }}>
+            <FontAwesomeIcon 
+              icon={uploadStatus.includes('successfully') ? faCheckCircle : faFileAlt} 
+              style={{ marginRight: '8px' }} 
+            />
             {uploadStatus}
-          </Alert>
+          </div>
         )}
 
         {/* Supported File Types */}
-        <Card title="Supported File Types" subtitle="Upload any of these document formats">
-          <div className={`${styles.grid} ${styles.gridCols2}`}>
-            {supportedTypes.map((type, index) => (
-              <div 
-                key={index}
-                style={{ 
-                  display: 'flex', 
-                  alignItems: 'center', 
-                  gap: 'var(--spacing-sm)',
-                  padding: 'var(--spacing-sm)',
-                  backgroundColor: 'var(--bg-secondary)',
-                  borderRadius: 'var(--border-radius-md)',
-                  marginBottom: 'var(--spacing-sm)'
-                }}
-              >
-                <span style={{ fontSize: 'var(--font-size-xl)' }}>{type.icon}</span>
-                <div>
-                  <div style={{ fontWeight: 'var(--font-weight-medium)' }}>
-                    {type.description}
-                  </div>
-                  <div style={{ fontSize: 'var(--font-size-sm)', color: 'var(--text-secondary)' }}>
-                    {type.extension}
-                  </div>
-                </div>
-              </div>
-            ))}
+        <section className={dashboardStyles.panel}>
+          <div className={dashboardStyles.panelHead}>
+            <h2 style={{ margin: '0', fontSize: '20px', fontWeight: '600', color: '#2c3e50' }}>
+              <FontAwesomeIcon icon={faFileAlt} style={{ marginRight: '10px', color: '#3498db' }} />
+              Supported File Types
+            </h2>
+            <p style={{ margin: '5px 0 0 0', color: '#7f8c8d', fontSize: '14px' }}>
+              Upload any of these document formats
+            </p>
           </div>
-        </Card>
+          
+          <div style={{ padding: '25px' }}>
+            <div style={{ 
+              display: 'grid', 
+              gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', 
+              gap: '15px' 
+            }}>
+              {supportedTypes.map((type, index) => {
+                const getFileIcon = (extension) => {
+                  if (extension.includes('pdf')) return faFilePdf;
+                  if (extension.includes('doc')) return faFileWord;
+                  if (extension.includes('xls')) return faFileExcel;
+                  if (extension.includes('ppt')) return faFilePowerpoint;
+                  return faFileCode;
+                };
+                
+                return (
+                  <div 
+                    key={index}
+                    style={{ 
+                      display: 'flex', 
+                      alignItems: 'center', 
+                      gap: '12px',
+                      padding: '15px',
+                      backgroundColor: '#f8f9fa',
+                      borderRadius: '8px',
+                      border: '1px solid #e9ecef',
+                      transition: 'all 0.2s ease'
+                    }}
+                  >
+                    <FontAwesomeIcon 
+                      icon={getFileIcon(type.extension)} 
+                      style={{ fontSize: '24px', color: '#3498db' }} 
+                    />
+                    <div>
+                      <div style={{ fontWeight: '600', color: '#2c3e50', marginBottom: '4px' }}>
+                        {type.description}
+                      </div>
+                      <div style={{ fontSize: '14px', color: '#7f8c8d' }}>
+                        {type.extension}
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </section>
 
         {/* Upload Guidelines */}
-        <Card title="Upload Guidelines" className={styles.mt4}>
-          <div className={`${styles.grid} ${styles.gridCols2}`} style={{ gap: 'var(--spacing-xl)' }}>
-            <div>
-              <h4 style={{ color: 'var(--color-success)', marginBottom: 'var(--spacing-sm)' }}>
-                ✅ Best Practices
-              </h4>
-              <ul style={{ color: 'var(--text-secondary)', paddingLeft: 'var(--spacing-lg)' }}>
-                <li>Use descriptive file names</li>
-                <li>Keep file sizes under 50MB</li>
-                <li>Use standard document formats</li>
-                <li>Include version numbers when applicable</li>
-              </ul>
-            </div>
-            <div>
-              <h4 style={{ color: 'var(--color-warning)', marginBottom: 'var(--spacing-sm)' }}>
-                ⚠️ Important Notes
-              </h4>
-              <ul style={{ color: 'var(--text-secondary)', paddingLeft: 'var(--spacing-lg)' }}>
-                <li>Files are stored locally in your browser</li>
-                <li>Large files may take longer to upload</li>
-                <li>Ensure files don't contain sensitive data</li>
-                <li>Duplicate names will be automatically renamed</li>
-              </ul>
+        <section className={dashboardStyles.panel}>
+          <div className={dashboardStyles.panelHead}>
+            <h2 style={{ margin: '0', fontSize: '20px', fontWeight: '600', color: '#2c3e50' }}>
+              <FontAwesomeIcon icon={faFileAlt} style={{ marginRight: '10px', color: '#3498db' }} />
+              Upload Guidelines
+            </h2>
+            <p style={{ margin: '5px 0 0 0', color: '#7f8c8d', fontSize: '14px' }}>
+              Follow these best practices for optimal file management
+            </p>
+          </div>
+          
+          <div style={{ padding: '25px' }}>
+            <div style={{ 
+              display: 'grid', 
+              gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', 
+              gap: '25px' 
+            }}>
+              <div style={{
+                padding: '20px',
+                backgroundColor: '#e8f5e8',
+                borderRadius: '8px',
+                border: '1px solid #c3e6cb'
+              }}>
+                <h4 style={{ 
+                  color: '#27ae60', 
+                  marginBottom: '15px',
+                  fontSize: '18px',
+                  fontWeight: '600',
+                  display: 'flex',
+                  alignItems: 'center'
+                }}>
+                  <FontAwesomeIcon icon={faCheckCircle} style={{ marginRight: '8px' }} />
+                  Best Practices
+                </h4>
+                <ul style={{ 
+                  color: '#2c3e50', 
+                  paddingLeft: '20px',
+                  lineHeight: '1.6',
+                  margin: '0'
+                }}>
+                  <li>Use descriptive file names</li>
+                  <li>Keep file sizes under 50MB</li>
+                  <li>Use standard document formats</li>
+                  <li>Include version numbers when applicable</li>
+                </ul>
+              </div>
+              <div style={{
+                padding: '20px',
+                backgroundColor: '#fff3cd',
+                borderRadius: '8px',
+                border: '1px solid #ffeaa7'
+              }}>
+                <h4 style={{ 
+                  color: '#e67e22', 
+                  marginBottom: '15px',
+                  fontSize: '18px',
+                  fontWeight: '600',
+                  display: 'flex',
+                  alignItems: 'center'
+                }}>
+                  <FontAwesomeIcon icon={faFileAlt} style={{ marginRight: '8px' }} />
+                  Important Notes
+                </h4>
+                <ul style={{ 
+                  color: '#2c3e50', 
+                  paddingLeft: '20px',
+                  lineHeight: '1.6',
+                  margin: '0'
+                }}>
+                  <li>Files are stored locally in your browser</li>
+                  <li>Large files may take longer to upload</li>
+                  <li>Ensure files don't contain sensitive data</li>
+                  <li>Duplicate names will be automatically renamed</li>
+                </ul>
+              </div>
             </div>
           </div>
-        </Card>
+        </section>
       </div>
     </Layout>
   );
