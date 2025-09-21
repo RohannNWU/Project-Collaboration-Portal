@@ -2,17 +2,17 @@ import React, { useRef, useState, useEffect } from 'react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faFolder, faCheckCircle, faUsers, faCalendar, faCodeBranch, faFile, faInbox, faBell, faSignOutAlt } from '@fortawesome/free-solid-svg-icons';
-import { faCog, faSearch, faPlus, faComment, faUpload, faProjectDiagram, faUserCheck, faEnvelope } from '@fortawesome/free-solid-svg-icons';
+import {
+  faFolder, faCheckCircle, faUsers, faCalendar, faCodeBranch, faFile, faInbox,
+  faBell, faCog, faSignOutAlt, faPlus, faSearch, faEnvelope, faProjectDiagram,
+  faUserCheck, faComment, faUpload
+} from '@fortawesome/free-solid-svg-icons';
 import styles from './Dashboard.module.css';
-
-//----------------------------------------
-//  Dashboard Page Component
-//----------------------------------------
 
 const Dashboard = () => {
   const [email, setEmail] = useState('');
   const [username, setUsername] = useState('');
+  const [projects, setProjects] = useState([]);
   const navigate = useNavigate();
   const calendarRef = useRef(null);
   const progressChartRef = useRef(null);
@@ -26,8 +26,8 @@ const Dashboard = () => {
     }
 
     const API_BASE_URL = window.location.hostname === 'localhost'
-        ? 'http://127.0.0.1:8000'
-        : 'https://pcp-backend-f4a2.onrender.com';
+      ? 'http://127.0.0.1:8000'
+      : 'https://pcp-backend-f4a2.onrender.com';
 
     axios.get(`${API_BASE_URL}/api/dashboard/`, {
       headers: { Authorization: `Bearer ${token}` }
@@ -35,9 +35,13 @@ const Dashboard = () => {
       .then(response => {
         setEmail(response.data.email);
         setUsername(response.data.username);
+        setProjects(response.data.projects || []);
       })
       .catch(err => {
+        console.error('Error fetching dashboard data:', err);
         if (err.response && err.response.status === 401) {
+          localStorage.removeItem('access_token');
+          localStorage.removeItem('user');
           navigate('/');
         }
       });
@@ -55,8 +59,6 @@ const Dashboard = () => {
         ]
       });
       calendar.render();
-
-      // Cleanup calendar on unmount
       return () => calendar.destroy();
     } else {
       console.warn('FullCalendar is not available');
@@ -102,7 +104,6 @@ const Dashboard = () => {
         }
       });
 
-      // Cleanup charts on unmount
       return () => {
         progressChart.destroy();
         workloadChart.destroy();
@@ -118,18 +119,14 @@ const Dashboard = () => {
     navigate("/");
   };
 
-  const createNewProject = () => {
-    navigate('/newproject');
-  };
-
   return (
     <div className={styles.dashboard}>
       {/* Sidebar */}
       <aside className={styles.sidebar}>
         <div className={styles.brand}>
-          <div className={styles.logo}>NWU</div>
+          <div className={styles.logo}>{username.split(' ').map(word => word.charAt(0).toUpperCase()).join('')}</div>
           <div className={styles.brandText}>
-            <h2>Project Collaboration Portal</h2>
+            <h2>{username}</h2>
             <small>{email}</small>
           </div>
         </div>
@@ -138,23 +135,16 @@ const Dashboard = () => {
           <button className={styles.navBtn}><FontAwesomeIcon icon={faFolder} /> My Projects</button>
           <button className={styles.navBtn}><FontAwesomeIcon icon={faCheckCircle} /> My Tasks</button>
           <button className={styles.navBtn}><FontAwesomeIcon icon={faUsers} /> Teams</button>
-          {/*----------------------------------------
-          - Navigation to Calendar Page
-          ----------------------------------------*/}
-          <button 
-            className={styles.navBtn} 
-            onClick={() => navigate("/calendar")}   // ✅ this makes it work
-          >
+          <button className={styles.navBtn} onClick={() => navigate('/calendar')}>
             <FontAwesomeIcon icon={faCalendar} /> Calendar
           </button>
-          
           <button className={styles.navBtn}><FontAwesomeIcon icon={faCodeBranch} /> Repos</button>
           <button className={styles.navBtn}><FontAwesomeIcon icon={faFile} /> Documents</button>
           <button className={styles.navBtn}><FontAwesomeIcon icon={faInbox} /> Inbox</button>
         </nav>
 
         <div className={styles.quickActions}>
-          <button className={styles.qaBtn} onClick={createNewProject}><FontAwesomeIcon icon={faPlus} /> New Project</button>
+          <button className={styles.qaBtn}><FontAwesomeIcon icon={faPlus} /> New Project</button>
           <button className={styles.qaBtn}><FontAwesomeIcon icon={faPlus} /> New Task</button>
           <button className={styles.qaBtn}><FontAwesomeIcon icon={faComment} /> Message Team</button>
           <button className={styles.qaBtn}><FontAwesomeIcon icon={faUpload} /> Upload File</button>
@@ -180,8 +170,6 @@ const Dashboard = () => {
               <FontAwesomeIcon icon={faCog} />
             </button>
             <div className={styles.user}>
-              <span className={styles.username}>{username}</span>
-              <div className={styles.avatar}>JM</div>
               <button className={styles.logoutBtn} onClick={logout} title="Logout">
                 <FontAwesomeIcon icon={faSignOutAlt} />
               </button>
@@ -193,7 +181,7 @@ const Dashboard = () => {
         <section className={styles.cards}>
           <div className={styles.card}>
             <p>Active Projects</p>
-            <h2 id="kpi-projects">3</h2>
+            <h2 id="kpi-projects">{projects.length}</h2>
           </div>
           <div className={styles.card}>
             <p>Tasks Due This Week</p>
@@ -208,15 +196,9 @@ const Dashboard = () => {
         {/* Projects Table */}
         <section className={styles.panel}>
           <div className={styles.panelHead}>
-            <h2>My Projects</h2>
-            <div className={styles.tabs}>
-              <button className={`${styles.tab} ${styles.active}`} data-filter="all">All</button>
-              <button className={styles.tab} data-filter="On Track">On Track</button>
-              <button className={styles.tab} data-filter="Review">Review</button>
-            </div>
             <h2>Projects Overview</h2>
           </div>
-          <button className={styles.addBtn} onClick={createNewProject}>+ Add Project</button>
+          <button className={styles.addBtn} onClick={() => navigate('/newproject')}>+ Add Project</button>
           <table className={styles.table}>
             <thead>
               <tr>
@@ -228,39 +210,30 @@ const Dashboard = () => {
               </tr>
             </thead>
             <tbody>
-              <tr>
-                <td>CMPG 321</td>
-                <td>
-                  <div className={styles.progressBar}>
-                    <div className={styles.progress} style={{ width: '80%' }}></div>
-                  </div>
-                </td>
-                <td>11/11/2025</td>
-                <td><button className={styles.editBtn}>Edit</button></td>
-                <td><input type="checkbox" /></td>
-              </tr>
-              <tr>
-                <td>CMPG 323</td>
-                <td>
-                  <div className={styles.progressBar}>
-                    <div className={styles.progress} style={{ width: '50%' }}></div>
-                  </div>
-                </td>
-                <td>06/10/2025</td>
-                <td><button className={styles.editBtn}>Edit</button></td>
-                <td><input type="checkbox" /></td>
-              </tr>
-              <tr>
-                <td>CMPG 311</td>
-                <td>
-                  <div className={styles.progressBar}>
-                    <div className={styles.progress} style={{ width: '20%' }}></div>
-                  </div>
-                </td>
-                <td>21/09/2025</td>
-                <td><button className={styles.editBtn}>Edit</button></td>
-                <td><input type="checkbox" /></td>
-              </tr>
+              {projects.map((project, index) => (
+                <tr key={index}>
+                  <td>{project.project_name}</td>
+                  <td>
+                    <div className={styles.progressBar}>
+                      <div
+                        className={styles.progress}
+                        style={{ width: `${project.progress}%` }}
+                      ></div>
+                    </div>
+                  </td>
+                  <td>{project.dueDate}</td>
+                  <td>
+                    <button className={styles.editBtn} onClick={() => navigate('/editproject', { state: { projectName: project.project_name } })}>Edit</button>
+                  </td>
+                  <td>
+                    <input
+                      type="checkbox"
+                      checked={project.role.toLowerCase() === 'supervisor'}
+                      readOnly
+                    />
+                  </td>
+                </tr>
+              ))}
             </tbody>
           </table>
         </section>
@@ -286,9 +259,11 @@ const Dashboard = () => {
             <button className={styles.iconBtn}><FontAwesomeIcon icon={faCalendar} /></button>
           </div>
           <ul className={styles.list}>
-            <li><FontAwesomeIcon icon={faProjectDiagram} /> CMPG 311 - Sep 21</li>
-            <li><FontAwesomeIcon icon={faProjectDiagram} /> CMPG 323 - Oct 6</li>
-            <li><FontAwesomeIcon icon={faProjectDiagram} /> CMPG 321 - Nov 11</li>
+            {projects.map((project, index) => (
+              <li key={index}>
+                <FontAwesomeIcon icon={faProjectDiagram} /> {project.project_name} - {project.dueDate}
+              </li>
+            ))}
           </ul>
         </section>
 

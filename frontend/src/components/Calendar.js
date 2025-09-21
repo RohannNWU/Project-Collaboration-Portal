@@ -2,39 +2,61 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faHome, faBell, faChevronLeft, faChevronRight } from '@fortawesome/free-solid-svg-icons';
+import axios from 'axios';
 import styles from './Calendar.module.css';
-
-// Mock data - replace with API call later
-const mockProjects = [
-  { id: 1, title: "CMPG 321 Deadline", date: "2025-11-11" },
-  { id: 2, title: "CMPG 323 Deadline", date: "2025-10-06" },
-  { id: 3, title: "CMPG 311 Presentation", date: "2025-09-21" },
-  { id: 4, title: "Team Meeting", date: "2025-09-15" },
-  { id: 5, title: "Project Review", date: "2025-09-14" },
-  { id: 6, title: "Project Review", date: "2025-09-11" }
-];
 
 const Calendar = () => {
   const navigate = useNavigate();
   const [currentDate, setCurrentDate] = useState(new Date());
   const [projects, setProjects] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
 
   useEffect(() => {
-    // TODO: Replace with actual API call
-    // fetchProjectsFromBackend();
-    setProjects(mockProjects);
-  }, []);
+    fetchProjectsFromBackend();
+  }, [navigate]);
 
-  // TODO: Replace with actual API call
-  // const fetchProjectsFromBackend = async () => {
-  //   try {
-  //     const response = await fetch('/api/projects');
-  //     const data = await response.json();
-  //     setProjects(data);
-  //   } catch (error) {
-  //     console.error('Error fetching projects:', error);
-  //   }
-  // };
+  const fetchProjectsFromBackend = async () => {
+    try {
+      setLoading(true);
+      setError('');
+      
+      const token = localStorage.getItem('access_token');
+      if (!token) {
+        navigate('/');
+        return;
+      }
+
+      const API_BASE_URL = window.location.hostname === 'localhost'
+        ? 'http://127.0.0.1:8000'
+        : 'https://pcp-backend-f4a2.onrender.com';
+
+      const response = await axios.get(`${API_BASE_URL}/api/calendar/`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+
+      // Transform the API response to match our expected format
+      const transformedProjects = (response.data.events || []).map(event => ({
+        id: event.id || Math.random(), // Use event.id if available, otherwise generate
+        title: event.title || event.name || 'Untitled Event',
+        date: event.start ? new Date(event.start).toISOString().split('T')[0] : null
+      })).filter(project => project.date); // Filter out events without valid dates
+
+      setProjects(transformedProjects);
+    } catch (err) {
+      if (err.response && err.response.status === 401) {
+        localStorage.removeItem('access_token');
+        navigate('/');
+      } else {
+        setError('Failed to fetch calendar data');
+        console.error('Error fetching projects:', err);
+        // Set empty array as fallback so UI doesn't break
+        setProjects([]);
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const goHome = () => navigate('/dashboard');
 
@@ -96,6 +118,37 @@ const Calendar = () => {
   const months = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
   const days = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
+  // Show loading state
+  if (loading) {
+    return (
+      <div className={styles.calendarPage}>
+        <div className={styles.calendarSection}>
+          <div className={styles.loadingContainer}>
+            <div className={styles.loadingSpinner}></div>
+            <p>Loading calendar data...</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Show error state
+  if (error) {
+    return (
+      <div className={styles.calendarPage}>
+        <div className={styles.calendarSection}>
+          <div className={styles.errorContainer}>
+            <h2>Unable to load calendar</h2>
+            <p>{error}</p>
+            <button onClick={fetchProjectsFromBackend} className={styles.retryButton}>
+              Try Again
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className={styles.calendarPage}>
       {/* Calendar Section */}
@@ -147,11 +200,20 @@ const Calendar = () => {
           <h2>Project Notifications</h2>
         </div>
         <div className={styles.notificationsList}>
-          {getNotifications().map(notification => (
-            <div key={notification.id} className={`${styles.notification} ${styles[notification.type]}`}>
-              <span>{notification.message}</span>
+          {projects.length === 0 ? (
+            <div className={styles.emptyState}>
+              No upcoming projects found. 
+              <button onClick={fetchProjectsFromBackend} className={styles.refreshButton}>
+                Refresh
+              </button>
             </div>
-          ))}
+          ) : (
+            getNotifications().map(notification => (
+              <div key={notification.id} className={`${styles.notification} ${styles[notification.type]}`}>
+                <span>{notification.message}</span>
+              </div>
+            ))
+          )}
         </div>
       </div>
 
