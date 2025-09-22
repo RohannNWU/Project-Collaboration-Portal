@@ -199,3 +199,56 @@ class AddTaskView(APIView):
             return Response({'message': 'Task added successfully'}, status=status.HTTP_201_CREATED)
         except Exception as e:
             return Response({'error': f'Failed to add task: {str(e)}'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        
+class CalendarView(APIView):
+    def get(self, request):
+        auth_header = request.headers.get('Authorization')
+        if not auth_header or not auth_header.startswith('Bearer '):
+            return Response({'error': 'Authentication required'}, status=status.HTTP_401_UNAUTHORIZED)
+        
+        token = auth_header.split(' ')[1]
+        try:
+            # Validate token
+            payload = UntypedToken(token).payload
+            user_email = payload.get('user_email')
+            
+            # Fetch user
+            user = User.objects.get(email=user_email)
+            
+            # Fetch user projects
+            user_projects = UserProject.objects.filter(email=user).select_related('project_id')
+            project_events = [
+                {
+                    'title': f"Project: {user_project.project_id.project_name}",
+                    'start': user_project.project_id.due_date.strftime('%Y-%m-%d')
+                }
+                for user_project in user_projects
+            ]
+            
+            # Fetch user tasks
+            user_tasks = User_Task.objects.filter(email=user).select_related('task_id')
+            task_events = [
+                {
+                    'title': f"Task: {user_task.task_id.task_name}",
+                    'start': user_task.task_id.task_due_date.strftime('%Y-%m-%d')
+                }
+                for user_task in user_tasks
+            ]
+            
+            # Combine project and task events
+            events = project_events + task_events
+            
+            # Get current server time
+            current_time = datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S')
+            
+            return Response({
+                'events': events,
+                'current_time': current_time
+            })
+            
+        except InvalidToken:
+            return Response({'error': 'Invalid token'}, status=status.HTTP_401_UNAUTHORIZED)
+        except User.DoesNotExist:
+            return Response({'error': 'User not found'}, status=status.HTTP_401_UNAUTHORIZED)
+        except Exception as e:
+            return Response({'error': f'Database error: {str(e)}'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
