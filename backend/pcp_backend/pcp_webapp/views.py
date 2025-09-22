@@ -4,7 +4,7 @@ from rest_framework import status
 from rest_framework_simplejwt.tokens import UntypedToken, AccessToken
 from rest_framework_simplejwt.exceptions import InvalidToken
 from datetime import datetime, timedelta
-from .models import User, Project, UserProject
+from .models import User, Project, UserProject, Task, User_Task
 import bcrypt
 
 class LoginView(APIView):
@@ -137,3 +137,65 @@ class AddProjectView(APIView):
             return Response({'error': 'One or more users not found'}, status=status.HTTP_400_BAD_REQUEST)
         except Exception as e:
             return Response({'error': f'Failed to add project: {str(e)}'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+class GetMembersView(APIView):
+    def post(self, request):
+            try:
+                # Extract projectName from the request body
+                project_name = request.data.get('projectName')
+                if not project_name:
+                    return Response(
+                        {'error': 'projectName is required'},
+                        status=status.HTTP_400_BAD_REQUEST
+                    )
+
+                # Fetch the project
+                try:
+                    project = Project.objects.get(project_name=project_name)
+                except Project.DoesNotExist:
+                    return Response(
+                        {'error': f'Project with name {project_name} does not exist'},
+                        status=status.HTTP_404_NOT_FOUND
+                    )
+
+                members = UserProject.objects.filter(project_id=project).values('email')
+                first_names = User.objects.filter(email__in=members).values('email', 'first_name')
+                members_list = [{'email': member['email'], 'first_name': member['first_name']} for member in first_names]
+                return Response({'members': members_list}, status=status.HTTP_200_OK)
+            except Exception as e:
+                return Response(
+                    {'error': f'Failed to fetch members: {str(e)}'},
+                    status=status.HTTP_500_INTERNAL_SERVER_ERROR
+                )
+
+class AddTaskView(APIView):
+    def post(self, request):
+        try:
+            task_name = request.data.get('task_name')
+            task_description = request.data.get('task_description')
+            task_due_date = request.data.get('task_due_date')
+            task_status = request.data.get('task_status')
+            task_priority = request.data.get('task_priority')
+            project_id = Project.objects.get(project_name=request.data.get('project_name'))
+            task_members = request.data.get('task_members', [])
+
+            # Create new task using ORM
+            task = Task.objects.create(
+                task_name=task_name,
+                task_description=task_description,
+                task_due_date=task_due_date,
+                task_status=task_status,
+                task_priority=task_priority,
+                project_id=project_id
+            )
+
+            for member_email in task_members:
+                user = User.objects.get(email=member_email)
+                User_Task.objects.create(
+                    email=user,
+                    task_id=task,
+                )
+            
+            return Response({'message': 'Task added successfully'}, status=status.HTTP_201_CREATED)
+        except Exception as e:
+            return Response({'error': f'Failed to add task: {str(e)}'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)

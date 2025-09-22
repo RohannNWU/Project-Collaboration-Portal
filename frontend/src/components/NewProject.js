@@ -112,7 +112,7 @@ const NewProject = () => {
                     type="text"
                     value={project_members.join('; \n')}
                     disabled
-                    rows="8"
+                    rows={8}
                 />
                 <br />
                 <button type="submit">Create Project</button>

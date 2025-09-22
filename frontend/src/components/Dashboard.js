@@ -1,5 +1,7 @@
 import React, { useRef, useState, useEffect } from 'react';
 import axios from 'axios';
+import Calendar from 'react-calendar'; // Install via: npm install react-calendar
+import 'react-calendar/dist/Calendar.css'; // Default styles
 import { useNavigate } from 'react-router-dom';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import {
@@ -13,6 +15,7 @@ const Dashboard = () => {
   const [email, setEmail] = useState('');
   const [username, setUsername] = useState('');
   const [projects, setProjects] = useState([]); // Fixed: Properly define state with setter
+  const [date, setDate] = React.useState(new Date());
   const navigate = useNavigate();
   const calendarRef = useRef(null);
   const progressChartRef = useRef(null);
@@ -178,7 +181,7 @@ const Dashboard = () => {
         <section className={styles.cards}>
           <div className={styles.card}>
             <p>Active Projects</p>
-            <h2 id="kpi-projects">{projects.length}</h2> {/* Dynamic count */}
+            <h2 id="kpi-projects">{projects.length}</h2>
           </div>
           <div className={styles.card}>
             <p>Tasks Due This Week</p>
@@ -214,7 +217,7 @@ const Dashboard = () => {
                     <div className={styles.progressBar}>
                       <div
                         className={styles.progress}
-                        style={{ width: `${project.progress}%` }} // Fixed: Use dynamic progress
+                        style={{ width: `${project.progress}%` }}
                       ></div>
                     </div>
                   </td>
@@ -225,8 +228,8 @@ const Dashboard = () => {
                   <td>
                     <input
                       type="checkbox"
-                      checked={project.role.toLowerCase() === 'supervisor'} // Set checked if role is supervisor
-                      readOnly // Prevent user from changing the checkbox
+                      checked={project.role.toLowerCase() === 'supervisor'}
+                      readOnly
                     />
                   </td>
                 </tr>
@@ -238,12 +241,14 @@ const Dashboard = () => {
         {/* Charts */}
         <section className={styles.charts}>
           <div className={styles.chartCard}>
-            <div className={styles.panelHead}><h3>Weekly Progress</h3></div>
-            <canvas ref={progressChartRef} id="progressChart"></canvas>
-          </div>
-          <div className={styles.chartCard}>
-            <div className={styles.panelHead}><h3>Workload by Area</h3></div>
-            <canvas ref={workloadChartRef} id="workloadChart"></canvas>
+            <div className={styles.panelHead}>
+              <h3>Calendar</h3>
+            </div>
+            <Calendar
+              onChange={setDate}
+              value={date}
+              styles="background-color: #000;"
+            />
           </div>
         </section>
       </main>
@@ -258,7 +263,7 @@ const Dashboard = () => {
           <ul className={styles.list}>
             {projects.map((project, index) => (
               <li key={index}>
-                <FontAwesomeIcon icon={faProjectDiagram} /> {project.code} - {project.dueDate}
+                <FontAwesomeIcon icon={faProjectDiagram} /> {project.project_name} - {project.dueDate}
               </li>
             ))}
           </ul>
