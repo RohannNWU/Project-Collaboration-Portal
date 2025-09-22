@@ -2,12 +2,13 @@ import React, { useRef, useState, useEffect } from 'react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import {
-  faFolder, faCheckCircle, faUsers, faCalendar, faCodeBranch, faFile, faInbox,
-  faBell, faCog, faSignOutAlt, faPlus, faSearch, faEnvelope, faProjectDiagram,
-  faUserCheck, faComment, faUpload
-} from '@fortawesome/free-solid-svg-icons';
+import { faFolder, faCheckCircle, faUsers, faCalendar, faCodeBranch, faFile, faInbox, faBell, faSignOutAlt } from '@fortawesome/free-solid-svg-icons';
+import { faCog, faSearch, faPlus, faComment, faUpload, faProjectDiagram, faUserCheck, faEnvelope } from '@fortawesome/free-solid-svg-icons';
 import styles from './Dashboard.module.css';
+
+//----------------------------------------
+//  Dashboard Page Component
+//----------------------------------------
 
 const Dashboard = () => {
   const [email, setEmail] = useState('');
@@ -26,8 +27,8 @@ const Dashboard = () => {
     }
 
     const API_BASE_URL = window.location.hostname === 'localhost'
-      ? 'http://127.0.0.1:8000'
-      : 'https://pcp-backend-f4a2.onrender.com';
+        ? 'http://127.0.0.1:8000'
+        : 'https://pcp-backend-f4a2.onrender.com';
 
     axios.get(`${API_BASE_URL}/api/dashboard/`, {
       headers: { Authorization: `Bearer ${token}` }
@@ -118,6 +119,10 @@ const Dashboard = () => {
     navigate("/");
   };
 
+  const createNewProject = () => {
+    navigate('/newproject');
+  };
+
   return (
     <div className={styles.dashboard}>
       {/* Sidebar */}
@@ -134,14 +139,23 @@ const Dashboard = () => {
           <button className={styles.navBtn}><FontAwesomeIcon icon={faFolder} /> My Projects</button>
           <button className={styles.navBtn}><FontAwesomeIcon icon={faCheckCircle} /> My Tasks</button>
           <button className={styles.navBtn}><FontAwesomeIcon icon={faUsers} /> Teams</button>
-          <button className={styles.navBtn}><FontAwesomeIcon icon={faCalendar} /> Calendar</button>
+          {/*----------------------------------------
+          - Navigation to Calendar Page
+          ----------------------------------------*/}
+          <button 
+            className={styles.navBtn} 
+            onClick={() => navigate("/calendar")}   // ✅ this makes it work
+          >
+            <FontAwesomeIcon icon={faCalendar} /> Calendar
+          </button>
+          
           <button className={styles.navBtn}><FontAwesomeIcon icon={faCodeBranch} /> Repos</button>
           <button className={styles.navBtn}><FontAwesomeIcon icon={faFile} /> Documents</button>
           <button className={styles.navBtn}><FontAwesomeIcon icon={faInbox} /> Inbox</button>
         </nav>
 
         <div className={styles.quickActions}>
-          <button className={styles.qaBtn}><FontAwesomeIcon icon={faPlus} /> New Project</button>
+          <button className={styles.qaBtn} onClick={createNewProject}><FontAwesomeIcon icon={faPlus} /> New Project</button>
           <button className={styles.qaBtn}><FontAwesomeIcon icon={faPlus} /> New Task</button>
           <button className={styles.qaBtn}><FontAwesomeIcon icon={faComment} /> Message Team</button>
           <button className={styles.qaBtn}><FontAwesomeIcon icon={faUpload} /> Upload File</button>
@@ -193,9 +207,15 @@ const Dashboard = () => {
         {/* Projects Table */}
         <section className={styles.panel}>
           <div className={styles.panelHead}>
+            <h2>My Projects</h2>
+            <div className={styles.tabs}>
+              <button className={`${styles.tab} ${styles.active}`} data-filter="all">All</button>
+              <button className={styles.tab} data-filter="On Track">On Track</button>
+              <button className={styles.tab} data-filter="Review">Review</button>
+            </div>
             <h2>Projects Overview</h2>
           </div>
-          <button className={styles.addBtn} onClick={() => navigate('/newproject')}>+ Add Project</button>
+          <button className={styles.addBtn} onClick={createNewProject}>+ Add Project</button>
           <table className={styles.table}>
             <thead>
               <tr>
