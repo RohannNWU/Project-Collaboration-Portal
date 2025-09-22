@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 
-const AuthContext = createContext();
+export const AuthContext = createContext();
 
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
@@ -13,6 +13,11 @@ export const AuthProvider = ({ children }) => {
       setUser(JSON.parse(storedUser));
     }
   }, []);
+
+  const isAuthenticated = () => {
+    const token = localStorage.getItem('access_token');
+    return !!token; // Returns true if token exists, false otherwise
+  };
 
   const logout = () => {
     localStorage.removeItem('access_token');
@@ -50,7 +55,13 @@ export const AuthProvider = ({ children }) => {
   };
 
   return (
-    <AuthContext.Provider value={{ user, setUser, logout, refreshToken }}>
+    <AuthContext.Provider value={{
+      user,
+      setUser,
+      logout,
+      refreshToken,
+      isAuthenticated
+    }}>
       {children}
     </AuthContext.Provider>
   );

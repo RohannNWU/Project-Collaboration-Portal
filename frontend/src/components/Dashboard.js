@@ -154,6 +154,10 @@ const Dashboard = () => {
     navigate('/new-task-collaborative-documentation');
   };
 
+  const handleDocumentsClick = () => {
+    navigate('/documents');
+  };
+
   const logout = () => {
     localStorage.removeItem('access_token');
     localStorage.removeItem('user');
@@ -181,7 +185,7 @@ const Dashboard = () => {
           <button className={styles.navBtn}><FontAwesomeIcon icon={faUsers} /> Teams</button>
           <button className={styles.navBtn}><FontAwesomeIcon icon={faCalendar} /> Calendar</button>
           <button className={styles.navBtn}><FontAwesomeIcon icon={faCodeBranch} /> Repos</button>
-          <button className={styles.navBtn}><FontAwesomeIcon icon={faFile} /> Documents</button>
+          <button className={styles.navBtn} onClick={handleDocumentsClick}><FontAwesomeIcon icon={faFile} /> Documents</button>
           <button className={styles.navBtn}><FontAwesomeIcon icon={faInbox} /> Inbox</button>
         </nav>
 
@@ -245,35 +249,7 @@ const Dashboard = () => {
           </div>
         </section>
 
-        {/* Recent Tasks Widget */}
-        <section className={styles.panel} style={{ marginBottom: '20px' }}>
-          <div className={styles.panelHead}>
-            <h2>Recent Tasks</h2>
-            <button className={styles.addBtn} onClick={handleNewTaskClick}>+ New Task</button>
-          </div>
-          <div className={styles.recentTasksList}>
-            {recentTasks.map(task => (
-              <div key={task.id} className={styles.taskItem} onClick={handleMyTasksClick}>
-                <div className={styles.taskInfo}>
-                  <h4 className={styles.taskTitle}>{task.title}</h4>
-                  <div className={styles.taskMeta}>
-                    <span className={`${styles.taskStatus} ${styles[task.status]}`}>
-                      {task.status.replace('-', ' ')}
-                    </span>
-                    <span className={`${styles.taskPriority} ${styles[task.priority]}`}>
-                      {task.priority} priority
-                    </span>
-                    <span className={styles.taskDue}>Due: {task.dueDate}</span>
-                  </div>
-                </div>
-                <FontAwesomeIcon icon={faCheckCircle} className={styles.taskIcon} />
-              </div>
-            ))}
-            <div className={styles.viewAllTasks} onClick={handleMyTasksClick}>
-              <span>View all tasks →</span>
-            </div>
-          </div>
-        </section>
+
 
         {/* Projects Table */}
         <section className={styles.panel}>

@@ -8,7 +8,8 @@ import Alert from './common/Alert';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { 
   faPlus, faFilter, faSort, faCheckCircle, faClock, faExclamationTriangle,
-  faEdit, faTrash, faUser, faCalendarAlt, faTasks, faChartLine
+  faEdit, faTrash, faUser, faCalendarAlt, faTasks, faChartLine,
+  faThLarge, faList
 } from '@fortawesome/free-solid-svg-icons';
 import { useApp } from '../context/AppContext';
 import styles from '../styles/common.module.css';
@@ -19,6 +20,7 @@ const TaskCardCollabDoc = () => {
   const [filter, setFilter] = useState('all');
   const [sortBy, setSortBy] = useState('priority');
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(null);
+  const [viewMode, setViewMode] = useState('list'); // 'grid' or 'list'
   const navigate = useNavigate();
 
   const getStatusVariant = (status) => {
@@ -102,50 +104,7 @@ const TaskCardCollabDoc = () => {
       title="Task Management" 
       subtitle="Organize and track your team's tasks efficiently"
     >
-      {/* Modern Task Statistics - Dashboard Style */}
       <div className={dashboardStyles.main} style={{ padding: '0', background: 'transparent' }}>
-        <section className={dashboardStyles.cards} style={{ marginBottom: '30px' }}>
-          <div className={dashboardStyles.card} style={{ cursor: 'default' }}>
-            <p style={{ margin: '0 0 10px 0', color: '#666', fontSize: '14px' }}>
-              <FontAwesomeIcon icon={faTasks} style={{ marginRight: '8px', color: '#3498db' }} />
-              Total Tasks
-            </p>
-            <h2 style={{ margin: '0', fontSize: '32px', fontWeight: 'bold', color: '#2c3e50' }}>
-              {computed.taskStats.total}
-            </h2>
-            <small style={{ color: '#95a5a6', fontSize: '12px' }}>All active tasks</small>
-          </div>
-          <div className={dashboardStyles.card} style={{ cursor: 'default' }}>
-            <p style={{ margin: '0 0 10px 0', color: '#666', fontSize: '14px' }}>
-              <FontAwesomeIcon icon={faExclamationTriangle} style={{ marginRight: '8px', color: '#e74c3c' }} />
-              Pending Tasks
-            </p>
-            <h2 style={{ margin: '0', fontSize: '32px', fontWeight: 'bold', color: '#e74c3c' }}>
-              {computed.taskStats.pending}
-            </h2>
-            <small style={{ color: '#95a5a6', fontSize: '12px' }}>Need attention</small>
-          </div>
-          <div className={dashboardStyles.card} style={{ cursor: 'default' }}>
-            <p style={{ margin: '0 0 10px 0', color: '#666', fontSize: '14px' }}>
-              <FontAwesomeIcon icon={faClock} style={{ marginRight: '8px', color: '#f39c12' }} />
-              In Progress
-            </p>
-            <h2 style={{ margin: '0', fontSize: '32px', fontWeight: 'bold', color: '#f39c12' }}>
-              {computed.taskStats.inProgress}
-            </h2>
-            <small style={{ color: '#95a5a6', fontSize: '12px' }}>Currently working</small>
-          </div>
-          <div className={dashboardStyles.card} style={{ cursor: 'default' }}>
-            <p style={{ margin: '0 0 10px 0', color: '#666', fontSize: '14px' }}>
-              <FontAwesomeIcon icon={faCheckCircle} style={{ marginRight: '8px', color: '#27ae60' }} />
-              Completed
-            </p>
-            <h2 style={{ margin: '0', fontSize: '32px', fontWeight: 'bold', color: '#27ae60' }}>
-              {computed.taskStats.completed}
-            </h2>
-            <small style={{ color: '#95a5a6', fontSize: '12px' }}>This period</small>
-          </div>
-        </section>
 
         {/* Modern Controls Panel - Dashboard Style */}
         <section className={dashboardStyles.panel} style={{ marginBottom: '25px' }}>
@@ -194,25 +153,65 @@ const TaskCardCollabDoc = () => {
             </div>
 
             {/* Sort Dropdown */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-              <FontAwesomeIcon icon={faSort} style={{ color: '#666' }} />
-              <select
-                value={sortBy}
-                onChange={(e) => setSortBy(e.target.value)}
-                style={{
-                  padding: '8px 12px',
-                  border: '1px solid #ddd',
-                  borderRadius: '6px',
-                  background: 'white',
-                  fontSize: '14px',
-                  cursor: 'pointer'
-                }}
-              >
-                <option value="priority">Sort by Priority</option>
-                <option value="status">Sort by Status</option>
-                <option value="assignee">Sort by Assignee</option>
-                <option value="title">Sort by Title</option>
-              </select>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
+              <div style={{ display: 'flex', gap: '5px' }}>
+                <button
+                  onClick={() => setViewMode('grid')}
+                  style={{
+                    padding: '8px 12px',
+                    border: `1px solid ${viewMode === 'grid' ? '#3498db' : '#ddd'}`,
+                    borderRadius: '6px',
+                    background: viewMode === 'grid' ? '#3498db' : 'white',
+                    color: viewMode === 'grid' ? 'white' : '#666',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '5px',
+                    transition: 'all 0.2s ease'
+                  }}
+                  title="Grid View"
+                >
+                  <FontAwesomeIcon icon={faThLarge} />
+                </button>
+                <button
+                  onClick={() => setViewMode('list')}
+                  style={{
+                    padding: '8px 12px',
+                    border: `1px solid ${viewMode === 'list' ? '#3498db' : '#ddd'}`,
+                    borderRadius: '6px',
+                    background: viewMode === 'list' ? '#3498db' : 'white',
+                    color: viewMode === 'list' ? 'white' : '#666',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '5px',
+                    transition: 'all 0.2s ease'
+                  }}
+                  title="List View"
+                >
+                  <FontAwesomeIcon icon={faList} />
+                </button>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <FontAwesomeIcon icon={faSort} style={{ color: '#666' }} />
+                <select
+                  value={sortBy}
+                  onChange={(e) => setSortBy(e.target.value)}
+                  style={{
+                    padding: '8px 12px',
+                    border: '1px solid #ddd',
+                    borderRadius: '6px',
+                    background: 'white',
+                    fontSize: '14px',
+                    cursor: 'pointer'
+                  }}
+                >
+                  <option value="priority">Sort by Priority</option>
+                  <option value="status">Sort by Status</option>
+                  <option value="assignee">Sort by Assignee</option>
+                  <option value="title">Sort by Title</option>
+                </select>
+              </div>
             </div>
           </div>
         </section>
@@ -228,7 +227,7 @@ const TaskCardCollabDoc = () => {
             </h2>
           </div>
           
-          <div className={dashboardStyles.recentTasksList} style={{ padding: '20px' }}>
+          <div style={{ padding: '20px' }}>
             {sortedTasks.length === 0 ? (
               <div style={{ 
                 textAlign: 'center', 
@@ -244,8 +243,103 @@ const TaskCardCollabDoc = () => {
                   </button>
                 </Link>
               </div>
+            ) : viewMode === 'grid' ? (
+              <div className={dashboardStyles.tasksGrid}>
+                {sortedTasks.map(task => (
+                  <div key={task.id} className={dashboardStyles.taskCard}>
+                    <div className={dashboardStyles.taskCardHeader}>
+                      <h3 className={dashboardStyles.taskCardTitle}>
+                        {task.title}
+                      </h3>
+                      <span className={`${dashboardStyles.taskCardStatus} ${dashboardStyles[task.status]}`}>
+                        {task.status.replace('-', ' ')}
+                      </span>
+                    </div>
+                    
+                    <div className={dashboardStyles.taskCardMeta}>
+                      <div className={dashboardStyles.taskCardMetaItem}>
+                        <FontAwesomeIcon icon={faUser} />
+                        <span>{task.assignee}</span>
+                      </div>
+                      <div className={dashboardStyles.taskCardMetaItem}>
+                        <FontAwesomeIcon icon={faCalendarAlt} />
+                        <span>Due: {task.dueDate}</span>
+                      </div>
+                      <div className={dashboardStyles.taskCardMetaItem}>
+                        <span className={`${dashboardStyles.taskCardPriority} ${dashboardStyles[task.priority]}`}>
+                          {task.priority} priority
+                        </span>
+                      </div>
+                    </div>
+                    
+                    {task.description && (
+                      <p className={dashboardStyles.taskCardDescription}>
+                        {task.description}
+                      </p>
+                    )}
+                    
+                    <div className={dashboardStyles.taskCardActions}>
+                      <select
+                        value={task.status}
+                        onChange={(e) => handleStatusChange(task.id, e.target.value)}
+                        style={{
+                          padding: '4px 8px',
+                          border: '1px solid #ddd',
+                          borderRadius: '4px',
+                          fontSize: '12px',
+                          background: 'white',
+                          cursor: 'pointer'
+                        }}
+                      >
+                        <option value="pending">Pending</option>
+                        <option value="in-progress">In Progress</option>
+                        <option value="completed">Completed</option>
+                      </select>
+                      
+                      <div style={{ display: 'flex', gap: '5px' }}>
+                        <button
+                          style={{
+                            padding: '4px 8px',
+                            border: 'none',
+                            borderRadius: '4px',
+                            background: '#3498db',
+                            color: 'white',
+                            cursor: 'pointer',
+                            fontSize: '12px',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '4px'
+                          }}
+                          title="Edit Task"
+                        >
+                          <FontAwesomeIcon icon={faEdit} size="xs" />
+                        </button>
+                        <button
+                          onClick={() => setShowDeleteConfirm(task.id)}
+                          style={{
+                            padding: '4px 8px',
+                            border: 'none',
+                            borderRadius: '4px',
+                            background: '#e74c3c',
+                            color: 'white',
+                            cursor: 'pointer',
+                            fontSize: '12px',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '4px'
+                          }}
+                          title="Delete Task"
+                        >
+                          <FontAwesomeIcon icon={faTrash} size="xs" />
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
             ) : (
-              sortedTasks.map(task => (
+              <div className={dashboardStyles.recentTasksList}>
+                {sortedTasks.map(task => (
                 <div key={task.id} className={dashboardStyles.taskItem} style={{ 
                   borderLeft: `4px solid ${
                     task.priority === 'high' ? '#e74c3c' : 
@@ -345,7 +439,8 @@ const TaskCardCollabDoc = () => {
                     </div>
                   </div>
                 </div>
-              ))
+              ))}
+              </div>
             )}
           </div>
         </section>
@@ -376,91 +471,7 @@ const TaskCardCollabDoc = () => {
         </Alert>
       )}
 
-      {/* Task Cards */}
-      {sortedTasks.length === 0 ? (
-        <Card className={styles.textCenter}>
-          <div style={{ padding: 'var(--spacing-xl)', color: 'var(--text-secondary)' }}>
-            <div style={{ fontSize: 'var(--font-size-display)', marginBottom: 'var(--spacing-md)' }}>
-              📝
-            </div>
-            <h3>No tasks found</h3>
-            <p>
-              {filter === 'all' 
-                ? "You haven't created any tasks yet." 
-                : `No ${filter} tasks found.`
-              }
-            </p>
-            <Link to="/new-task-collaborative-documentation">
-              <Button variant="primary">Create Your First Task</Button>
-            </Link>
-          </div>
-        </Card>
-      ) : (
-        <div className={`${styles.grid} ${styles.gridAutoFit}`}>
-          {sortedTasks.map(task => (
-            <Card
-              key={task.id}
-              title={
-                <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' }}>
-                  <span style={{ flex: 1 }}>{task.title}</span>
-                  <div style={{ display: 'flex', gap: 'var(--spacing-xs)', marginLeft: 'var(--spacing-sm)' }}>
-                    {getPriorityIcon(task.priority)}
-                    {getStatusIcon(task.status)}
-                  </div>
-                </div>
-              }
-              actions={
-                <div style={{ display: 'flex', gap: 'var(--spacing-xs)', flexWrap: 'wrap' }}>
-                  <select
-                    value={task.status}
-                    onChange={(e) => handleStatusChange(task.id, e.target.value)}
-                    className={styles.formSelect}
-                    style={{ fontSize: 'var(--font-size-xs)', padding: 'var(--spacing-xs)' }}
-                  >
-                    <option value="pending">Pending</option>
-                    <option value="in-progress">In Progress</option>
-                    <option value="completed">Completed</option>
-                  </select>
-                  <Button 
-                    variant="danger" 
-                    size="sm"
-                    onClick={() => setShowDeleteConfirm(task.id)}
-                  >
-                    🗑️
-                  </Button>
-                </div>
-              }
-            >
-              <div style={{ marginBottom: 'var(--spacing-md)' }}>
-                <div style={{ display: 'flex', gap: 'var(--spacing-sm)', marginBottom: 'var(--spacing-sm)' }}>
-                  <Badge variant={getStatusVariant(task.status)}>
-                    {task.status.replace('-', ' ')}
-                  </Badge>
-                  <Badge variant={getPriorityVariant(task.priority)}>
-                    {task.priority} priority
-                  </Badge>
-                </div>
-                
-                <div style={{ fontSize: 'var(--font-size-sm)', color: 'var(--text-secondary)' }}>
-                  <div style={{ marginBottom: 'var(--spacing-xs)' }}>
-                    <strong>Assignee:</strong> {task.assignee}
-                  </div>
-                  {task.category && (
-                    <div style={{ marginBottom: 'var(--spacing-xs)' }}>
-                      <strong>Category:</strong> {task.category}
-                    </div>
-                  )}
-                  {task.dueDate && (
-                    <div>
-                      <strong>Due:</strong> {new Date(task.dueDate).toLocaleDateString()}
-                    </div>
-                  )}
-                </div>
-              </div>
-            </Card>
-          ))}
-        </div>
-      )}
+
     </Layout>
   );
 };

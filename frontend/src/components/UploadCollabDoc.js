@@ -1,17 +1,14 @@
 import React, { useState } from 'react';
+import { useApp } from '../context/AppContext';
 import Layout from './layout/Layout';
-import Card from './common/Card';
-import Button from './common/Button';
-import Alert from './common/Alert';
 import Loading from './common/Loading';
+import documentService from '../services/documentService';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { 
   faUpload, faFile, faCheckCircle, faCloudUploadAlt, faFileAlt,
   faFilePdf, faFileWord, faFileExcel, faFilePowerpoint, faFileCode,
   faTrash, faEye, faDownload, faUsers, faCalendarAlt
 } from '@fortawesome/free-solid-svg-icons';
-import { useApp } from '../context/AppContext';
-import styles from '../styles/common.module.css';
 import dashboardStyles from './Dashboard.module.css';
 
 const UploadCollabDoc = () => {
@@ -19,6 +16,7 @@ const UploadCollabDoc = () => {
   const [selectedFile, setSelectedFile] = useState(null);
   const [uploadStatus, setUploadStatus] = useState('');
   const [dragOver, setDragOver] = useState(false);
+  const [description, setDescription] = useState('');
 
   const handleFileSelect = (event) => {
     const file = event.target.files[0];
@@ -53,27 +51,48 @@ const UploadCollabDoc = () => {
       return;
     }
 
-    setLoading(true);
-    
-    // Simulate upload delay
-    setTimeout(() => {
-      const document = {
-        name: selectedFile.name,
-        size: selectedFile.size,
-        type: selectedFile.type,
-        uploadDate: new Date().toISOString(),
-        uploadedBy: 'Current User'
+    try {
+      setLoading(true);
+      setUploadStatus('Uploading document to server...');
+      
+      // Upload to backend API
+      const response = await documentService.uploadDocument(selectedFile, '');
+      
+      // Add to local context for immediate UI update
+      const newDocument = {
+        id: response.document.id,
+        name: response.document.name,
+        size: response.document.file_size,
+        type: response.document.file_type,
+        uploadDate: response.document.upload_date,
+        uploadedBy: 'Current User',
+        description: response.document.description
       };
       
-      addDocument(document);
+      addDocument(newDocument);
       setSelectedFile(null);
-      setUploadStatus('');
-      setLoading(false);
+      setUploadStatus('Document uploaded successfully!');
       
       // Reset file input
       const fileInput = document.querySelector('input[type="file"]');
       if (fileInput) fileInput.value = '';
-    }, 1500);
+      
+      // Clear success message after 3 seconds
+      setTimeout(() => {
+        setUploadStatus('');
+      }, 3000);
+      
+    } catch (error) {
+      console.error('Upload failed:', error);
+      setUploadStatus('Upload failed. Please try again.');
+      
+      // Clear error message after 5 seconds
+      setTimeout(() => {
+        setUploadStatus('');
+      }, 5000);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const formatFileSize = (bytes) => {
