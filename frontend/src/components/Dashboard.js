@@ -15,12 +15,14 @@ const Dashboard = () => {
   const [username, setUsername] = useState('');
   const [projects, setProjects] = useState([]);
   const [calendarEvents, setCalendarEvents] = useState([]);
-  const [currentDate, setCurrentDate] = useState(new Date());
-  const [selectedDate, setSelectedDate] = useState(null);
+  const [currentDate, setCurrentDate] = useState(new Date()); // Jacques van Heerden - 35317906 - Calendar state: manages the currently displayed month/year
+  const [selectedDate, setSelectedDate] = useState(null); // Jacques van Heerden - 35317906 - Calendar state: tracks the currently selected date for viewing items
   const [currentTime, setCurrentTime] = useState('');
   const [error, setError] = useState('');
+  const [calendarKey, setCalendarKey] = useState(0); // Jacques van Heerden - 35317906 - Calendar refresh: forces re-render when month changes
   const navigate = useNavigate();
 
+  // Jacques van Heerden - 35317906 - Calendar configuration: month names and day abbreviations for display
   const months = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
   const days = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
@@ -46,7 +48,7 @@ const Dashboard = () => {
       setUsername(dashboardResponse.data.username);
       setProjects(dashboardResponse.data.projects || []);
 
-      // Fetch calendar events
+      // Jacques van Heerden - 35317906 - Calendar data fetching: retrieves calendar events from backend API
       const calendarResponse = await axios.get(`${API_BASE_URL}/api/calendar/`, {
         headers: { Authorization: `Bearer ${token}` }
       });
@@ -64,12 +66,22 @@ const Dashboard = () => {
         navigate('/');
       }
     }
-  }, [navigate]); // Fixed: Only navigate is the dependency
+  }, [navigate]);
 
-  // Fixed: Empty dependency array since fetchDashboardData has its own dependencies
+  // FIXED: Include fetchDashboardData in dependency array to resolve ESLint warning
   useEffect(() => {
     fetchDashboardData();
-  }, []); // Empty array since fetchDashboardData uses useCallback
+  }, [fetchDashboardData]);
+
+  // Jacques van Heerden - 35317906 - Calendar navigation fix: resets selected date and refreshes calendar when month/year changes
+  // FIXED: Removed unused variables to resolve no-unused-vars warnings
+  useEffect(() => {
+    // Clear the selected date when navigating between months/years
+    setSelectedDate(null);
+    
+    // Jacques van Heerden - 35317906 - Calendar refresh: increment key to force complete re-render of calendar
+    setCalendarKey(prevKey => prevKey + 1);
+  }, [currentDate]); // FIXED: Simple dependency - React detects object reference changes when month/year changes
 
   const logout = () => {
     localStorage.removeItem('access_token');
@@ -77,14 +89,23 @@ const Dashboard = () => {
     navigate("/");
   };
 
+  // Jacques van Heerden - 35317906 - Calendar navigation: moves to previous month with full refresh
   const prevMonth = () => {
-    setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() - 1, 1));
+    const newDate = new Date(currentDate.getFullYear(), currentDate.getMonth() - 1, 1);
+    setCurrentDate(newDate);
+    // Jacques van Heerden - 35317906 - Calendar refresh: immediately clear selection on navigation
+    setSelectedDate(null);
   };
 
+  // Jacques van Heerden - 35317906 - Calendar navigation: moves to next month with full refresh
   const nextMonth = () => {
-    setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 1));
+    const newDate = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 1);
+    setCurrentDate(newDate);
+    // Jacques van Heerden - 35317906 - Calendar refresh: immediately clear selection on navigation
+    setSelectedDate(null);
   };
 
+  // Jacques van Heerden - 35317906 - Calendar grid generation: creates the calendar grid with days, projects, and events for the current month
   const getDaysInMonth = () => {
     const year = currentDate.getFullYear();
     const month = currentDate.getMonth();
@@ -105,10 +126,10 @@ const Dashboard = () => {
       const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
       const today = new Date().toISOString().split('T')[0];
       
-      // Get projects due on this date
+      // Jacques van Heerden - 35317906 - Calendar data processing: filters projects due on specific date
       const dayProjects = projects.filter(p => p.dueDate === dateStr);
       
-      // Get calendar events for this date
+      // Jacques van Heerden - 35317906 - Calendar data processing: filters calendar events for specific date
       const dayEvents = calendarEvents.filter(event => {
         if (event.start) {
           const eventDate = event.start.split('T')[0];
@@ -132,6 +153,7 @@ const Dashboard = () => {
     return daysArray;
   };
 
+  // Jacques van Heerden - 35317906 - Calendar utility: formats date string for user-friendly display
   const formatDateForDisplay = (dateStr) => {
     const date = new Date(dateStr);
     return date.toLocaleDateString('en-US', {
@@ -274,10 +296,11 @@ const Dashboard = () => {
 
         {/* Calendar and Selected Date Items */}
         <section className={styles.charts}>
-          {/* Calendar */}
-          <div className={styles.chartCard}>
+          {/* Jacques van Heerden - 35317906 - Calendar Component: uses key prop for complete refresh on month change */}
+          <div className={styles.chartCard} key={`calendar-${calendarKey}`}>
             <div className={styles.panelHead}>
               <h3>Calendar</h3>
+              {/* Jacques van Heerden - 35317906 - Calendar display: shows server time from calendar API response */}
               {currentTime && (
                 <small style={{ color: '#666', marginLeft: '10px' }}>Server Time: {currentTime}</small>
               )}
@@ -290,6 +313,7 @@ const Dashboard = () => {
               paddingBottom: '10px',
               borderBottom: '1px solid #eee'
             }}>
+              {/* Jacques van Heerden - 35317906 - Calendar navigation: previous month button */}
               <button 
                 onClick={prevMonth} 
                 style={{
@@ -316,9 +340,11 @@ const Dashboard = () => {
               >
                 <FontAwesomeIcon icon={faChevronLeft} />
               </button>
+              {/* Jacques van Heerden - 35317906 - Calendar display: shows current month and year */}
               <h4 style={{ margin: 0, fontSize: '18px', color: '#333' }}>
                 {months[currentDate.getMonth()]} {currentDate.getFullYear()}
               </h4>
+              {/* Jacques van Heerden - 35317906 - Calendar navigation: next month button */}
               <button 
                 onClick={nextMonth} 
                 style={{
@@ -357,7 +383,7 @@ const Dashboard = () => {
               maxHeight: '300px',
               overflowY: 'auto'
             }}>
-              {/* Day Headers */}
+              {/* Jacques van Heerden - 35317906 - Calendar display: day of week headers */}
               {days.map(day => (
                 <div 
                   key={day} 
@@ -378,7 +404,7 @@ const Dashboard = () => {
                 </div>
               ))}
               
-              {/* Calendar Days */}
+              {/* Jacques van Heerden - 35317906 - Calendar grid: renders individual date cells with projects and events */}
               {getDaysInMonth().map((dayData, index) => {
                 const isEmpty = !dayData;
                 const isToday = dayData?.isToday;
@@ -386,43 +412,61 @@ const Dashboard = () => {
                 const hasFuture = dayData?.hasFuture;
                 const totalItems = dayData?.totalItems || 0;
                 
+                // Jacques van Heerden - 35317906 - Calendar styling: ensures fresh styling calculation for each cell
+                const getCellStyle = () => {
+                  if (isEmpty) return { background: '#f8f8f8' };
+                  if (isToday) return { 
+                    background: '#6a11cb', 
+                    color: 'white',
+                    boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
+                  };
+                  if (isOverdue) return { 
+                    background: '#ffeaea',
+                    borderLeft: '4px solid #e74c3c'
+                  };
+                  if (hasFuture) return { 
+                    background: '#e8f5e8',
+                    borderLeft: '4px solid #27ae60'
+                  };
+                  return { background: 'white' };
+                };
+                
                 return (
                   <div 
-                    key={index} 
+                    key={`${dayData?.dateStr}-${calendarKey}`} // Jacques van Heerden - 35317906 - Calendar refresh: unique key ensures complete re-render
                     style={{
-                      background: isEmpty ? '#f8f8f8' : 
-                                 isToday ? '#6a11cb' : 
-                                 isOverdue ? '#ffeaea' : 
-                                 hasFuture ? '#e8f5e8' : 'white',
+                      ...getCellStyle(),
                       minHeight: '70px',
                       padding: '6px',
                       display: 'flex',
                       flexDirection: 'column',
-                      borderLeft: isOverdue ? '4px solid #e74c3c' : 
-                                  hasFuture ? '4px solid #27ae60' : 'none',
                       cursor: isEmpty ? 'default' : 'pointer',
                       color: isToday ? 'white' : 'black',
                       transition: 'all 0.2s ease',
-                      position: 'relative',
-                      boxShadow: isToday ? '0 2px 4px rgba(0,0,0,0.1)' : 'none'
+                      position: 'relative'
                     }}
+                    // Jacques van Heerden - 35317906 - Calendar interaction: handles date selection for viewing items
                     onClick={() => dayData && setSelectedDate(dayData.dateStr)}
                     onMouseEnter={(e) => {
                       if (!isEmpty) {
-                        e.target.style.background = isToday ? '#5a0eb8' : 
-                                                    isOverdue ? '#f8d7d7' : 
-                                                    hasFuture ? '#d4f1d4' : '#f5f5f5';
-                        e.target.style.transform = 'scale(1.02)';
-                        e.target.style.boxShadow = '0 2px 8px rgba(0,0,0,0.15)';
+                        const hoverStyle = {
+                          background: isToday ? '#5a0eb8' : 
+                                      isOverdue ? '#f8d7d7' : 
+                                      hasFuture ? '#d4f1d4' : '#f5f5f5',
+                          transform: 'scale(1.02)',
+                          boxShadow: '0 2px 8px rgba(0,0,0,0.15)'
+                        };
+                        Object.assign(e.target.style, hoverStyle);
                       }
                     }}
                     onMouseLeave={(e) => {
                       if (!isEmpty) {
-                        e.target.style.background = isToday ? '#6a11cb' : 
-                                                    isOverdue ? '#ffeaea' : 
-                                                    hasFuture ? '#e8f5e8' : 'white';
-                        e.target.style.transform = 'scale(1)';
-                        e.target.style.boxShadow = isToday ? '0 2px 4px rgba(0,0,0,0.1)' : 'none';
+                        const leaveStyle = {
+                          ...getCellStyle(),
+                          transform: 'scale(1)',
+                          boxShadow: isToday ? '0 2px 4px rgba(0,0,0,0.1)' : 'none'
+                        };
+                        Object.assign(e.target.style, leaveStyle);
                       }
                     }}
                   >
@@ -434,12 +478,14 @@ const Dashboard = () => {
                           alignItems: 'center',
                           marginBottom: '4px'
                         }}>
+                          {/* Jacques van Heerden - 35317906 - Calendar display: shows day number */}
                           <span style={{ 
                             fontSize: '14px', 
                             fontWeight: '600' 
                           }}>
                             {dayData.day}
                           </span>
+                          {/* Jacques van Heerden - 35317906 - Calendar indicators: shows total count of projects and events */}
                           {totalItems > 0 && (
                             <span style={{
                               fontSize: '10px',
@@ -454,7 +500,7 @@ const Dashboard = () => {
                           )}
                         </div>
                         
-                        {/* Project Indicators */}
+                        {/* Jacques van Heerden - 35317906 - Calendar indicators: visual dots for projects due on this date */}
                         {dayData.projects.length > 0 && (
                           <div style={{ 
                             marginBottom: '2px',
@@ -476,6 +522,7 @@ const Dashboard = () => {
                                 title={`Project: ${project.project_name}`}
                               />
                             ))}
+                            {/* Jacques van Heerden - 35317906 - Calendar indicators: shows count for additional projects */}
                             {dayData.projects.length > 3 && (
                               <span style={{
                                 fontSize: '9px',
@@ -486,7 +533,7 @@ const Dashboard = () => {
                           </div>
                         )}
                         
-                        {/* Event Indicators */}
+                        {/* Jacques van Heerden - 35317906 - Calendar indicators: visual bars for events on this date */}
                         {dayData.events.length > 0 && (
                           <div style={{ 
                             display: 'flex', 
@@ -507,6 +554,7 @@ const Dashboard = () => {
                                 title={`Event: ${event.title}`}
                               />
                             ))}
+                            {/* Jacques van Heerden - 35317906 - Calendar indicators: shows count for additional events */}
                             {dayData.events.length > 3 && (
                               <span style={{
                                 fontSize: '9px',
@@ -523,7 +571,7 @@ const Dashboard = () => {
               })}
             </div>
             
-            {/* Legend */}
+            {/* Jacques van Heerden - 35317906 - Calendar legend: explains visual indicators for projects and events */}
             <div style={{ 
               marginTop: '10px', 
               padding: '8px', 
@@ -544,11 +592,21 @@ const Dashboard = () => {
                   <div style={{ width: '4px', height: '4px', background: '#6a11cb', borderRadius: '50%', opacity: '0.5' }}></div>
                   <span>Today</span>
                 </div>
+                {/* Jacques van Heerden - 35317906 - Calendar legend: explains overdue styling */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                  <div style={{ width: '4px', height: '4px', background: '#e74c3c', borderRadius: '50%' }}></div>
+                  <span>Overdue</span>
+                </div>
+                {/* Jacques van Heerden - 35317906 - Calendar legend: explains future styling */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                  <div style={{ width: '4px', height: '4px', background: '#27ae60', borderRadius: '50%' }}></div>
+                  <span>Future</span>
+                </div>
               </div>
             </div>
           </div>
 
-          {/* Items Due on Selected Date */}
+          {/* Jacques van Heerden - 35317906 - Calendar details panel: shows projects and events for selected date */}
           <div className={styles.chartCard}>
             <div className={styles.panelHead}>
               <h3>Items Due on Selected Date</h3>
@@ -562,6 +620,7 @@ const Dashboard = () => {
             }}>
               {selectedDate ? (
                 <div>
+                  {/* Jacques van Heerden - 35317906 - Calendar display: shows formatted selected date */}
                   <div style={{ 
                     fontSize: '16px', 
                     fontWeight: '600',
@@ -576,7 +635,7 @@ const Dashboard = () => {
                     {formatDateForDisplay(selectedDate)}
                   </div>
                   
-                  {/* Projects for selected date */}
+                  {/* Jacques van Heerden - 35317906 - Calendar details: section for projects due on selected date */}
                   {projects.filter(p => p.dueDate === selectedDate).length > 0 && (
                     <div style={{ marginBottom: '20px' }}>
                       <h4 style={{ 
@@ -654,7 +713,7 @@ const Dashboard = () => {
                     </div>
                   )}
                   
-                  {/* Events for selected date */}
+                  {/* Jacques van Heerden - 35317906 - Calendar details: section for events on selected date */}
                   {calendarEvents.filter(event => {
                     if (event.start) {
                       const eventDate = event.start.split('T')[0];
@@ -748,6 +807,7 @@ const Dashboard = () => {
                     </div>
                   )}
                   
+                  {/* Jacques van Heerden - 35317906 - Calendar empty state: displays message when no items for selected date */}
                   {(projects.filter(p => p.dueDate === selectedDate).length === 0 && 
                    calendarEvents.filter(event => {
                      if (event.start) {
@@ -772,6 +832,7 @@ const Dashboard = () => {
                   )}
                 </div>
               ) : (
+                // Jacques van Heerden - 35317906 - Calendar default state: shows instructions when no date is selected
                 <div style={{ 
                   textAlign: 'center', 
                   color: '#666', 
@@ -838,6 +899,7 @@ const Dashboard = () => {
             <span className={styles.live}>Live</span>
           </div>
           <ul className={styles.list}>
+            {/* Jacques van Heerden - 35317906 - Calendar summary: shows most recent calendar events in sidebar */}
             {calendarEvents.slice(-3).reverse().map((event, index) => (
               <li key={index}>
                 <FontAwesomeIcon icon={faCalendar} style={{ color: '#28a745' }} /> {event.title}
