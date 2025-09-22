@@ -3,8 +3,8 @@ import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import {
-  faFolder, faCheckCircle, faUsers, faCalendar, faCodeBranch, faFile, faInbox,
-  faBell, faCog, faSignOutAlt, faPlus, faSearch, faEnvelope, faProjectDiagram,
+  faFolder, faCheckCircle, faCalendar, faCodeBranch, faFile, faInbox,
+  faBell, faCog, faSignOutAlt, faPlus, faEnvelope, faProjectDiagram,
   faUserCheck, faComment, faUpload, faChevronLeft, faChevronRight
 } from '@fortawesome/free-solid-svg-icons';
 import styles from './Dashboard.module.css';
@@ -178,8 +178,6 @@ const Dashboard = () => {
         <nav className={styles.nav}>
           <button className={styles.navBtn}><FontAwesomeIcon icon={faFolder} /> My Projects</button>
           <button className={styles.navBtn}><FontAwesomeIcon icon={faCheckCircle} /> My Tasks</button>
-          <button className={styles.navBtn}><FontAwesomeIcon icon={faUsers} /> Teams</button>
-          <button className={styles.navBtn}><FontAwesomeIcon icon={faCalendar} /> Calendar</button>
           <button className={styles.navBtn}><FontAwesomeIcon icon={faCodeBranch} /> Repos</button>
           <button className={styles.navBtn}><FontAwesomeIcon icon={faFile} /> Documents</button>
           <button className={styles.navBtn}><FontAwesomeIcon icon={faInbox} /> Inbox</button>
@@ -198,13 +196,8 @@ const Dashboard = () => {
         <header className={styles.topbar}>
           <div className={styles.tbLeft}>
             <h1>Project Collaboration Portal</h1>
-            <span className={styles.badge}>Student</span>
           </div>
           <div className={styles.tbRight}>
-            <div className={styles.search}>
-              <input type="text" placeholder="Search projects, tasks, people…" />
-              <FontAwesomeIcon icon={faSearch} className={styles.searchIcon} />
-            </div>
             <button className={styles.iconBtn} title="Notifications">
               <FontAwesomeIcon icon={faBell} />
             </button>
@@ -213,7 +206,7 @@ const Dashboard = () => {
             </button>
             <div className={styles.user}>
               <button className={styles.logoutBtn} onClick={logout} title="Logout">
-                <FontAwesomeIcon icon={faSignOutAlt} />
+                Logout <FontAwesomeIcon icon={faSignOutAlt} />
               </button>
             </div>
           </div>
