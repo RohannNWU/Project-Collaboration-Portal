@@ -5,6 +5,7 @@ import Dashboard from './components/Dashboard';
 import Signup from './components/Signup';
 import NewProject from './components/NewProject';
 import EditProject from './components/EditProject';
+import MyTasks from './components/MyTasks';
 
 function App() {
   return (
@@ -15,6 +16,7 @@ function App() {
           <Route path="/adduser" element={<Signup />} />
           <Route path="/newproject" element={<NewProject />} />
           <Route path="/editproject" element={<EditProject />} />
+          <Route path="/mytasks" element={<MyTasks />} />
         </Routes>
     </Router>
   );

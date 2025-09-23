@@ -177,7 +177,7 @@ const Dashboard = () => {
 
         <nav className={styles.nav}>
           <button className={styles.navBtn}><FontAwesomeIcon icon={faFolder} /> My Projects</button>
-          <button className={styles.navBtn}><FontAwesomeIcon icon={faCheckCircle} /> My Tasks</button>
+          <button className={styles.navBtn} onClick={() => navigate('/mytasks', { state: { email: email } })}><FontAwesomeIcon icon={faCheckCircle} /> My Tasks</button>
           <button className={styles.navBtn}><FontAwesomeIcon icon={faCodeBranch} /> Repos</button>
           <button className={styles.navBtn}><FontAwesomeIcon icon={faFile} /> Documents</button>
           <button className={styles.navBtn}><FontAwesomeIcon icon={faInbox} /> Inbox</button>
