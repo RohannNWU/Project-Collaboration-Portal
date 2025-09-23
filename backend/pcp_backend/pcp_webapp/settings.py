@@ -23,7 +23,6 @@ INSTALLED_APPS = [
     'pcp_webapp',
 ]
 
-
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
@@ -125,14 +124,3 @@ else:
     SECURE_SSL_REDIRECT = False
     SESSION_COOKIE_SECURE = False
     CSRF_COOKIE_SECURE = False
-    
-DATABASES = {
-    'default' : {
-        'ENGINE' : 'django.db.backends.postgresql',
-        'NAME' : 'postgres',
-        'USER' : 'postgres',
-        'PASSWORD' : 'papi',
-        'HOST' : '127.0.0.1',
-        'PORT' : '5432',
-    }
-}
