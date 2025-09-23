@@ -65,3 +65,16 @@ class User_Task(models.Model):
 
     def __str__(self):
         return f"{self.user_email} - {self.task_id}"
+
+class Notification(models.Model):
+    notif_id = models.AutoField(primary_key=True)
+    project_id = models.ForeignKey(Project, on_delete=models.DO_NOTHING)
+    time_sent = models.DateTimeField(auto_now_add=True)
+    title = models.CharField(max_length=100)
+    message = models.TextField()
+ 
+    class Meta:
+        managed = True
+ 
+    def __str__(self):
+        return f"{self.title} - {self.time_sent} - {self.message}"
