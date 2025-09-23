@@ -1,6 +1,7 @@
 from django.db import models
 from django.contrib.auth.models import AbstractUser
 from django.utils import timezone
+from django.core.validators import MinValueValidator, MaxValueValidator
 
 class User(models.Model):
     email = models.CharField(max_length=100, unique=True, db_column='email', primary_key=True)
@@ -45,7 +46,10 @@ class Project(models.Model):
     members = models.ManyToManyField(User, through='ProjectMember', related_name='projects')
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='planning')
     priority = models.CharField(max_length=10, choices=PRIORITY_CHOICES, default='medium')
-    progress = models.IntegerField(default=0)  # 0-100
+    progress = models.IntegerField(
+        default=0, 
+        validators=[MinValueValidator(0), MaxValueValidator(100)]
+    )  # 0-100
     start_date = models.DateField(null=True, blank=True)
     due_date = models.DateField(null=True, blank=True)
     created_at = models.DateTimeField(default=timezone.now)
@@ -56,6 +60,22 @@ class Project(models.Model):
 
     def __str__(self):
         return self.name
+    
+    def update_progress(self):
+        """Auto-calculate progress based on completed tasks"""
+        total_tasks = self.tasks.count()
+        if total_tasks == 0:
+            self.progress = 0
+        else:
+            completed_tasks = self.tasks.filter(status='completed').count()
+            self.progress = round((completed_tasks / total_tasks) * 100)
+        self.save(update_fields=['progress'])
+    
+    @property
+    def is_overdue(self):
+        if self.due_date and self.status not in ['completed']:
+            return self.due_date < timezone.now().date()
+        return False
 
 class ProjectMember(models.Model):
     ROLE_CHOICES = [
@@ -100,12 +120,32 @@ class Task(models.Model):
     completed_at = models.DateTimeField(null=True, blank=True)
     created_at = models.DateTimeField(default=timezone.now)
     updated_at = models.DateTimeField(auto_now=True)
+    estimated_hours = models.IntegerField(null=True, blank=True, validators=[MinValueValidator(1)])
+    actual_hours = models.IntegerField(null=True, blank=True, validators=[MinValueValidator(1)])
 
     class Meta:
         db_table = 'tasks'
 
     def __str__(self):
         return self.title
+    
+    def save(self, *args, **kwargs):
+        # Auto-set completed_at when status changes to completed
+        if self.status == 'completed' and not self.completed_at:
+            self.completed_at = timezone.now()
+        elif self.status != 'completed':
+            self.completed_at = None
+        
+        super().save(*args, **kwargs)
+        
+        # Update project progress after task status change
+        self.project.update_progress()
+    
+    @property
+    def is_overdue(self):
+        if self.due_date and self.status not in ['completed']:
+            return self.due_date < timezone.now()
+        return False
 
 class Message(models.Model):
     MESSAGE_TYPES = [
