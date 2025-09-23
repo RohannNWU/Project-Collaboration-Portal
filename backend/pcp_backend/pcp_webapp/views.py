@@ -1,3 +1,4 @@
+import email
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
@@ -252,3 +253,45 @@ class CalendarView(APIView):
             return Response({'error': 'User not found'}, status=status.HTTP_401_UNAUTHORIZED)
         except Exception as e:
             return Response({'error': f'Database error: {str(e)}'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+class GetTasksView(APIView):
+    def get(self, request):
+        try:
+            auth_header = request.headers.get('Authorization')
+            if not auth_header or not auth_header.startswith('Bearer '):
+                return Response({'error': 'Authentication required'}, status=status.HTTP_401_UNAUTHORIZED)
+            
+            token = auth_header.split(' ')[1]
+            # Validate token and extract payload
+            try:
+                UntypedToken(token)
+                payload = UntypedToken(token).payload
+                user_email = payload.get('user_email') or payload.get('email')
+                if not user_email:
+                    return Response({'error': 'Invalid token: user_email not found'}, status=status.HTTP_401_UNAUTHORIZED)
+            except (InvalidToken) as e:
+                return Response({'error': f'Invalid or expired token: {str(e)}'}, status=status.HTTP_401_UNAUTHORIZED)
+
+            # Fetch the user based on the email from the token
+            try:
+                user = User.objects.get(email=user_email)
+            except User.DoesNotExist:
+                return Response({'error': 'User not found'}, status=status.HTTP_404_NOT_FOUND)
+
+            # Fetch tasks assigned to the user
+            user_tasks = User_Task.objects.filter(email=user).select_related('task_id')
+            tasks_list = [
+                {
+                    'task_name': user_task.task_id.task_name,
+                    'task_description': user_task.task_id.task_description,
+                    'task_due_date': user_task.task_id.task_due_date.strftime('%d/%m/%Y'),
+                    'task_status': user_task.task_id.task_status,
+                    'task_priority': user_task.task_id.task_priority,
+                    'project_name': user_task.task_id.project_id.project_name
+                }
+                for user_task in user_tasks
+            ]
+            return Response({'tasks': tasks_list}, status=status.HTTP_200_OK)
+        except Exception as e:
+            print(f"Error: {str(e)}")  # Log error for debugging
+            return Response({'error': f'Failed to fetch tasks: {str(e)}'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)

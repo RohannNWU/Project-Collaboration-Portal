@@ -184,7 +184,7 @@ const Dashboard = () => {
         </nav>
 
         <div className={styles.quickActions}>
-          <button className={styles.qaBtn}><FontAwesomeIcon icon={faPlus} /> New Project</button>
+          <button className={styles.qaBtn} onClick={() => navigate('/newproject')}><FontAwesomeIcon icon={faPlus} /> New Project</button>
           <button className={styles.qaBtn}><FontAwesomeIcon icon={faPlus} /> New Task</button>
           <button className={styles.qaBtn}><FontAwesomeIcon icon={faComment} /> Message Team</button>
           <button className={styles.qaBtn}><FontAwesomeIcon icon={faUpload} /> Upload File</button>

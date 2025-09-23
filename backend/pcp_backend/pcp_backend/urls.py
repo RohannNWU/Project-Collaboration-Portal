@@ -1,6 +1,6 @@
 from django.contrib import admin
 from django.urls import path
-from pcp_webapp.views import LoginView, DashboardView, AddUserView, AddProjectView, GetMembersView, AddTaskView, CalendarView
+from pcp_webapp.views import LoginView, DashboardView, AddUserView, AddProjectView, GetMembersView, AddTaskView, CalendarView, GetTasksView
 
 urlpatterns = [
     path('admin/', admin.site.urls),
@@ -11,4 +11,5 @@ urlpatterns = [
     path('api/getmembers/', GetMembersView.as_view(), name='getmembers'),
     path('api/addtask/', AddTaskView.as_view(), name='addtask'),
     path('api/calendar/', CalendarView.as_view(), name='calendar'),
+    path('api/gettasks/', GetTasksView.as_view(), name='gettasks'),
 ]
