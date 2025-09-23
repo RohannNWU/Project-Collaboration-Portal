@@ -17,7 +17,25 @@ import "./styles/tokens.css";
 // Protected Route component to handle authentication
 const ProtectedRoute = ({ children }) => {
   const { isAuthenticated } = useContext(AuthContext);
-  return isAuthenticated() ? children : <Navigate to="/login" />;
+  const authResult = isAuthenticated();
+  
+  console.log('=== ProtectedRoute Check ===');
+  console.log('Authentication result:', authResult);
+  console.log('Will render:', authResult ? 'children (Dashboard)' : 'Navigate to login');
+  
+  return authResult ? children : <Navigate to="/login" />;
+};
+
+// Home Route component to handle smart routing
+const HomeRoute = () => {
+  const { isAuthenticated } = useContext(AuthContext);
+  const authResult = isAuthenticated();
+  
+  console.log('=== HomeRoute Check ===');
+  console.log('Authentication result:', authResult);
+  console.log('Will redirect to:', authResult ? 'Dashboard' : 'Login');
+  
+  return authResult ? <Navigate to="/dashboard" replace /> : <Navigate to="/login" replace />;
 };
 
 function App() {
@@ -26,7 +44,7 @@ function App() {
       <AuthProvider>
         <AppProvider>
           <Routes>
-            <Route path="/" element={<Navigate to="/login" replace />} />
+            <Route path="/" element={<HomeRoute />} />
             <Route path="/login" element={<Login />} />
             <Route 
               path="/dashboard" 

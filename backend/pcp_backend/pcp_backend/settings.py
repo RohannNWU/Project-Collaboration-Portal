@@ -82,7 +82,7 @@ CORS_ALLOWED_ORIGINS = [
     'https://wonderful-coast-0409a4c03.2.azurestaticapps.net',  # Add production frontend URL
 ]
 
-CORS_ALLOW_METHODS = ['GET', 'POST', 'OPTIONS']
+CORS_ALLOW_METHODS = ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS']
 CORS_ALLOW_HEADERS = ['content-type', 'authorization']
 CORS_ALLOW_CREDENTIALS = False
 
@@ -90,7 +90,7 @@ WSGI_APPLICATION = 'pcp_backend.wsgi.application'
 
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
+        'ENGINE': 'django.db.backends.postgresql',
         'NAME': 'postgres',
         'USER': 'postgres',
         'PASSWORD': 'Lethabok08$',

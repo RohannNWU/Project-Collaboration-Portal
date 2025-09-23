@@ -16,6 +16,7 @@ const UploadCollabDoc = () => {
   const [selectedFile, setSelectedFile] = useState(null);
   const [uploadStatus, setUploadStatus] = useState('');
   const [dragOver, setDragOver] = useState(false);
+  const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
 
   const handleFileSelect = (event) => {
@@ -51,17 +52,23 @@ const UploadCollabDoc = () => {
       return;
     }
 
+    if (!title.trim()) {
+      setUploadStatus('Please provide a title for the document.');
+      return;
+    }
+
     try {
       setLoading(true);
       setUploadStatus('Uploading document to server...');
       
-      // Upload to backend API
-      const response = await documentService.uploadDocument(selectedFile, '');
+      // Upload to backend API with title and description
+      const response = await documentService.uploadDocument(selectedFile, '', title, description);
       
       // Add to local context for immediate UI update
       const newDocument = {
         id: response.document.id,
-        name: response.document.name,
+        name: response.document.title || response.document.name,
+        title: response.document.title,
         size: response.document.file_size,
         type: response.document.file_type,
         uploadDate: response.document.upload_date,
@@ -71,6 +78,8 @@ const UploadCollabDoc = () => {
       
       addDocument(newDocument);
       setSelectedFile(null);
+      setTitle('');
+      setDescription('');
       setUploadStatus('Document uploaded successfully!');
       
       // Reset file input
@@ -262,6 +271,50 @@ const UploadCollabDoc = () => {
                   <p style={{ margin: '0 0 20px 0', color: '#2c3e50' }}>
                     <strong>Size:</strong> {formatFileSize(selectedFile.size)}
                   </p>
+                  
+                  {/* Title Input */}
+                  <div style={{ marginBottom: '15px' }}>
+                    <label style={{ display: 'block', marginBottom: '5px', fontWeight: '600', color: '#2c3e50' }}>
+                      Document Title *
+                    </label>
+                    <input
+                      type="text"
+                      value={title}
+                      onChange={(e) => setTitle(e.target.value)}
+                      placeholder="Enter document title..."
+                      style={{
+                        width: '100%',
+                        padding: '10px',
+                        border: '2px solid #bdc3c7',
+                        borderRadius: '6px',
+                        fontSize: '14px',
+                        boxSizing: 'border-box'
+                      }}
+                    />
+                  </div>
+                  
+                  {/* Description Input */}
+                  <div style={{ marginBottom: '20px' }}>
+                    <label style={{ display: 'block', marginBottom: '5px', fontWeight: '600', color: '#2c3e50' }}>
+                      Description (Optional)
+                    </label>
+                    <textarea
+                      value={description}
+                      onChange={(e) => setDescription(e.target.value)}
+                      placeholder="Enter document description..."
+                      rows="3"
+                      style={{
+                        width: '100%',
+                        padding: '10px',
+                        border: '2px solid #bdc3c7',
+                        borderRadius: '6px',
+                        fontSize: '14px',
+                        boxSizing: 'border-box',
+                        resize: 'vertical'
+                      }}
+                    />
+                  </div>
+                  
                   <button 
                     onClick={handleUpload}
                     className={dashboardStyles.qaBtn}
@@ -282,7 +335,23 @@ const UploadCollabDoc = () => {
           </div>
         </section>
 
-        {/* Status Messages */}
+      {/* Status Messages */}
+      {uploadStatus && (
+        <div style={{
+          padding: '15px 20px',
+          marginBottom: '25px',
+          borderRadius: '8px',
+          backgroundColor: uploadStatus.includes('successfully') ? '#d4edda' : '#f8d7da',
+          border: `1px solid ${uploadStatus.includes('successfully') ? '#c3e6cb' : '#f5c6cb'}`,
+          color: uploadStatus.includes('successfully') ? '#155724' : '#721c24'
+        }}>
+          <FontAwesomeIcon 
+            icon={uploadStatus.includes('successfully') ? faCheckCircle : faFileAlt} 
+            style={{ marginRight: '8px' }} 
+          />
+          {uploadStatus}
+        </div>
+      )}
         {uploadStatus && (
           <div style={{
             padding: '15px 20px',

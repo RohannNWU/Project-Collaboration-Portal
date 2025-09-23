@@ -87,8 +87,10 @@ const DocumentManager = () => {
   // Filter and sort documents
   const filteredDocuments = documents
     .filter(doc => {
-      const matchesSearch = doc.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                           (doc.description && doc.description.toLowerCase().includes(searchTerm.toLowerCase()));
+      const docName = doc.name || doc.title || '';
+      const docDescription = doc.description || '';
+      const matchesSearch = docName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                           docDescription.toLowerCase().includes(searchTerm.toLowerCase());
       
       if (filterBy === 'all') return matchesSearch;
       
@@ -118,21 +120,37 @@ const DocumentManager = () => {
   const handleDelete = async (documentId) => {
     if (window.confirm('Are you sure you want to delete this document? This action cannot be undone.')) {
       try {
+        console.log('Deleting document with ID:', documentId);
         setLoading(true);
-        await documentService.deleteDocument(documentId);
+        
+        const response = await documentService.deleteDocument(documentId);
+        console.log('Delete response:', response);
+        
         // Remove document from local state
-        setDocuments(documents.filter(doc => doc.id !== documentId));
+        const updatedDocuments = documents.filter(doc => doc.id !== documentId);
+        setDocuments(updatedDocuments);
         setSelectedDocument(null);
-        appContext.addNotification({
-          type: 'success',
-          message: 'Document deleted successfully'
-        });
+        
+        // Show success message
+        alert('Document deleted successfully!');
+        
+        // Also try to add notification if available
+        if (appContext.addNotification) {
+          appContext.addNotification({
+            type: 'success',
+            message: 'Document deleted successfully'
+          });
+        }
       } catch (error) {
         console.error('Failed to delete document:', error);
-        appContext.addNotification({
-          type: 'error',
-          message: 'Failed to delete document. Please try again.'
-        });
+        alert('Failed to delete document. Please try again.');
+        
+        if (appContext.addNotification) {
+          appContext.addNotification({
+            type: 'error',
+            message: 'Failed to delete document. Please try again.'
+          });
+        }
       } finally {
         setLoading(false);
       }
@@ -157,33 +175,46 @@ const DocumentManager = () => {
     }
 
     try {
+      console.log('Updating document:', selectedDocument.id, editForm);
       setLoading(true);
+      
       const updatedDocument = await documentService.updateDocument(selectedDocument.id, {
+        title: editForm.name,
         name: editForm.name,
         description: editForm.description
       });
+      
+      console.log('Update response:', updatedDocument);
 
       // Update document in local state
       setDocuments(documents.map(doc => 
         doc.id === selectedDocument.id 
-          ? { ...doc, name: editForm.name, description: editForm.description }
+          ? { ...doc, name: editForm.name, title: editForm.name, description: editForm.description }
           : doc
       ));
 
-      appContext.addNotification({
-        type: 'success',
-        message: 'Document updated successfully'
-      });
+      alert('Document updated successfully!');
+      
+      if (appContext.addNotification) {
+        appContext.addNotification({
+          type: 'success',
+          message: 'Document updated successfully'
+        });
+      }
 
       setIsEditing(false);
       setSelectedDocument(null);
       setEditForm({ name: '', description: '' });
     } catch (error) {
       console.error('Failed to update document:', error);
-      appContext.addNotification({
-        type: 'error',
-        message: 'Failed to update document. Please try again.'
-      });
+      alert('Failed to update document. Please try again.');
+      
+      if (appContext.addNotification) {
+        appContext.addNotification({
+          type: 'error',
+          message: 'Failed to update document. Please try again.'
+        });
+      }
     } finally {
       setLoading(false);
     }
@@ -197,9 +228,60 @@ const DocumentManager = () => {
   };
 
   // Handle document view/download
-  const handleView = (document) => {
-    // In a real implementation, this would open/download the file
-    alert(`Viewing document: ${document.name}\n\nIn a real implementation, this would open or download the file.`);
+  const handleView = async (document) => {
+    try {
+      console.log('Downloading document:', document);
+      setLoading(true);
+      
+      const blob = await documentService.downloadDocument(document.id);
+      console.log('Download blob received:', blob);
+      
+      // Create a URL for the blob and trigger download
+      const url = window.URL.createObjectURL(blob);
+      const link = window.document.createElement('a');
+      link.href = url;
+      link.download = document.name || document.title || `document_${document.id}`;
+      window.document.body.appendChild(link);
+      link.click();
+      window.document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+      
+      alert('Document downloaded successfully!');
+      
+      if (appContext.addNotification) {
+        appContext.addNotification({
+          type: 'success',
+          message: 'Document downloaded successfully'
+        });
+      }
+    } catch (error) {
+      console.error('Failed to download document:', error);
+      alert('Failed to download document. Please try again.');
+      
+      if (appContext.addNotification) {
+        appContext.addNotification({
+          type: 'error',
+          message: 'Failed to download document. Please try again.'
+        });
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Handle document preview (for supported file types)
+  const handlePreview = (document) => {
+    // For now, show document details in a modal or alert
+    const details = `
+Document Details:
+- Title: ${document.name || document.title}
+- Description: ${document.description || 'No description'}
+- Size: ${formatFileSize(document.size || document.file_size || 0)}
+- Type: ${document.type || document.file_type || 'Unknown'}
+- Uploaded: ${formatDate(document.uploadDate || document.upload_date)}
+- Uploaded by: ${document.uploadedBy || document.uploaded_by || 'Unknown'}
+    `;
+    alert(details);
   };
 
   if (loading) {

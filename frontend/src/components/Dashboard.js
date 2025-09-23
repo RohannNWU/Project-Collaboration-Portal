@@ -40,13 +40,26 @@ const Dashboard = () => {
 
   useEffect(() => {
     const token = localStorage.getItem('access_token');
-    console.log("Token: " + token);
+    const refreshToken = localStorage.getItem('refresh_token');
+    const user = localStorage.getItem('user');
+    
+    console.log("=== Dashboard Authentication Check ===");
+    console.log("Access Token:", token);
+    console.log("Refresh Token:", refreshToken);
+    console.log("User:", user);
+    console.log("Token exists:", !!token);
+    
     if (!token) {
+      console.log("No token found, redirecting to login");
       navigate('/');
       return;
+    } else {
+      console.log("Token found, staying on dashboard");
     }
 
-    const API_BASE_URL = process.env.REACT_APP_API_URL || 'https://pcp-backend-f4a2.onrender.com';
+    const API_BASE_URL = window.location.hostname === 'localhost'
+      ? 'http://127.0.0.1:8000'
+      : 'https://pcp-backend-f4a2.onrender.com';
 
     fetch(`${API_BASE_URL}/api/dashboard/`, {
       method: 'GET',

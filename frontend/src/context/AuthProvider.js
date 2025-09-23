@@ -16,6 +16,9 @@ export const AuthProvider = ({ children }) => {
 
   const isAuthenticated = () => {
     const token = localStorage.getItem('access_token');
+    console.log('=== AuthProvider isAuthenticated Check ===');
+    console.log('Token from localStorage:', token);
+    console.log('Is authenticated:', !!token);
     return !!token; // Returns true if token exists, false otherwise
   };
 

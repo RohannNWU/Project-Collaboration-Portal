@@ -1,4 +1,5 @@
 from django.db import models
+from django.contrib.auth.models import User as DjangoUser
 
 class User(models.Model):
     email = models.CharField(max_length=100, unique=True, primary_key=True)
@@ -64,4 +65,25 @@ class User_Task(models.Model):
         managed = True
 
     def __str__(self):
-        return f"{self.user_email} - {self.task_id}"
+        return f"{self.email} - {self.task_id}"
+
+class Document(models.Model):
+    """Document model for file uploads and management"""
+    id = models.AutoField(primary_key=True)
+    task = models.ForeignKey(Task, on_delete=models.CASCADE, null=True, blank=True)
+    title = models.CharField(max_length=255)
+    description = models.TextField(null=True, blank=True)
+    datetime_uploaded = models.DateTimeField(auto_now_add=True)
+    doc_type = models.CharField(max_length=100)  # MIME type
+    date_last_modified = models.DateTimeField(auto_now=True)
+    last_modified_by = models.ForeignKey(DjangoUser, on_delete=models.CASCADE, related_name='modified_documents')
+    file_path = models.CharField(max_length=500)
+    file_size = models.BigIntegerField()
+    uploaded_by = models.ForeignKey(DjangoUser, on_delete=models.CASCADE, related_name='uploaded_documents')
+
+    class Meta:
+        managed = True
+        ordering = ['-datetime_uploaded']
+
+    def __str__(self):
+        return self.title

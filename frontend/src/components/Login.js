@@ -28,8 +28,22 @@ const Login = () => {
       
       if (response.ok) {
         const data = await response.json();
-        localStorage.setItem('access_token', data.access);
-        navigate('/dashboard');
+        console.log('Login response data:', data);
+        
+        // Store tokens with debugging
+        localStorage.setItem('access_token', data.access_token);
+        localStorage.setItem('refresh_token', data.refresh_token);
+        localStorage.setItem('user', JSON.stringify(data.user));
+        
+        // Verify tokens were stored
+        console.log('Stored access_token:', localStorage.getItem('access_token'));
+        console.log('Stored refresh_token:', localStorage.getItem('refresh_token'));
+        console.log('Stored user:', localStorage.getItem('user'));
+        
+        // Small delay to ensure storage is complete
+        setTimeout(() => {
+          navigate('/dashboard');
+        }, 100);
       } else {
         throw new Error('Login failed');
       }
