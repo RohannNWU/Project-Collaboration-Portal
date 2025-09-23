@@ -6,7 +6,7 @@ from rest_framework_simplejwt.tokens import UntypedToken, AccessToken
 from rest_framework_simplejwt.exceptions import InvalidToken
 from django.shortcuts import get_object_or_404
 from datetime import datetime, timedelta
-from .models import User, Project, UserProject, ProjectChat, ChatMessage
+from .models import User, Project, UserProject, ProjectChat, ChatMessage, Task, User_Task
 from .serializers import ChatMessageSerializer, ProjectChatSerializer
 import bcrypt
 
@@ -184,3 +184,118 @@ class ChatMessageCreateView(APIView):
             return Response(serializer.data, status=201)
         
         return Response(serializer.errors, status=400)
+
+class GetMembersView(APIView):
+    def post(self, request):
+            try:
+                # Extract projectName from the request body
+                project_name = request.data.get('projectName')
+                if not project_name:
+                    return Response(
+                        {'error': 'projectName is required'},
+                        status=status.HTTP_400_BAD_REQUEST
+                    )
+
+                # Fetch the project
+                try:
+                    project = Project.objects.get(project_name=project_name)
+                except Project.DoesNotExist:
+                    return Response(
+                        {'error': f'Project with name {project_name} does not exist'},
+                        status=status.HTTP_404_NOT_FOUND
+                    )
+
+                members = UserProject.objects.filter(project_id=project).values('email')
+                first_names = User.objects.filter(email__in=members).values('email', 'first_name')
+                members_list = [{'email': member['email'], 'first_name': member['first_name']} for member in first_names]
+                return Response({'members': members_list}, status=status.HTTP_200_OK)
+            except Exception as e:
+                return Response(
+                    {'error': f'Failed to fetch members: {str(e)}'},
+                    status=status.HTTP_500_INTERNAL_SERVER_ERROR
+                )
+
+class AddTaskView(APIView):
+    def post(self, request):
+        try:
+            task_name = request.data.get('task_name')
+            task_description = request.data.get('task_description')
+            task_due_date = request.data.get('task_due_date')
+            task_status = request.data.get('task_status')
+            task_priority = request.data.get('task_priority')
+            project_id = Project.objects.get(project_name=request.data.get('project_name'))
+            task_members = request.data.get('task_members', [])
+
+            # Create new task using ORM
+            task = Task.objects.create(
+                task_name=task_name,
+                task_description=task_description,
+                task_due_date=task_due_date,
+                task_status=task_status,
+                task_priority=task_priority,
+                project_id=project_id
+            )
+
+            for member_email in task_members:
+                user = User.objects.get(email=member_email)
+                User_Task.objects.create(
+                    email=user,
+                    task_id=task,
+                )
+            
+            return Response({'message': 'Task added successfully'}, status=status.HTTP_201_CREATED)
+        except Exception as e:
+            return Response({'error': f'Failed to add task: {str(e)}'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        
+class CalendarView(APIView):
+    def get(self, request):
+        auth_header = request.headers.get('Authorization')
+        if not auth_header or not auth_header.startswith('Bearer '):
+            return Response({'error': 'Authentication required'}, status=status.HTTP_401_UNAUTHORIZED)
+        
+        token = auth_header.split(' ')[1]
+        try:
+            # Validate token
+            payload = UntypedToken(token).payload
+            user_email = payload.get('user_email')
+            
+            # Fetch user
+            user = User.objects.get(email=user_email)
+            
+            # Fetch user projects
+            user_projects = UserProject.objects.filter(email=user).select_related('project_id')
+            project_events = [
+                {
+                    'title': f"Project: {user_project.project_id.project_name}",
+                    'start': user_project.project_id.due_date.strftime('%Y-%m-%d')
+                }
+                for user_project in user_projects
+            ]
+            
+            # Fetch user tasks
+            user_tasks = User_Task.objects.filter(email=user).select_related('task_id')
+            task_events = [
+                {
+                    'title': f"Task: {user_task.task_id.task_name}",
+                    'start': user_task.task_id.task_due_date.strftime('%Y-%m-%d')
+                }
+                for user_task in user_tasks
+            ]
+            
+            # Combine project and task events
+            events = project_events + task_events
+            
+            # Get current server time
+            current_time = datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S')
+            
+            return Response({
+                'events': events,
+                'current_time': current_time
+            })
+            
+        except InvalidToken:
+            return Response({'error': 'Invalid token'}, status=status.HTTP_401_UNAUTHORIZED)
+        except User.DoesNotExist:
+            return Response({'error': 'User not found'}, status=status.HTTP_401_UNAUTHORIZED)
+        except Exception as e:
+            return Response({'error': f'Database error: {str(e)}'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
