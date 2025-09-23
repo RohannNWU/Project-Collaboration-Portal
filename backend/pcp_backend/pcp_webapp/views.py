@@ -964,4 +964,4 @@ def project_analytics(request, project_id):
         })
     except Exception as e:
         logger.error(f"Project analytics error: {e}")
-        return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
+        return Response({'error': 'Internal server error'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
