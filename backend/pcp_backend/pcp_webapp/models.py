@@ -143,7 +143,7 @@ class ActivityLog(models.Model):
     ]
 
     id = models.AutoField(primary_key=True)
-    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='activities')
+    email = models.ForeignKey(User, on_delete=models.CASCADE, related_name='activities')
     project = models.ForeignKey(Project, on_delete=models.CASCADE, null=True, blank=True, related_name='activities')
     action_type = models.CharField(max_length=30, choices=ACTION_TYPES)
     description = models.TextField()

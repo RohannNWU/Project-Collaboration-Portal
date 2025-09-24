@@ -62,7 +62,7 @@ const UploadCollabDoc = () => {
       setUploadStatus('Uploading document to server...');
       
       // Upload to backend API with title and description
-      const response = await documentService.uploadDocument(selectedFile, '', title, description);
+      const response = await documentService.uploadDocument(selectedFile, 1, title, description);
       
       // Add to local context for immediate UI update
       const newDocument = {

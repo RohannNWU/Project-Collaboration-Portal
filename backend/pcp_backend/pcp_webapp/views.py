@@ -33,14 +33,8 @@ def get_user_from_token(request):
         return None
 class LoginView(APIView):
     def post(self, request):
-        logger.info(f"Login attempt for email: {request.data.get('email')}")
         email = request.data.get('email')
         password = request.data.get('password')
-        
-        if not email or not password:
-            return Response({'error': 'Email and password are required'}, 
-                          status=status.HTTP_400_BAD_REQUEST)
-        
         try:
             user = User.objects.get(email=email)
             
@@ -50,11 +44,6 @@ class LoginView(APIView):
             except ValueError as e:
                 return Response({'error': f'Invalid password hash in database: {str(e)}'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
             
-            # Update last login
-            user.last_login = timezone.now()
-            user.save()
-            
-            logger.info(f"Successful login for email: {email}")
             current_time = datetime.utcnow()
             access = AccessToken()
             access.set_exp(from_time=current_time, lifetime=timedelta(hours=1))
@@ -68,17 +57,16 @@ class LoginView(APIView):
                 'email': user.email
             })
         except User.DoesNotExist:
-            logger.warning(f"Login attempt with non-existent email: {email}")
             return Response({'error': 'Invalid credentials'}, status=status.HTTP_401_UNAUTHORIZED)
         except Exception as e:
             return Response({'error': f'Login error: {str(e)}'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 class DashboardView(APIView):
     def get(self, request):
-        user = get_user_from_token(request)
-        if not user:
+        auth_header = request.headers.get('Authorization')
+        if not auth_header or not auth_header.startswith('Bearer '):
             return Response({'error': 'Authentication required'}, status=status.HTTP_401_UNAUTHORIZED)
-
+        
         token = auth_header.split(' ')[1]
         try:
             # Validate token
@@ -93,7 +81,6 @@ class DashboardView(APIView):
             user_projects = UserProject.objects.filter(email=user).select_related('project_id')
             projects = [
                 {
-                    'project_id': user_project.project_id.project_id,
                     'project_name': user_project.project_id.project_name,
                     'progress': 0,
                     'dueDate': user_project.project_id.due_date.strftime('%d/%m/%Y'),
@@ -126,6 +113,7 @@ class AddUserView(APIView):
             # Validate inputs
             if not all([user_email, fname, lname, password]):
                 return Response({'error': 'All fields (email address, first name, last name, password) are required'}, status=status.HTTP_400_BAD_REQUEST)
+
             # Hash password and convert to string for storage
             hashed_password = bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
             # Check if user already exists
@@ -347,10 +335,6 @@ class DocumentListView(APIView):
     
     def get(self, request):
         try:
-            # Get user from authentication (assuming JWT or session auth)
-            if not request.user.is_authenticated:
-                return Response({'error': 'Authentication required'}, status=status.HTTP_401_UNAUTHORIZED)
-            
             documents = Document.objects.filter(uploaded_by=request.user)
             document_list = []
             
