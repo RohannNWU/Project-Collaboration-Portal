@@ -1,0 +1,994 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Group Leader Dashboard · Project Collaboration Portal</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/index.global.min.css" rel="stylesheet"/>
+  <style>
+    /* Base Styles */
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    }
+
+    body {
+      display: grid;
+      grid-template-columns: 240px 1fr 360px;
+      min-height: 100vh;
+      background: #f8f5ff;
+      color: #333;
+    }
+
+    /* Sidebar Styles */
+    .sidebar {
+      background: linear-gradient(135deg, #6a11cb 0%, #2575fc 100%);
+      color: white;
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      margin-bottom: 30px;
+    }
+
+    .logo {
+      width: 40px;
+      height: 40px;
+      background: rgba(255, 255, 255, 0.2);
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: bold;
+      margin-right: 10px;
+      backdrop-filter: blur(10px);
+    }
+
+    .brand-text h2 {
+      font-size: 16px;
+      margin-bottom: 4px;
+    }
+
+    .brand-text small {
+      font-size: 12px;
+      opacity: 0.8;
+    }
+
+    .nav {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      margin-bottom: 30px;
+    }
+
+    .nav-btn {
+      background: rgba(255, 255, 255, 0.1);
+      border: none;
+      color: white;
+      text-align: left;
+      padding: 12px 15px;
+      border-radius: 6px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      transition: background 0.2s;
+      backdrop-filter: blur(5px);
+    }
+
+    .nav-btn:hover, .nav-btn.active {
+      background: rgba(255, 255, 255, 0.2);
+    }
+
+    /* Main Content Styles */
+    .main {
+      padding: 20px;
+      overflow-y: auto;
+      max-height: 100vh;
+    }
+
+    .main::-webkit-scrollbar {
+      width: 8px;
+    }
+
+    .main::-webkit-scrollbar-track {
+      background: #f1f1f1;
+      border-radius: 10px;
+    }
+
+    .main::-webkit-scrollbar-thumb {
+      background: #c1c1c1;
+      border-radius: 10px;
+    }
+
+    .main::-webkit-scrollbar-thumb:hover {
+      background: #a8a8a8;
+    }
+
+    .topbar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 25px;
+      background: white;
+      padding: 15px 20px;
+      border-radius: 10px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+    }
+
+    .tb-left {
+      display: flex;
+      align-items: center;
+      gap: 15px;
+    }
+
+    .badge {
+      background: #e9e1ff;
+      color: #6a11cb;
+      padding: 4px 10px;
+      border-radius: 20px;
+      font-size: 12px;
+      font-weight: 600;
+    }
+
+    .tb-right {
+      display: flex;
+      align-items: center;
+      gap: 15px;
+    }
+
+    .search {
+      position: relative;
+    }
+
+    .search input {
+      padding: 8px 15px 8px 35px;
+      border: 1px solid #ddd;
+      border-radius: 20px;
+      width: 220px;
+      font-size: 14px;
+    }
+
+    .search-ico {
+      position: absolute;
+      left: 12px;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 16px;
+      height: 16px;
+      opacity: 0.6;
+    }
+
+    .icon-btn {
+      background: none;
+      border: none;
+      font-size: 18px;
+      cursor: pointer;
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background 0.2s;
+    }
+
+    .icon-btn:hover {
+      background: #f5f5f5;
+    }
+
+    .user {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .avatar {
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      background: #6a11cb;
+      color: white;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 600;
+    }
+
+    .cards {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 20px;
+      margin-bottom: 25px;
+    }
+
+    .card {
+      background: white;
+      padding: 20px;
+      border-radius: 10px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+    }
+
+    .card p {
+      color: #777;
+      font-size: 14px;
+      margin-bottom: 8px;
+    }
+
+    .card h2 {
+      font-size: 28px;
+      color: #2c3e50;
+    }
+
+    .panel {
+      background: white;
+      border-radius: 10px;
+      padding: 20px;
+      margin-bottom: 25px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+    }
+
+    .panel-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 15px;
+      padding-bottom: 15px;
+      border-bottom: 1px solid #eee;
+    }
+
+    .panel-head h2, .panel-head h3 {
+      font-size: 18px;
+      color: #2c3e50;
+    }
+
+    /* Table Styles */
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      background: white;
+      margin-top: 10px;
+    }
+
+    th, td {
+      padding: 12px;
+      border: 1px solid #ddd;
+      text-align: center;
+    }
+
+    th {
+      background: #f8f9fa;
+      font-weight: 600;
+    }
+
+    .action-btn {
+      border: none;
+      padding: 6px 12px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-weight: 500;
+      margin: 2px;
+    }
+
+    .approve-btn {
+      background: #8a4fff;
+      color: white;
+    }
+
+    .approve-btn:hover {
+      background: #7a3fff;
+    }
+
+    .view-btn {
+      background: #6a11cb;
+      color: white;
+    }
+
+    .view-btn:hover {
+      background: #5a0db8;
+    }
+
+    .reject-btn {
+      background: #dc3545;
+      color: white;
+    }
+
+    .reject-btn:hover {
+      background: #c82333;
+    }
+
+    .marking-action-btn {
+      background: #9c27b0;
+      color: white;
+      border: none;
+      padding: 6px 12px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-weight: 500;
+    }
+
+    .marking-action-btn:hover {
+      background: #7b1fa2;
+    }
+
+    .add-task-btn {
+      background: #6a11cb;
+      color: white;
+      border: none;
+      padding: 8px 16px;
+      border-radius: 5px;
+      cursor: pointer;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .add-task-btn:hover {
+      background: #5a0db8;
+    }
+
+    /* Status badges */
+    .status-pending {
+      background: #fff3cd;
+      color: #856404;
+      padding: 4px 8px;
+      border-radius: 12px;
+      font-size: 12px;
+    }
+
+    .status-approved {
+      background: #d4edda;
+      color: #155724;
+      padding: 4px 8px;
+      border-radius: 12px;
+      font-size: 12px;
+    }
+
+    .status-rejected {
+      background: #f8d7da;
+      color: #721c24;
+      padding: 4px 8px;
+      border-radius: 12px;
+      font-size: 12px;
+    }
+
+    .status-in-progress {
+      background: #cce7ff;
+      color: #004085;
+      padding: 4px 8px;
+      border-radius: 12px;
+      font-size: 12px;
+    }
+
+    .status-completed {
+      background: #d4edda;
+      color: #155724;
+      padding: 4px 8px;
+      border-radius: 12px;
+      font-size: 12px;
+    }
+
+    /* Calendar Styles */
+    #calendar {
+      max-width: 100%;
+      margin: 10px auto;
+      background: white;
+      padding: 15px;
+      border-radius: 8px;
+      font-size: 14px;
+      height: 500px;
+    }
+
+    /* Right sidebar */
+    .rightbar {
+      background: #f8f9fa;
+      padding: 20px;
+      overflow-y: auto;
+      border-left: 1px solid #eee;
+    }
+
+    .list {
+      list-style: none;
+    }
+
+    .list li {
+      padding: 12px 0;
+      border-bottom: 1px solid #eee;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .list li:last-child {
+      border-bottom: none;
+    }
+
+    .live {
+      background: #dc3545;
+      color: white;
+      padding: 3px 8px;
+      border-radius: 12px;
+      font-size: 12px;
+      font-weight: 600;
+    }
+
+    /* Logout button */
+    .logout-btn {
+      background: #dc3545;
+      color: white;
+      border: none;
+      padding: 6px 12px;
+      border-radius: 5px;
+      cursor: pointer;
+      margin-left: 10px;
+      transition: background 0.2s ease;
+      font-weight: 500;
+    }
+
+    .logout-btn:hover {
+      background: #b02a37;
+    }
+
+    .footer {
+      text-align: center;
+      padding: 15px;
+      color: #6c757d;
+      font-size: 14px;
+      margin-top: 20px;
+    }
+
+    /* Modal Styles */
+    .modal {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.5);
+      z-index: 1000;
+      justify-content: center;
+      align-items: center;
+    }
+
+    .modal-container {
+      background: white;
+      border-radius: 10px;
+      padding: 30px;
+      width: 90%;
+      max-width: 600px;
+      max-height: 90vh;
+      overflow-y: auto;
+    }
+
+    .modal-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 20px;
+      padding-bottom: 15px;
+      border-bottom: 2px solid #e9ecef;
+    }
+
+    .close-modal {
+      background: #dc3545;
+      color: white;
+      border: none;
+      padding: 8px 16px;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+
+    .modal-content {
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+
+    .form-group {
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+    }
+
+    .form-group label {
+      font-weight: 600;
+      color: #495057;
+    }
+
+    .form-group input,
+    .form-group select,
+    .form-group textarea {
+      padding: 10px;
+      border: 1px solid #ddd;
+      border-radius: 5px;
+      font-size: 14px;
+    }
+
+    .form-group textarea {
+      min-height: 100px;
+      resize: vertical;
+    }
+
+    .submit-btn {
+      background: #6a11cb;
+      color: white;
+      border: none;
+      padding: 12px 24px;
+      border-radius: 5px;
+      cursor: pointer;
+      font-size: 16px;
+      font-weight: 600;
+    }
+
+    .submit-btn:hover {
+      background: #5a0db8;
+    }
+
+    /* Responsive Design */
+    @media (max-width: 1200px) {
+      body {
+        grid-template-columns: 240px 1fr;
+      }
+      .rightbar {
+        display: none;
+      }
+    }
+
+    @media (max-width: 768px) {
+      body {
+        grid-template-columns: 1fr;
+      }
+      .sidebar {
+        display: none;
+      }
+      .cards {
+        grid-template-columns: 1fr;
+      }
+      .topbar {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 15px;
+      }
+      .tb-right {
+        width: 100%;
+        justify-content: space-between;
+      }
+      .search input {
+        width: 180px;
+      }
+      #calendar {
+        height: 400px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <!-- Sidebar -->
+  <aside class="sidebar">
+    <div class="brand">
+      <div class="logo">NWU</div>
+      <div class="brand-text">
+        <h2>Project Collaboration Portal</h2>
+        <small>Group Leader</small>
+      </div>
+    </div>
+
+    <nav class="nav">
+      <button class="nav-btn active"><i class="fas fa-tachometer-alt"></i> Dashboard</button>
+      <button class="nav-btn"><i class="fas fa-users"></i> Team Members</button>
+      <button class="nav-btn"><i class="fas fa-tasks"></i> Tasks</button>
+      <button class="nav-btn"><i class="fas fa-calendar"></i> Calendar</button>
+      <button class="nav-btn"><i class="fas fa-inbox"></i> Messages</button>
+      <button class="nav-btn"><i class="fas fa-chart-bar"></i> Progress</button>
+    </nav>
+  </aside>
+
+  <!-- Main -->
+  <main class="main">
+    <!-- Top bar -->
+    <header class="topbar">
+      <div class="tb-left">
+        <h1>Group Leader Dashboard</h1>
+        <span class="badge">Team A Leader</span>
+      </div>
+      <div class="tb-right">
+        <div class="search">
+          <input id="searchInput" type="text" placeholder="Search tasks, team members..." />
+          <svg class="search-ico" viewBox="0 0 24 24"><path d="M10 18a8 8 0 1 1 5.293-14.293A8 8 0 0 1 10 18Zm11 3-6-6"/></svg>
+        </div>
+        <button class="icon-btn" title="Notifications"><i class="fas fa-bell"></i></button>
+        <div class="user">
+          <div class="avatar">HL</div>
+          <span class="username">Hloni (Leader)</span>
+          <button class="logout-btn" id="logout-btn">Logout</button>
+        </div>
+      </div>
+    </header>
+
+    <!-- KPIs -->
+    <section class="cards">
+      <div class="card">
+        <p>Team Members</p>
+        <h2 id="kpi-members">5</h2>
+      </div>
+      <div class="card">
+        <p>Active Tasks</p>
+        <h2 id="kpi-tasks">12</h2>
+      </div>
+      <div class="card">
+        <p>Project Progress</p>
+        <h2 id="kpi-progress">65%</h2>
+      </div>
+    </section>
+
+    <!-- Task Management Table -->
+    <section class="panel">
+      <div class="panel-head">
+        <h2>Task Management</h2>
+        <button class="add-task-btn" id="add-task-btn">
+          <i class="fas fa-plus"></i> Add Task
+        </button>
+      </div>
+      <table id="task-table">
+        <thead>
+          <tr>
+            <th>Task Name</th>
+            <th>Assigned To</th>
+            <th>Priority</th>
+            <th>Status</th>
+            <th>Due Date</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Research on Machine Learning</td>
+            <td>Sarah.M</td>
+            <td><span class="status-pending">High</span></td>
+            <td><span class="status-in-progress">In Progress</span></td>
+            <td>15/10/2025</td>
+            <td>
+              <button class="action-btn view-btn"><i class="fas fa-eye"></i></button>
+              <button class="action-btn approve-btn"><i class="fas fa-edit"></i></button>
+              <button class="action-btn reject-btn"><i class="fas fa-trash"></i></button>
+            </td>
+          </tr>
+          <tr>
+            <td>UI Design Mockups</td>
+            <td>Katlego.T</td>
+            <td><span class="status-approved">Medium</span></td>
+            <td><span class="status-completed">Completed</span></td>
+            <td>05/10/2025</td>
+            <td>
+              <button class="action-btn view-btn"><i class="fas fa-eye"></i></button>
+              <button class="action-btn approve-btn"><i class="fas fa-edit"></i></button>
+              <button class="action-btn reject-btn"><i class="fas fa-trash"></i></button>
+            </td>
+          </tr>
+          <tr>
+            <td>Database Schema Design</td>
+            <td>John.D</td>
+            <td><span class="status-rejected">High</span></td>
+            <td><span class="status-pending">Pending</span></td>
+            <td>20/10/2025</td>
+            <td>
+              <button class="action-btn view-btn"><i class="fas fa-eye"></i></button>
+              <button class="action-btn approve-btn"><i class="fas fa-edit"></i></button>
+              <button class="action-btn reject-btn"><i class="fas fa-trash"></i></button>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+
+    <!-- Calendar Section -->
+    <section class="panel">
+      <div class="panel-head">
+        <h2>Team Calendar</h2>
+      </div>
+      <div id="calendar"></div>
+    </section>
+  </main>
+
+  <!-- Right column -->
+  <aside class="rightbar">
+    <section class="panel">
+      <div class="panel-head">
+        <h3>Team Members</h3>
+      </div>
+      <ul class="list">
+        <li><i class="fas fa-user"></i> Hloni (Leader)</li>
+        <li><i class="fas fa-user"></i> Sarah.M</li>
+        <li><i class="fas fa-user"></i> Katlego.T</li>
+        <li><i class="fas fa-user"></i> John.D</li>
+        <li><i class="fas fa-user"></i> Maria.K</li>
+      </ul>
+    </section>
+
+    <section class="panel">
+      <div class="panel-head">
+        <h3>Recent Team Activity</h3>
+        <span class="live">Live</span>
+      </div>
+      <ul class="list">
+        <li><i class="fas fa-check-circle"></i> Sarah.M completed research task</li>
+        <li><i class="fas fa-comment"></i> Katlego.T commented on design</li>
+        <li><i class="fas fa-upload"></i> John.D uploaded database schema</li>
+        <li><i class="fas fa-clock"></i> Maria.K started testing module</li>
+      </ul>
+    </section>
+
+    <section class="panel">
+      <div class="panel-head">
+        <h3>Quick Actions</h3>
+      </div>
+      <ul class="list">
+        <li><button class="action-btn view-btn" style="width:100%"><i class="fas fa-users"></i> Schedule Meeting</button></li>
+        <li><button class="action-btn approve-btn" style="width:100%"><i class="fas fa-file-export"></i> Export Progress</button></li>
+        <li><button class="action-btn marking-action-btn" style="width:100%"><i class="fas fa-chart-pie"></i> Generate Report</button></li>
+      </ul>
+    </section>
+
+    <footer class="footer">
+      © <span id="year"></span> Project Collaboration Portal · Group Leader Dashboard
+    </footer>
+  </aside>
+
+  <!-- Add Task Modal -->
+  <div id="addTaskModal" class="modal">
+    <div class="modal-container">
+      <div class="modal-header">
+        <h2>Add New Task</h2>
+        <button class="close-modal" id="close-task-modal">Close</button>
+      </div>
+      <div class="modal-content">
+        <div class="form-group">
+          <label for="task-name">Task Name</label>
+          <input type="text" id="task-name" placeholder="Enter task name">
+        </div>
+        <div class="form-group">
+          <label for="task-assignee">Assign To</label>
+          <select id="task-assignee">
+            <option value="">Select Team Member</option>
+            <option value="Sarah.M">Sarah.M</option>
+            <option value="Katlego.T">Katlego.T</option>
+            <option value="John.D">John.D</option>
+            <option value="Maria.K">Maria.K</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label for="task-priority">Priority</label>
+          <select id="task-priority">
+            <option value="low">Low</option>
+            <option value="medium">Medium</option>
+            <option value="high">High</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label for="task-due-date">Due Date</label>
+          <input type="date" id="task-due-date">
+        </div>
+        <div class="form-group">
+          <label for="task-description">Description</label>
+          <textarea id="task-description" placeholder="Enter task description..."></textarea>
+        </div>
+        <button class="submit-btn" id="submit-task">
+          <i class="fas fa-plus"></i> Add Task
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/index.global.min.js"></script>
+  <script>
+    // Initialize when page loads
+    document.addEventListener("DOMContentLoaded", function () {
+      // Initialize calendar with proper height
+      var calendarEl = document.getElementById("calendar");
+      if (calendarEl) {
+        var calendar = new FullCalendar.Calendar(calendarEl, {
+          initialView: "dayGridMonth",
+          height: "auto",
+          headerToolbar: {
+            left: 'prev,next today',
+            center: 'title',
+            right: 'dayGridMonth,timeGridWeek,timeGridDay'
+          },
+          events: [
+            { 
+              title: "Team Meeting", 
+              start: "2025-09-15T14:00:00",
+              color: '#6a11cb'
+            },
+            { 
+              title: "Project Phase 1 Deadline", 
+              start: "2025-09-21",
+              color: '#dc3545'
+            },
+            { 
+              title: "Client Presentation", 
+              start: "2025-10-06",
+              color: '#fd7e14'
+            },
+            { 
+              title: "Final Submission", 
+              start: "2025-11-11",
+              color: '#20c997'
+            }
+          ]
+        });
+        calendar.render();
+      }
+
+      // Set current year
+      document.getElementById("year").textContent = new Date().getFullYear();
+      
+      // Initialize event listeners
+      initializeEventListeners();
+      
+      // Hide modals initially
+      document.getElementById('addTaskModal').style.display = 'none';
+    });
+
+    // Initialize all event listeners
+    function initializeEventListeners() {
+      // Add task functionality
+      document.getElementById('add-task-btn').addEventListener('click', showAddTaskModal);
+      document.getElementById('close-task-modal').addEventListener('click', closeAddTaskModal);
+      document.getElementById('submit-task').addEventListener('click', addNewTask);
+
+      // Logout button
+      document.getElementById('logout-btn').addEventListener('click', logout);
+
+      // Search functionality
+      document.getElementById("searchInput").addEventListener("input", function(e) {
+        const searchTerm = e.target.value.toLowerCase();
+        const rows = document.querySelectorAll('#task-table tbody tr');
+        
+        rows.forEach(row => {
+          const text = row.textContent.toLowerCase();
+          row.style.display = text.includes(searchTerm) ? '' : 'none';
+        });
+      });
+
+      // Task action buttons
+      initializeTaskButtons();
+    }
+
+    // Initialize task action buttons
+    function initializeTaskButtons() {
+      document.querySelectorAll('.view-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+          viewTaskDetails(this);
+        });
+      });
+
+      document.querySelectorAll('.approve-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+          editTask(this);
+        });
+      });
+
+      document.querySelectorAll('.reject-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+          deleteTask(this);
+        });
+      });
+    }
+
+    // Task Management Functions
+    function showAddTaskModal() {
+      document.getElementById('addTaskModal').style.display = 'flex';
+      // Set default due date to tomorrow
+      const tomorrow = new Date();
+      tomorrow.setDate(tomorrow.getDate() + 1);
+      document.getElementById('task-due-date').value = tomorrow.toISOString().split('T')[0];
+    }
+
+    function closeAddTaskModal() {
+      document.getElementById('addTaskModal').style.display = 'none';
+      // Reset form
+      document.getElementById('task-name').value = '';
+      document.getElementById('task-assignee').value = '';
+      document.getElementById('task-priority').value = 'medium';
+      document.getElementById('task-due-date').value = '';
+      document.getElementById('task-description').value = '';
+    }
+
+    function addNewTask() {
+      const name = document.getElementById('task-name').value;
+      const assignee = document.getElementById('task-assignee').value;
+      const priority = document.getElementById('task-priority').value;
+      const dueDate = document.getElementById('task-due-date').value;
+      const description = document.getElementById('task-description').value;
+
+      if (!name || !assignee || !dueDate) {
+        alert('Please fill in all required fields');
+        return;
+      }
+
+      // Add new task to the table
+      const table = document.getElementById('task-table').getElementsByTagName('tbody')[0];
+      const newRow = table.insertRow();
+      
+      // Format due date
+      const formattedDate = new Date(dueDate).toLocaleDateString('en-GB');
+      
+      // Priority badge
+      let priorityClass = 'status-pending';
+      let priorityText = 'High';
+      if (priority === 'medium') {
+        priorityClass = 'status-approved';
+        priorityText = 'Medium';
+      } else if (priority === 'low') {
+        priorityClass = 'status-rejected';
+        priorityText = 'Low';
+      }
+      
+      newRow.innerHTML = `
+        <td>${name}</td>
+        <td>${assignee}</td>
+        <td><span class="${priorityClass}">${priorityText}</span></td>
+        <td><span class="status-pending">Pending</span></td>
+        <td>${formattedDate}</td>
+        <td>
+          <button class="action-btn view-btn"><i class="fas fa-eye"></i></button>
+          <button class="action-btn approve-btn"><i class="fas fa-edit"></i></button>
+          <button class="action-btn reject-btn"><i class="fas fa-trash"></i></button>
+        </td>
+      `;
+      
+      // Update task count
+      const currentCount = parseInt(document.getElementById('kpi-tasks').textContent);
+      document.getElementById('kpi-tasks').textContent = currentCount + 1;
+      
+      // Reinitialize event listeners for new buttons
+      initializeTaskButtons();
+      
+      alert('Task added successfully!');
+      closeAddTaskModal();
+    }
+
+    function viewTaskDetails(button) {
+      const row = button.closest('tr');
+      const cells = row.getElementsByTagName('td');
+      alert(`Task: ${cells[0].textContent}\nAssigned to: ${cells[1].textContent}\nDue: ${cells[4].textContent}`);
+    }
+
+    function editTask(button) {
+      const row = button.closest('tr');
+      const cells = row.getElementsByTagName('td');
+      alert(`Editing task: ${cells[0].textContent}`);
+      // In a real application, this would open an edit modal
+    }
+
+    function deleteTask(button) {
+      if (confirm("Are you sure you want to delete this task?")) {
+        const row = button.closest('tr');
+        row.remove();
+        
+        // Update task count
+        const currentCount = parseInt(document.getElementById('kpi-tasks').textContent);
+        document.getElementById('kpi-tasks').textContent = Math.max(0, currentCount - 1);
+      }
+    }
+
+    // Logout Function
+    function logout() {
+      if (confirm("Are you sure you want to logout?")) {
+        alert("You have been logged out!");
+        // In a real application, this would redirect to login page
+      }
+    }
+  </script>
+</body>
+</html>

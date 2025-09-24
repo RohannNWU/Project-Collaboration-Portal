@@ -1,5 +1,4 @@
 import React, { useState } from 'react';
-import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 import styles from './login.module.css';
 import { faEnvelope, faLock, faEye, faEyeSlash, faArrowRight } from '@fortawesome/free-solid-svg-icons';
@@ -19,9 +18,35 @@ const Login = () => {
         ? 'http://127.0.0.1:8000'
         : 'https://pcp-backend-f4a2.onrender.com';
         
-      const response = await axios.post(`${API_BASE_URL}/api/login/`, { email, password });
-      localStorage.setItem('access_token', response.data.access);
-      navigate('/dashboard');
+      const response = await fetch(`${API_BASE_URL}/api/login/`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ email, password }),
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        console.log('Login response data:', data);
+        
+        // Store tokens with debugging
+        localStorage.setItem('access_token', data.access_token);
+        localStorage.setItem('refresh_token', data.refresh_token);
+        localStorage.setItem('user', JSON.stringify(data.user));
+        
+        // Verify tokens were stored
+        console.log('Stored access_token:', localStorage.getItem('access_token'));
+        console.log('Stored refresh_token:', localStorage.getItem('refresh_token'));
+        console.log('Stored user:', localStorage.getItem('user'));
+        
+        // Small delay to ensure storage is complete
+        setTimeout(() => {
+          navigate('/dashboard');
+        }, 100);
+      } else {
+        throw new Error('Login failed');
+      }
     } catch (err) {
       setError('Invalid credentials');
     }

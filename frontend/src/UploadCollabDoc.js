@@ -1,244 +1,239 @@
-import React, { useState, useCallback } from 'react';
-import { useDropzone } from 'react-dropzone';
-import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faCloudUploadAlt, faLink, faTimes, faCheckCircle } from '@fortawesome/free-solid-svg-icons';
-import documentService from './services/documentService';
-import styles from './Dashboard.module.css';
+import React, { useState } from 'react';
+import Layout from './layout/Layout';
+import Card from './common/Card';
+import Button from './common/Button';
+import Alert from './common/Alert';
+import Loading from './common/Loading';
+import { useApp } from '../context/AppContext';
+import styles from '../styles/common.module.css';
 
-const UploadCollabDoc = ({ projectId }) => {
-  const [file, setFile] = useState(null);
-  const [isUploading, setIsUploading] = useState(false);
-  const [uploadProgress, setUploadProgress] = useState(0);
-  const [uploadStatus, setUploadStatus] = useState(null);
-  const [description, setDescription] = useState('');
+const UploadCollabDoc = () => {
+  const { addDocument, loading, setLoading } = useApp();
+  const [selectedFile, setSelectedFile] = useState(null);
+  const [uploadStatus, setUploadStatus] = useState('');
+  const [dragOver, setDragOver] = useState(false);
 
-  const onDrop = useCallback(acceptedFiles => {
-    if (acceptedFiles.length > 0) {
-      setFile(acceptedFiles[0]);
-      setUploadStatus(null);
-    }
-  }, []);
-
-  const { getRootProps, getInputProps, isDragActive } = useDropzone({
-    onDrop,
-    accept: {
-      'application/pdf': ['.pdf'],
-      'application/msword': ['.doc'],
-      'application/vnd.openxmlformats-officedocument.wordprocessingml.document': ['.docx'],
-      'application/vnd.ms-excel': ['.xls'],
-      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': ['.xlsx'],
-      'text/plain': ['.txt'],
-      'image/*': ['.png', '.jpg', '.jpeg', '.gif']
-    },
-    maxFiles: 1,
-    multiple: false
-  });
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    if (!file) return;
-
-    setIsUploading(true);
-    setUploadProgress(0);
-    setUploadStatus({ type: 'info', message: 'Uploading document...' });
-
-    try {
-      // Simulate upload progress (in a real app, you'd use axios with onUploadProgress)
-      const progressInterval = setInterval(() => {
-        setUploadProgress(prev => {
-          const newProgress = prev + Math.floor(Math.random() * 10) + 5;
-          return newProgress >= 90 ? 90 : newProgress;
-        });
-      }, 300);
-
-      // Upload the document
-      await documentService.uploadDocument(file, projectId, description);
-      
-      clearInterval(progressInterval);
-      setUploadProgress(100);
-      setUploadStatus({ 
-        type: 'success', 
-        message: 'Document uploaded successfully!' 
-      });
-      
-      // Reset form after successful upload
-      setTimeout(() => {
-        setFile(null);
-        setDescription('');
-        setUploadProgress(0);
-        setTimeout(() => setUploadStatus(null), 3000);
-      }, 1500);
-      
-    } catch (error) {
-      console.error('Upload failed:', error);
-      setUploadStatus({ 
-        type: 'error', 
-        message: error.message || 'Failed to upload document. Please try again.' 
-      });
-    } finally {
-      setIsUploading(false);
+  const handleFileSelect = (event) => {
+    const file = event.target.files[0];
+    if (file) {
+      setSelectedFile(file);
+      setUploadStatus('');
     }
   };
 
-  const removeFile = () => {
-    setFile(null);
-    setUploadStatus(null);
+  const handleDrop = (event) => {
+    event.preventDefault();
+    setDragOver(false);
+    const file = event.dataTransfer.files[0];
+    if (file) {
+      setSelectedFile(file);
+      setUploadStatus('');
+    }
   };
 
-  const handleBrowseClick = () => {
-    const input = document.createElement('input');
-    input.type = 'file';
-    input.accept = '.pdf,.doc,.docx,.xls,.xlsx,.txt,.png,.jpg,.jpeg,.gif';
-    input.onchange = (e) => {
-      if (e.target.files.length > 0) {
-        setFile(e.target.files[0]);
-        setUploadStatus(null);
-      }
-    };
-    input.click();
+  const handleDragOver = (event) => {
+    event.preventDefault();
+    setDragOver(true);
   };
+
+  const handleDragLeave = () => {
+    setDragOver(false);
+  };
+
+  const handleUpload = async () => {
+    if (!selectedFile) {
+      setUploadStatus('Please select a file first.');
+      return;
+    }
+
+    setLoading(true);
+    
+    // Simulate upload delay
+    setTimeout(() => {
+      const document = {
+        name: selectedFile.name,
+        size: selectedFile.size,
+        type: selectedFile.type,
+        uploadDate: new Date().toISOString(),
+        uploadedBy: 'Current User'
+      };
+      
+      addDocument(document);
+      setSelectedFile(null);
+      setUploadStatus('');
+      setLoading(false);
+      
+      // Reset file input
+      const fileInput = document.querySelector('input[type="file"]');
+      if (fileInput) fileInput.value = '';
+    }, 1500);
+  };
+
+  const formatFileSize = (bytes) => {
+    if (bytes === 0) return '0 Bytes';
+    const k = 1024;
+    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+  };
+
+  const supportedTypes = [
+    { extension: '.pdf', description: 'PDF documents', icon: '📄' },
+    { extension: '.doc, .docx', description: 'Word documents', icon: '📝' },
+    { extension: '.txt', description: 'Text files', icon: '📃' },
+    { extension: '.md', description: 'Markdown files', icon: '📋' },
+    { extension: '.xlsx, .xls', description: 'Excel spreadsheets', icon: '📊' },
+    { extension: '.pptx, .ppt', description: 'PowerPoint presentations', icon: '📈' }
+  ];
+
+  if (loading) {
+    return (
+      <Layout title="Upload Document" subtitle="Adding your document to the collaboration portal">
+        <Loading message="Uploading your document..." size="lg" />
+      </Layout>
+    );
+  }
 
   return (
-    <div className={styles.uploadContainer}>
-      <h2 className={styles.pageTitle}>
-        <FontAwesomeIcon icon={faCloudUploadAlt} className={styles.titleIcon} />
-        Upload Document
-      </h2>
-      
-      <div className={styles.simpleUploadContainer}>
-        {!file ? (
-          <div className={styles.uploadCard}>
-            <div className={styles.uploadHeader}>
-              <FontAwesomeIcon icon={faCloudUploadAlt} className={styles.uploadHeaderIcon} />
-              <h3>Upload Document</h3>
+    <Layout 
+      title="Upload Collaborative Document" 
+      subtitle="Share documents with your team for better collaboration"
+    >
+      <div style={{ maxWidth: '800px', margin: '0 auto' }}>
+        {/* Upload Area */}
+        <Card className={styles.mb4}>
+          <div
+            onDrop={handleDrop}
+            onDragOver={handleDragOver}
+            onDragLeave={handleDragLeave}
+            style={{
+              border: `2px dashed ${dragOver ? 'var(--color-primary)' : 'var(--color-gray)'}`,
+              borderRadius: 'var(--border-radius-lg)',
+              padding: 'var(--spacing-xxxl)',
+              textAlign: 'center',
+              backgroundColor: dragOver ? 'var(--color-primary-light)' : 'var(--bg-secondary)',
+              transition: 'all var(--transition-normal)',
+              cursor: 'pointer'
+            }}
+          >
+            <div style={{ fontSize: 'var(--font-size-display)', marginBottom: 'var(--spacing-md)' }}>
+              📁
             </div>
-
-            {/* Drag and Drop Area */}
-            <div 
-              {...getRootProps()} 
-              className={`${styles.simpleDropzone} ${isDragActive ? styles.dropzoneActive : ''}`}
-            >
-              <input {...getInputProps()} />
-              <FontAwesomeIcon icon={faCloudUploadAlt} className={styles.dropzoneIcon} />
-              <p>Drag and drop your file here</p>
-            </div>
-
-            {/* OR Divider */}
-            <div className={styles.simpleDivider}>
-              <span>OR</span>
-            </div>
-
-            {/* Browse Button */}
-            <button 
-              type="button" 
-              onClick={handleBrowseClick}
-              className={styles.simpleBrowseButton}
-            >
-              <FontAwesomeIcon icon={faCloudUploadAlt} />
-              Choose File
-            </button>
-
-            {/* File Info */}
-            <div className={styles.fileInfo}>
-              <p>Supported: PDF, DOC, DOCX, XLS, XLSX, TXT, Images</p>
-              <p>Maximum size: 25MB</p>
-            </div>
-          </div>
-        ) : (
-          <div className={styles.filePreview}>
-            <div className={styles.fileInfo}>
-              <span className={styles.fileName}>
-                {file.name}
-              </span>
-              <span className={styles.fileSize}>
-                {(file.size / 1024 / 1024).toFixed(2)} MB
-              </span>
-              <button 
-                type="button" 
-                onClick={removeFile}
-                className={styles.removeButton}
-                disabled={isUploading}
-              >
-                <FontAwesomeIcon icon={faTimes} />
-              </button>
-            </div>
-
-            <div className={styles.descriptionInput}>
-              <label htmlFor="description">Description (optional):</label>
-              <input
-                id="description"
-                type="text"
-                value={description}
-                onChange={(e) => setDescription(e.target.value)}
-                placeholder="Add a brief description..."
-                disabled={isUploading}
-              />
-            </div>
-
-            {uploadProgress > 0 && (
-              <div className={styles.progressContainer}>
-                <div 
-                  className={`${styles.progressBar} ${uploadStatus?.type === 'success' ? styles.progressSuccess : ''}`}
-                  style={{ width: `${uploadProgress}%` }}
-                />
-                <span className={styles.progressText}>
-                  {uploadStatus?.type === 'success' ? 'Complete!' : `${uploadProgress}%`}
-                </span>
-              </div>
-            )}
-
-            {uploadStatus && (
-              <div className={`${styles.statusMessage} ${styles[`status${uploadStatus.type}`]}`}>
-                {uploadStatus.message}
+            <h3 style={{ marginBottom: 'var(--spacing-sm)', color: 'var(--text-primary)' }}>
+              {dragOver ? 'Drop your file here' : 'Upload Your Document'}
+            </h3>
+            <p style={{ color: 'var(--text-secondary)', marginBottom: 'var(--spacing-lg)' }}>
+              Drag and drop a file here, or click to select a file
+            </p>
+            
+            <input 
+              type="file" 
+              onChange={handleFileSelect}
+              accept=".pdf,.doc,.docx,.txt,.md,.xlsx,.xls,.pptx,.ppt"
+              style={{ display: 'none' }}
+              id="fileInput"
+            />
+            <label htmlFor="fileInput">
+              <Button variant="primary" size="lg" style={{ pointerEvents: 'none' }}>
+                📎 Choose File
+              </Button>
+            </label>
+            
+            {selectedFile && (
+              <div style={{ 
+                marginTop: 'var(--spacing-lg)', 
+                padding: 'var(--spacing-md)',
+                backgroundColor: 'var(--bg-primary)',
+                borderRadius: 'var(--border-radius-md)',
+                border: 'var(--border)'
+              }}>
+                <h4 style={{ margin: '0 0 var(--spacing-sm) 0', color: 'var(--color-success)' }}>
+                  ✅ File Selected
+                </h4>
+                <p style={{ margin: '0 0 var(--spacing-xs) 0' }}>
+                  <strong>Name:</strong> {selectedFile.name}
+                </p>
+                <p style={{ margin: '0 0 var(--spacing-md) 0' }}>
+                  <strong>Size:</strong> {formatFileSize(selectedFile.size)}
+                </p>
+                <Button onClick={handleUpload} variant="success" size="lg">
+                  🚀 Upload Document
+                </Button>
               </div>
             )}
           </div>
+        </Card>
+
+        {/* Status Messages */}
+        {uploadStatus && (
+          <Alert 
+            variant={uploadStatus.includes('successfully') ? 'success' : 'danger'}
+            onClose={() => setUploadStatus('')}
+            className={styles.mb4}
+          >
+            {uploadStatus}
+          </Alert>
         )}
 
-        <div className={styles.uploadActions}>
-          {!file ? (
-            <div className={styles.orDivider}>
-              <span>or</span>
-            </div>
-          ) : (
-            <button
-              type="button"
-              onClick={handleSubmit}
-              className={`${styles.uploadButton} ${isUploading ? styles.uploading : ''}`}
-              disabled={!file || isUploading}
-            >
-              {isUploading ? (
-                'Uploading...'
-              ) : (
-                <>
-                  <FontAwesomeIcon icon={faCloudUploadAlt} />
-                  Upload Document
-                </>
-              )}
-            </button>
-          )}
-          
-          <button 
-            type="button" 
-            className={styles.linkButton}
-            onClick={() => alert('SharePoint integration coming soon!')}
-          >
-            <FontAwesomeIcon icon={faLink} />
-            Add SharePoint Link
-          </button>
-        </div>
-      </div>
+        {/* Supported File Types */}
+        <Card title="Supported File Types" subtitle="Upload any of these document formats">
+          <div className={`${styles.grid} ${styles.gridCols2}`}>
+            {supportedTypes.map((type, index) => (
+              <div 
+                key={index}
+                style={{ 
+                  display: 'flex', 
+                  alignItems: 'center', 
+                  gap: 'var(--spacing-sm)',
+                  padding: 'var(--spacing-sm)',
+                  backgroundColor: 'var(--bg-secondary)',
+                  borderRadius: 'var(--border-radius-md)',
+                  marginBottom: 'var(--spacing-sm)'
+                }}
+              >
+                <span style={{ fontSize: 'var(--font-size-xl)' }}>{type.icon}</span>
+                <div>
+                  <div style={{ fontWeight: 'var(--font-weight-medium)' }}>
+                    {type.description}
+                  </div>
+                  <div style={{ fontSize: 'var(--font-size-sm)', color: 'var(--text-secondary)' }}>
+                    {type.extension}
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </Card>
 
-      <div className={styles.uploadGuidelines}>
-        <h4>Upload Guidelines</h4>
-        <ul>
-          <li>Maximum file size: 25MB</li>
-          <li>Supported formats: PDF, DOC, DOCX, XLS, XLSX, TXT, Images</li>
-          <li>Ensure documents don't contain sensitive information</li>
-          <li>Use clear and descriptive filenames</li>
-        </ul>
+        {/* Upload Guidelines */}
+        <Card title="Upload Guidelines" className={styles.mt4}>
+          <div className={`${styles.grid} ${styles.gridCols2}`} style={{ gap: 'var(--spacing-xl)' }}>
+            <div>
+              <h4 style={{ color: 'var(--color-success)', marginBottom: 'var(--spacing-sm)' }}>
+                ✅ Best Practices
+              </h4>
+              <ul style={{ color: 'var(--text-secondary)', paddingLeft: 'var(--spacing-lg)' }}>
+                <li>Use descriptive file names</li>
+                <li>Keep file sizes under 50MB</li>
+                <li>Use standard document formats</li>
+                <li>Include version numbers when applicable</li>
+              </ul>
+            </div>
+            <div>
+              <h4 style={{ color: 'var(--color-warning)', marginBottom: 'var(--spacing-sm)' }}>
+                ⚠️ Important Notes
+              </h4>
+              <ul style={{ color: 'var(--text-secondary)', paddingLeft: 'var(--spacing-lg)' }}>
+                <li>Files are stored locally in your browser</li>
+                <li>Large files may take longer to upload</li>
+                <li>Ensure files don't contain sensitive data</li>
+                <li>Duplicate names will be automatically renamed</li>
+              </ul>
+            </div>
+          </div>
+        </Card>
       </div>
-    </div>
+    </Layout>
   );
 };
 
