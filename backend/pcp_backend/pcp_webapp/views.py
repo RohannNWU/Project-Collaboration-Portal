@@ -2,6 +2,7 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
 from rest_framework import generics, permissions
+from rest_framework.permissions import IsAuthenticated
 from rest_framework_simplejwt.tokens import UntypedToken, AccessToken
 from rest_framework_simplejwt.exceptions import InvalidToken
 from django.shortcuts import get_object_or_404
@@ -142,12 +143,10 @@ class AddProjectView(APIView):
             return Response({'error': f'Failed to add project: {str(e)}'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
     
 
-
-
 # Chat room - Shaun's code 
 class ProjectChatView(generics.ListAPIView):
     serializer_class = ProjectChatSerializer
-    permission_classes = [permissions.IsAdminUser]
+    permission_classes = [permissions.IsAuthenticated]
     
     def get_queryset(self):
         project_id = self.kwargs['project_id']

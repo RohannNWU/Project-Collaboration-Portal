@@ -31,46 +31,53 @@ const ChatWindow = ({ onClose }) => {
   // Fetch project name + old messages
   useEffect(() => {
     const token = localStorage.getItem("access_token"); 
-    const API_BASE_URL = 
-      window.location.hostname === "localhost"
-      ? "http://127.0.0.1:8000"
-      :"https://pcp-backend-f4a2.onrender.com";
+    const API_BASE_URL =
+        window.location.hostname === "localhost"
+          ? "http://127.0.0.1:8000"
+          : "https://pcp-backend-f4a2.onrender.com";
 
-      // 1. Get project details
-      axios
+        axios
         .get(`${API_BASE_URL}/api/projects/${projectId}/chats/`, {
-          headers: { Authorization: `Bearer ${token}`}
+          headers: { Authorization: `Bearer ${token}` },
         })
-        .then(res => setProjectName(res.data.project_name))
-        .catch(() => setProjectName("Project"));
+        .then((res) => {
+          if (res.data.length > 0) {
+            const chat = res.data[0]; // first chat for project
+            setProjectName(chat.project_name || "Project");
 
-      // 2. Load past messages
-      axios
-        .get(`${API_BASE_URL}/api/projects/${projectId}/chat/`, {
-          headers: { Authorization: `Bearer ${token}` }
+            // Load past messages
+            return axios.get(`${API_BASE_URL}/api/chats/${chat.pc_id}/messages/`, {
+              headers: { Authorization: `Bearer ${token}` },
+            });
+          } else {
+            setProjectName("Project");
+            setMessages([]);
+          }
         })
-        .then(res => setMessages(res.data))
-        .catch(err => {
-          console.error("Failed to fetch messages: ", err);
-          setMessages([]); // Ensure messages is empty array on error
+        .then((res) => {
+          if (res) setMessages(res.data);
+        })
+        .catch((err) => {
+          console.error("Failed to fetch chat/messages: ", err);
+          setMessages([]);
         });
 
-      // 3. Connect WebSocket
-      const socketUrl = 
+        // WebSocket (won’t work until Channels is set up)
+        const socketUrl =
         window.location.hostname === "localhost"
-        ? `ws://127.0.0.1:8000/ws/chat/${projectId}/`
-        : `wss://pcp-backend-f4a2.onrender.com/ws/chat/${projectId}/`;
+          ? `ws://127.0.0.1:8000/ws/chat/${projectId}/`
+          : `wss://pcp-backend-f4a2.onrender.com/ws/chat/${projectId}/`;
 
-      ws.current = new WebSocket(socketUrl);
+        ws.current = new WebSocket(socketUrl);
 
-      ws.current.onmessage = (event) => {
+        ws.current.onmessage = (event) => {
         const msg = JSON.parse(event.data);
-        setMessages(prev => [...prev, msg]);
-      };
+        setMessages((prev) => [...prev, msg]);
+        };
 
-      return () => {
+        return () => {
         if (ws.current) ws.current.close();
-      };
+        };
   }, [projectId]);
 
   // Send a message
