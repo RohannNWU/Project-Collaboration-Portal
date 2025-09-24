@@ -177,7 +177,7 @@ const Dashboard = () => {
 
         <nav className={styles.nav}>
           <button className={styles.navBtn}><FontAwesomeIcon icon={faFolder} /> My Projects</button>
-          <button className={styles.navBtn} onClick={() => navigate('/mytasks', { state: { email: email } })}><FontAwesomeIcon icon={faCheckCircle} /> My Tasks</button>
+          <button className={styles.navBtn} onClick={() => navigate('/mytasks', { state: { email: email, username: username } })}><FontAwesomeIcon icon={faCheckCircle} /> My Tasks</button>
           <button className={styles.navBtn}><FontAwesomeIcon icon={faCodeBranch} /> Repos</button>
           <button className={styles.navBtn}><FontAwesomeIcon icon={faFile} /> Documents</button>
           <button className={styles.navBtn}><FontAwesomeIcon icon={faInbox} /> Inbox</button>
@@ -272,7 +272,7 @@ const Dashboard = () => {
                   </td>
                   <td>{project.dueDate}</td>
                   <td>
-                    <button className={styles.editBtn} onClick={() => navigate('/editproject', { state: { projectName: project.project_name } })}>Edit</button>
+                    <button className={styles.editBtn} onClick={() => navigate('/editproject', { state: { projectID: project.project_id, projectName: project.project_name } })}>Edit</button>
                   </td>
                   <td>
                     <input

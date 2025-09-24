@@ -58,6 +58,7 @@ class DashboardView(APIView):
             user_projects = UserProject.objects.filter(email=user).select_related('project_id')
             projects = [
                 {
+                    'project_id': user_project.project_id.project_id,
                     'project_name': user_project.project_id.project_name,
                     'progress': 0,
                     'dueDate': user_project.project_id.due_date.strftime('%d/%m/%Y'),
@@ -142,24 +143,15 @@ class AddProjectView(APIView):
 class GetMembersView(APIView):
     def post(self, request):
             try:
-                # Extract projectName from the request body
-                project_name = request.data.get('projectName')
-                if not project_name:
+                # Extract projectId from the request body
+                project_id = request.data.get('projectId')
+                if not project_id:
                     return Response(
-                        {'error': 'projectName is required'},
+                        {'error': 'projectId is required'},
                         status=status.HTTP_400_BAD_REQUEST
                     )
 
-                # Fetch the project
-                try:
-                    project = Project.objects.get(project_name=project_name)
-                except Project.DoesNotExist:
-                    return Response(
-                        {'error': f'Project with name {project_name} does not exist'},
-                        status=status.HTTP_404_NOT_FOUND
-                    )
-
-                members = UserProject.objects.filter(project_id=project).values('email')
+                members = UserProject.objects.filter(project_id=project_id).values('email')
                 first_names = User.objects.filter(email__in=members).values('email', 'first_name')
                 members_list = [{'email': member['email'], 'first_name': member['first_name']} for member in first_names]
                 return Response({'members': members_list}, status=status.HTTP_200_OK)
@@ -282,11 +274,13 @@ class GetTasksView(APIView):
             user_tasks = User_Task.objects.filter(email=user).select_related('task_id')
             tasks_list = [
                 {
+                    'task_id': user_task.task_id.task_id,
                     'task_name': user_task.task_id.task_name,
                     'task_description': user_task.task_id.task_description,
                     'task_due_date': user_task.task_id.task_due_date.strftime('%d/%m/%Y'),
                     'task_status': user_task.task_id.task_status,
                     'task_priority': user_task.task_id.task_priority,
+                    'project_id': user_task.task_id.project_id.project_id,
                     'project_name': user_task.task_id.project_id.project_name
                 }
                 for user_task in user_tasks
@@ -295,3 +289,21 @@ class GetTasksView(APIView):
         except Exception as e:
             print(f"Error: {str(e)}")  # Log error for debugging
             return Response({'error': f'Failed to fetch tasks: {str(e)}'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        
+class UpdateTaskView(APIView):
+    def post(self, request):
+        try:
+            task_id = request.data.get('task_id')
+            task_due_date = request.data.get('task_due_date')
+            task_status = request.data.get('task_status')
+            task_priority = request.data.get('task_priority')
+            task = Task.objects.get(task_id=task_id)
+            task.task_due_date = task_due_date
+            task.task_status = task_status
+            task.task_priority = task_priority
+            task.save()
+            return Response({'message': 'Task status updated successfully'}, status=status.HTTP_200_OK)
+        except Task.DoesNotExist:
+            return Response({'error': 'Task not found'}, status=status.HTTP_404_NOT_FOUND)
+        except Exception as e:
+            return Response({'error': f'Failed to update task: {str(e)}'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
