@@ -1,4 +1,5 @@
 from django.contrib import admin
+
 from django.urls import path
 from pcp_webapp.views import (
     MessageListCreateView, mark_message_read, NotificationListView,
@@ -28,4 +29,5 @@ urlpatterns = [
     path('api/notifications/recent/', RecentNotificationsView.as_view(), name='recent-notifications'),
     path('api/notifications/unread/', UnreadNotificationsView.as_view(), name='unread-notifications'),
     path('api/notifications/by-type/', NotificationByTypeView.as_view(), name='notifications-by-type'),
+
 ]

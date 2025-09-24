@@ -17,10 +17,30 @@ from rest_framework.decorators import api_view, permission_classes
 from rest_framework import status, generics, permissions
 import bcrypt
 
+def get_user_from_token(request):
+    """Helper function to extract user from JWT token"""
+    auth_header = request.headers.get('Authorization')
+    if not auth_header or not auth_header.startswith('Bearer '):
+        return None
+    
+    token = auth_header.split(' ')[1]
+    try:
+        payload = UntypedToken(token).payload
+        user_email = payload.get('user_email')
+        return User.objects.get(email=user_email)
+    except (InvalidToken, User.DoesNotExist) as e:
+        logger.warning(f"Token validation failed: {e}")
+        return None
 class LoginView(APIView):
     def post(self, request):
+        logger.info(f"Login attempt for email: {request.data.get('email')}")
         email = request.data.get('email')
         password = request.data.get('password')
+        
+        if not email or not password:
+            return Response({'error': 'Email and password are required'}, 
+                          status=status.HTTP_400_BAD_REQUEST)
+        
         try:
             user = User.objects.get(email=email)
             
@@ -30,6 +50,11 @@ class LoginView(APIView):
             except ValueError as e:
                 return Response({'error': f'Invalid password hash in database: {str(e)}'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
             
+            # Update last login
+            user.last_login = timezone.now()
+            user.save()
+            
+            logger.info(f"Successful login for email: {email}")
             current_time = datetime.utcnow()
             access = AccessToken()
             access.set_exp(from_time=current_time, lifetime=timedelta(hours=1))
@@ -43,16 +68,17 @@ class LoginView(APIView):
                 'email': user.email
             })
         except User.DoesNotExist:
+            logger.warning(f"Login attempt with non-existent email: {email}")
             return Response({'error': 'Invalid credentials'}, status=status.HTTP_401_UNAUTHORIZED)
         except Exception as e:
             return Response({'error': f'Login error: {str(e)}'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 class DashboardView(APIView):
     def get(self, request):
-        auth_header = request.headers.get('Authorization')
-        if not auth_header or not auth_header.startswith('Bearer '):
+        user = get_user_from_token(request)
+        if not user:
             return Response({'error': 'Authentication required'}, status=status.HTTP_401_UNAUTHORIZED)
-        
+
         token = auth_header.split(' ')[1]
         try:
             # Validate token
@@ -100,7 +126,6 @@ class AddUserView(APIView):
             # Validate inputs
             if not all([user_email, fname, lname, password]):
                 return Response({'error': 'All fields (email address, first name, last name, password) are required'}, status=status.HTTP_400_BAD_REQUEST)
-
             # Hash password and convert to string for storage
             hashed_password = bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
             # Check if user already exists

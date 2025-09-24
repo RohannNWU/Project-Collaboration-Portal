@@ -1,5 +1,6 @@
 from django.utils import timezone
 from django.db import models
+
 from django.contrib.auth.models import User as DjangoUser
 from django.conf import settings
 
@@ -88,6 +89,7 @@ class Document(models.Model):
 
     def __str__(self):
         return self.title
+      
 class Message(models.Model):
     MESSAGE_TYPES = [
         ('direct', 'Direct Message'),
@@ -107,12 +109,27 @@ class Message(models.Model):
 
     class Meta:
         managed = True
-        #db_table = 'messages'
         ordering = ['-created_at']
 
     def __str__(self):
         return f"{self.subject} - {self.sender.email} to {self.recipient.email}"
-    
+
+class Document(models.Model):
+    id = models.AutoField(primary_key=True)
+    name = models.CharField(max_length=200)
+    file_path = models.CharField(max_length=500)
+    file_size = models.BigIntegerField()
+    file_type = models.CharField(max_length=50)
+    project = models.ForeignKey(Project, on_delete=models.CASCADE, related_name='documents')
+    uploaded_by = models.ForeignKey(User, on_delete=models.CASCADE, related_name='uploaded_documents')
+    uploaded_at = models.DateTimeField(default=timezone.now)
+
+    class Meta:
+        db_table = 'documents'
+
+    def __str__(self):
+        return self.name
+
 class ActivityLog(models.Model):
     ACTION_TYPES = [
         ('project_created', 'Project Created'),
