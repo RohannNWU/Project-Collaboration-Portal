@@ -1,6 +1,6 @@
 from django.contrib import admin
 from django.urls import path
-from pcp_webapp.views import LoginView, DashboardView, AddUserView, AddProjectView, GetMembersView, AddTaskView, CalendarView, GetTasksView, UpdateTaskView
+from pcp_webapp.views import LoginView, DashboardView, AddUserView, AddProjectView, GetMembersView, AddTaskView, CalendarView, GetTasksView, UpdateTaskView, DocumentListView, DocumentDetailView, DocumentDownloadView
 
 urlpatterns = [
     path('admin/', admin.site.urls),
@@ -13,4 +13,7 @@ urlpatterns = [
     path('api/calendar/', CalendarView.as_view(), name='calendar'),
     path('api/gettasks/', GetTasksView.as_view(), name='gettasks'),
     path('api/updatetask/', UpdateTaskView.as_view(), name='updatetask'),
+    path('api/documents/', DocumentListView.as_view(), name='document_list'),
+    path('api/documents/<int:document_id>/', DocumentDetailView.as_view(), name='document_detail'),
+    path('api/documents/<int:document_id>/download/', DocumentDownloadView.as_view(), name='document_download'),
 ]
