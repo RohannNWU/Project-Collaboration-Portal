@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Project Collaboration Portal - Notification Tester</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .hidden { display: none; }
+        form { margin-bottom: 20px; }
+        input, button { margin: 5px; padding: 8px; }
+        #notifications { border: 1px solid #ccc; padding: 10px; max-height: 400px; overflow-y: scroll; }
+        .notification { border-bottom: 1px solid #eee; padding: 10px; margin: 5px 0; }
+        .stats { display: flex; justify-content: space-around; margin: 20px 0; }
+    </style>
+</head>
+<body>
+    <h1>Project Collaboration Portal - Dummy Notification Tester</h1>
+    
+    <!-- Login Form -->
+    <div id="login-section">
+        <h2>Login</h2>
+        <form id="login-form">
+            <input type="email" id="email" placeholder="Email" required>
+            <input type="password" id="password" placeholder="Password" required>
+            <button type="submit">Login</button>
+        </form>
+    </div>
+    
+    <!-- Dashboard -->
+    <div id="dashboard" class="hidden">
+        <h2>Dashboard</h2>
+        <div class="stats" id="stats"></div>
+        
+        <h3>Notifications</h3>
+        <button id="fetch-notifications">Fetch Notifications</button>
+        <div id="notifications"></div>
+        
+        <!-- Test Buttons to Trigger Events -->
+        <h3>Test Automated Notifications</h3>
+        <button id="create-project">Create Test Project (Triggers Project Created)</button>
+        <button id="assign-task">Assign Test Task (Triggers Task Assigned)</button>
+        <button id="change-due-date">Change Due Date (Triggers Due Date Changed)</button>
+        <!-- Note: For feedback and edit request, you'd need POST to respective endpoints; simplified here -->
+    </div>
+
+    <script>
+        let token = null;
+        const API_BASE = 'http://localhost:8000/api/';
+
+        // Login
+        document.getElementById('login-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+            if (!email || !password) {
+                alert('Please enter email and password');
+                return;
+            }
+            try {
+                const response = await fetch(`${API_BASE}login/`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email, password })
+                });
+                const data = await response.json();
+                console.log('Login response:', data);
+                if (data.access) {
+                    token = data.access;
+                    document.getElementById('login-section').classList.add('hidden');
+                    document.getElementById('dashboard').classList.remove('hidden');
+                    loadDashboard();
+                } else {
+                    alert('Login failed: ' + (data.error || 'Invalid credentials'));
+                }
+            } catch (err) {
+                console.error('Login error:', err);
+                alert('Error: ' + err.message);
+            }
+        });
+
+        // Load Dashboard
+        async function loadDashboard() {
+            if (!token) {
+                alert('Please log in first');
+                return;
+            }
+            try {
+                const response = await fetch(`${API_BASE}dashboard/`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                const data = await response.json();
+                console.log('Dashboard response:', data);
+                document.getElementById('stats').innerHTML = `
+                    <div>Active Projects: ${data.stats.active_projects}</div>
+                    <div>Tasks Due This Week: ${data.stats.tasks_due_this_week}</div>
+                    <div>Unread Messages: ${data.stats.unread_messages}</div>
+                `;
+            } catch (err) {
+                console.error('Dashboard error:', err);
+                alert('Dashboard load error: ' + err.message);
+            }
+        }
+
+        // Fetch Notifications
+        document.getElementById('fetch-notifications').addEventListener('click', async () => {
+            if (!token) {
+                alert('Please log in first');
+                return;
+            }
+            try {
+                const response = await fetch(`${API_BASE}notifications/`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                const notifications = await response.json();
+                console.log('Notifications response:', notifications);
+                const container = document.getElementById('notifications');
+                container.innerHTML = '';
+                notifications.forEach(notifObj => {
+                    const [key] = Object.keys(notifObj);
+                    const notif = notifObj[key];
+                    const div = document.createElement('div');
+                    div.className = 'notification';
+                    div.innerHTML = `
+                        <strong>${key}</strong><br>
+                        Message: ${notif.message}<br>
+                        Type: ${notif.notification_type}<br>
+                        Grades: ${notif.grades || 'N/A'}<br>
+                        Due Date: ${notif.due_date || 'N/A'}<br>
+                        Project: ${notif.project_name || 'N/A'}<br>
+                        Task: ${notif.task_name || 'N/A'}
+                    `;
+                    container.appendChild(div);
+                });
+            } catch (err) {
+                console.error('Notifications error:', err);
+                alert('Fetch notifications error: ' + err.message);
+            }
+        });
+
+        // Test Create Project
+        document.getElementById('create-project').addEventListener('click', async () => {
+            if (!token) {
+                alert('Please log in first');
+                return;
+            }
+            try {
+                const response = await fetch(`${API_BASE}projects/`, {
+                    method: 'POST',
+                    headers: { 
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        name: 'Test Project ' + new Date().toISOString(),
+                        description: 'Dummy project for testing',
+                        due_date: new Date(Date.now() + 86400000 * 1).toISOString().split('T')[0],
+                        start_date: new Date().toISOString().split('T')[0]
+                    })
+                });
+                const data = await response.json();
+                console.log('Create project response:', data);
+                if (response.ok) {
+                    alert('Project created - check notifications! Project ID: ' + data.id);
+                    loadDashboard();
+                }
+            } catch (err) {
+                console.error('Create project error:', err);
+                alert('Create project error: ' + err.message);
+            }
+        });
+
+        // Test Assign Task
+        document.getElementById('assign-task').addEventListener('click', async () => {
+            if (!token) {
+                alert('Please log in first');
+                return;
+            }
+            try {
+                const projectsResponse = await fetch(`${API_BASE}projects/`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                const projects = await projectsResponse.json();
+                const project = projects[0];
+
+                const response = await fetch(`${API_BASE}tasks/`, {
+                    method: 'POST',
+                    headers: { 
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        title: 'Test Task ' + new Date().toISOString(),
+                        description: 'Dummy task for testing',
+                        project_id: project.id,
+                        assignee_email: document.getElementById('email').value,
+                        due_date: new Date(Date.now() + 86400000 * 2).toISOString().split('T')[0]
+                    })
+                });
+                const data = await response.json();
+                console.log('Assign task response:', data);
+                if (response.ok) {
+                    alert('Task assigned - check notifications!');
+                    loadDashboard();
+                }
+            } catch (err) {
+                console.error('Assign task error:', err);
+                alert('Assign task error: ' + err.message);
+            }
+        });
+
+        // Test Change Due Date
+        document.getElementById('change-due-date').addEventListener('click', async () => {
+            if (!token) {
+                alert('Please log in first');
+                return;
+            }
+            try {
+                const projectsResponse = await fetch(`${API_BASE}projects/`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                const projects = await projectsResponse.json();
+                const project = projects[0];
+
+                const response = await fetch(`${API_BASE}projects/${project.id}/`, {
+                    method: 'PATCH',
+                    headers: { 
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        due_date: new Date(Date.now() + 86400000 * 3).toISOString().split('T')[0]
+                    })
+                });
+                const data = await response.json();
+                console.log('Change due date response:', data);
+                if (response.ok) {
+                    alert('Due date changed - check notifications!');
+                    loadDashboard();
+                }
+            } catch (err) {
+                console.error('Change due date error:', err);
+                alert('Change due date error: ' + err.message);
+            }
+        });
+    </script>
+</body>
+</html>

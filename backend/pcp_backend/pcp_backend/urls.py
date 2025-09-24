@@ -3,8 +3,7 @@ from django.urls import path, include
 from pcp_webapp.views import (
     LoginView, DashboardView, AddUserView, ProjectListCreateView, 
     TaskListCreateView, MessageListCreateView, mark_message_read,
-    user_profile, project_analytics, NotificationListView, NotificationByTypeView, UnreadNotificationsView,
-    RecentNotificationsView, User_Task, AddTaskView
+    user_profile, project_analytics, NotificationListView, User_Task, AddTaskView 
 )
 
 urlpatterns = [
@@ -19,11 +18,13 @@ urlpatterns = [
     path('api/profile/', user_profile, name='user_profile'),
     path('api/projects/<int:project_id>/analytics/', project_analytics, name='project_analytics'),
     path('api/addtask/', AddTaskView.as_view(), name='addtask'),
-
-    
+   
 #Notification urls
-    path('api/notifications/', NotificationListView.as_view(), name='notifications-list'),
-    path('api/notifications/recent/', RecentNotificationsView.as_view(), name='recent-notifications'),
-    path('api/notifications/unread/', UnreadNotificationsView.as_view(), name='unread-notifications'),
-    path('api/notifications/by-type/', NotificationByTypeView.as_view(), name='notifications-by-type'),
+    path('projects/<int:pk>/', ProjectListCreateView.as_view(), name='project-detail'),
+    path('notifications/', NotificationListView.as_view(), name='notification-list'),
+    # path('api/notifications/', NotificationListView.as_view(), name='notifications-list'),
+    # path('api/notifications/recent/', RecentNotificationsView.as_view(), name='recent-notifications'),
+    # path('api/notifications/unread/', UnreadNotificationsView.as_view(), name='unread-notifications'),
+    # path('api/notifications/by-type/', NotificationByTypeView.as_view(), name='notifications-by-type'),
+
 ]
