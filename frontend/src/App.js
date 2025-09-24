@@ -11,32 +11,20 @@ import Signup from './components/Signup';
 import NewProject from './components/NewProject';
 import EditProject from './components/EditProject';
 import Calendar from './components/Calendar';
+import ChatWindow from './components/ChatWindow';
 
 function App() {
   return (
     <Router>
-        <Routes>
-          <Route path="/" element={<Login />} />
-          <Route path="/adduser" element={<Signup />} />
-          <Route path="/newproject" element={<NewProject />} />
-          <Route path="/editproject" element={<EditProject />} />
-        </Routes>
-          <Route
-            path="/dashboard"
-            element={
-              <Dashboard />
-            }
-          />
-          <Route path="/new-project" element={<NewProject />} />
-          {/*----------------------------------------
-          - Protected Calendar Route
-          ----------------------------------------*/}
-           <Route
-              path="/calendar"
-              element={
-                <Calendar />
-              }
-        />
+      <Routes>
+        <Route path="/" element={<Login />} />
+        <Route path="/adduser" element={<Signup />} />
+        <Route path="/newproject" element={<NewProject />} />
+        <Route path="/editproject" element={<EditProject />} />
+        <Route path="/dashboard" element={<Dashboard />} />
+        <Route path="/calendar" element={<Calendar />} />
+        <Route path="/chatwindow/:projectId" element={<ChatWindow />} />
+      </Routes>
     </Router>
   );
 }

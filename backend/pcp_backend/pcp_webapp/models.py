@@ -49,7 +49,6 @@ class ProjectChat(models.Model):
 
     class Meta:
         managed = True
-        db_table = "PROJECT_CHAT"
 
     def __str__(self):
         return f"Chat for {self.project.project_name}"
@@ -66,7 +65,6 @@ class ChatMessage(models.Model):
 
     class Meta:
         managed = True
-        db_table = "CHAT_MESSAGE"
 
     def __str__(self):
         return f"{self.user.email}: {self.content[:30]}..."
