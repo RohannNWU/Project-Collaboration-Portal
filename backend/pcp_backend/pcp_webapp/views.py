@@ -534,6 +534,7 @@ class DocumentDownloadView(APIView):
             return Response({'error': 'Document not found'}, status=status.HTTP_404_NOT_FOUND)
         except Exception as e:
             return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
 class MessageListCreateView(APIView):
     def get_user_from_token(self, request):
         auth_header = request.headers.get('Authorization')
@@ -657,38 +658,107 @@ def project_analytics(request, project_id):
         return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
     
 #Notification views
-class NotificationListView(generics.ListAPIView):
-    serializer_class = NotificationSummarySerializer
-    permission_classes = [permissions.IsAuthenticated]
-    
-    def get_queryset(self):
-        """Return notifications for the authenticated user"""
-        return Notification.objects.filter(recipient=self.request.user)
+class NotificationListView(APIView):
+    def get_user_from_token(self, request):
+        auth_header = request.headers.get('Authorization')
+        if not auth_header or not auth_header.startswith('Bearer '):
+            return None
+        token = auth_header.split(' ')[1]
+        try:
+            payload = UntypedToken(token).payload
+            user_email = payload.get('user_email')
+            return User.objects.get(email=user_email)
+        except:
+            return None
 
-class RecentNotificationsView(generics.ListAPIView):
-    serializer_class = NotificationSummarySerializer
-    permission_classes = [permissions.IsAuthenticated]
-    
-    def get_queryset(self):
-        """Return recent notifications (last 7 days)"""
+    def get(self, request):
+        user = self.get_user_from_token(request)
+        if not user:
+            return Response({'error': 'Authentication required'}, status=status.HTTP_401_UNAUTHORIZED)
         
-        seven_days_ago = timezone.now() - timedelta(days=7)
-        return Notification.objects.filter(
-            recipient=self.request.user,
-            time_sent__gte=seven_days_ago
-        )
+        try:
+            # Step 1 & 2: Get project IDs for the logged-in user from UserProject
+            project_id = UserProject.objects.filter(email=user).values_list('project_id', flat=True)
+            
+            # Step 3: Get notifications for those projects using project_id FK
+            notifications = Notification.objects.filter(
+                Q(project_id__in=project_id)
+            ).order_by('-time_sent')
+            
+            # Step 4 & 5: Serialize notifications and format as requested
+            serializer = NotificationSummarySerializer(notifications, many=True)
+            
+            # Format response as an array of key-value pairs with title+time_sent as key
+            formatted_notifications = [
+                {
+                    f"{notif['title']} ({notif['time_ago']})": {
+                        "message": notif['message'],
+                        "notification_type": notif['notification_type'],
+                        "time_sent": notif['time_sent'],
+                        "grades": notif['grades'] if notif['grades'] else None,
+                        "due_date": notif['due_date'] if notif['due_date'] else None,
+                        "project_name": Project.objects.get(project_id=notif['project']).project_name if notif['project'] else None,
+                        "task_name": notif['task'].task_name if notif['task'] else None,
+                    }
+                } for notif in serializer.data
+            ]
+            
+            return Response(formatted_notifications, status=status.HTTP_200_OK)
+        except Exception as e:
+            return Response({'error': f'Failed to fetch notifications: {str(e)}'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
-class UnreadNotificationsView(generics.ListAPIView):
-    serializer_class = NotificationSummarySerializer
-    permission_classes = [permissions.IsAuthenticated]
-    
-    def get_queryset(self):
-        """Return unread notifications"""
-        return Notification.objects.filter(
-            recipient=self.request.user,
-        )
-
-class NotificationByTypeView(generics.ListAPIView):
+    def post(self, request):
+        user = self.get_user_from_token(request)
+        if not user:
+            return Response({'error': 'Authentication required'}, status=status.HTTP_401_UNAUTHORIZED)
+        
+        try:
+            # Step 6: Extract required data from frontend
+            project_id = request.data.get('project_id')
+            title = request.data.get('title')
+            message = request.data.get('message')
+            notification_type = request.data.get('notification_type', 'system')  # Default to system if not provided
+            
+            if not all([project_id, title, message]):
+                return Response({'error': 'project_id, title, and message are required'}, status=status.HTTP_400_BAD_REQUEST)
+            
+            # Verify user has access to the project
+            if not UserProject.objects.filter(email=user, project_id=project_id).exists():
+                return Response({'error': 'Access denied to this project'}, status=status.HTTP_403_FORBIDDEN)
+            
+            # Get project instance
+            project = Project.objects.get(project_id=project_id)
+            
+            # Create notification
+            notification = Notification.objects.create(
+                project_id=project,
+                title=title,
+                message=message,
+                notification_type=notification_type,
+                project=project,  # Set redundant project FK
+                time_sent=timezone.now(),
+                grades=request.data.get('grades'),  # Optional fields
+                due_date=request.data.get('due_date'),
+                task_id=request.data.get('task_id'),  # Optional task reference
+                requested_by=user if notification_type == 'edit_requested' else None
+            )
+            
+            # Log activity (consistent with existing views)
+            from .models import ActivityLog
+            ActivityLog.objects.create(
+                user=user,
+                project=project,
+                action_type='notification_created',
+                description=f'Created notification: {title}'
+            )
+            
+            # Serialize the created notification
+            serializer = NotificationSummarySerializer(notification)
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+        except Project.DoesNotExist:
+            return Response({'error': 'Project not found'}, status=status.HTTP_404_NOT_FOUND)
+        except Exception as e:
+            return Response({'error': f'Failed to create notification: {str(e)}'}, status=status.HTTP_400_BAD_REQUEST)
     serializer_class = NotificationSummarySerializer
     permission_classes = [permissions.IsAuthenticated]
     

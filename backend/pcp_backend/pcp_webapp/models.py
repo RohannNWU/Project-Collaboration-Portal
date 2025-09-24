@@ -95,7 +95,7 @@ class Message(models.Model):
         ('system', 'System Notification'),
     ]
 
-    message_id = models.AutoField(primary_key=True)
+    id = models.AutoField(primary_key=True)
     sender = models.ForeignKey(User, on_delete=models.CASCADE, related_name='sent_messages')
     email = models.ForeignKey(User, on_delete=models.CASCADE, related_name='received_messages')
     project = models.ForeignKey(Project, on_delete=models.CASCADE, null=True, blank=True, related_name='messages')
@@ -112,62 +112,6 @@ class Message(models.Model):
 
     def __str__(self):
         return f"{self.subject} - {self.sender.email} to {self.recipient.email}"
-    
-class Notification(models.Model):
-    NOTIFICATION_TYPES = [
-        ('project_created', 'Project Created'),
-        ('task_assigned', 'Task Assigned'),
-        ('feedback_received', 'Feedback Received'),
-        ('deadline_approaching', 'Deadline Approaching'),
-        ('due_date_changed', 'Due Date Changed'),
-        ('edit_requested', 'Edit Requested'),
-    ]
-
-    id = models.AutoField(primary_key=True)
-    recipient = models.ForeignKey(User, on_delete=models.CASCADE, related_name='notifications')
-    notification_type = models.CharField(max_length=20, choices=NOTIFICATION_TYPES)
-    title = models.CharField(max_length=200)
-    message = models.TextField()
-    time_sent = models.DateTimeField(default=timezone.now)
-    
-    # References
-    project = models.ForeignKey('Project', on_delete=models.CASCADE, null=True, blank=True, 
-                               related_name='notifications')
-    task = models.ForeignKey('Task', on_delete=models.CASCADE, null=True, blank=True, 
-                            related_name='notifications')
-    
-    # specific notification types
-    grades = models.CharField(max_length=100, null=True, blank=True)  # For feedback notifications
-    due_date = models.DateTimeField(null=True, blank=True)  # For deadline notifications
-    requested_by = models.ForeignKey('User', on_delete=models.SET_NULL, null=True, blank=True, 
-                                   related_name='requested_edits')
-
-    class Meta:
-        managed = True
-        #db_table = 'notifications'
-        ordering = ['-time_sent']
-
-    def __str__(self):
-        return f"{self.notification_type} - {self.recipient.email}"
-
-class Feedback(models.Model):
-    task = models.ForeignKey("Task", on_delete=models.CASCADE, related_name="feedbacks")
-    supervisor = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
-    comment = models.TextField()
-    created_at = models.DateTimeField(auto_now_add=True)
-
-    def __str__(self):
-        return f"Feedback on {self.task.title} by {self.supervisor}"
-
-
-class EditRequest(models.Model):
-    task = models.ForeignKey("Task", on_delete=models.CASCADE, related_name="edit_requests")
-    requested_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
-    reason = models.TextField()
-    created_at = models.DateTimeField(auto_now_add=True)
-
-    def __str__(self):
-        return f"Edit requested for {self.task.title} by {self.requested_by}"
     
 class ActivityLog(models.Model):
     ACTION_TYPES = [
@@ -195,3 +139,56 @@ class ActivityLog(models.Model):
 
     def __str__(self):
         return f"{self.user.email} - {self.action_type}"
+class Notification(models.Model):
+    NOTIFICATION_TYPES = [
+        ('project_created', 'Project Created'),
+        ('task_assigned', 'Task Assigned'),
+        ('feedback_received', 'Feedback Received'),
+        ('deadline_approaching', 'Deadline Approaching'),
+        ('due_date_changed', 'Due Date Changed'),
+        ('edit_requested', 'Edit Requested'),
+    ]
+
+    notif_id = models.AutoField(primary_key=True)
+    project_id = models.ForeignKey(Project, on_delete=models.DO_NOTHING)
+    time_sent = models.DateTimeField(auto_now_add=True)
+    title = models.CharField(max_length=100)
+    message = models.TextField()
+    
+    # References
+    #project = models.ForeignKey('Project', on_delete=models.CASCADE, null=True, blank=True, 
+     #                          related_name='notifications')
+    #task = models.ForeignKey('Task', on_delete=models.CASCADE, null=True, blank=True, 
+     #                       related_name='notifications')
+    
+    # specific notification types
+    grades = models.CharField(max_length=100, null=True, blank=True)  # For feedback notifications
+    due_date = models.DateTimeField(null=True, blank=True)  # For deadline notifications
+    requested_by = models.ForeignKey('User', on_delete=models.SET_NULL, null=True, blank=True, 
+                                   related_name='requested_edits')
+
+    class Meta:
+        managed = True
+ 
+    def __str__(self):
+        return f"{self.title} - {self.time_sent} - {self.message}"
+    
+#for automated notifications
+class Feedback(models.Model):
+    task = models.ForeignKey("Task", on_delete=models.CASCADE, related_name="feedbacks")
+    supervisor = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
+    comment = models.TextField()
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"Feedback on {self.task.title} by {self.supervisor}"
+
+
+class EditRequest(models.Model):
+    task = models.ForeignKey("Task", on_delete=models.CASCADE, related_name="edit_requests")
+    requested_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
+    reason = models.TextField()
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"Edit requested for {self.task.title} by {self.requested_by}"
