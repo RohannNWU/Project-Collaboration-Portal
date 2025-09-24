@@ -1,14 +1,11 @@
 import React, { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import Layout from './layout/Layout';
-import Card from './common/Card';
 import Button from './common/Button';
-import Badge from './common/Badge';
 import Alert from './common/Alert';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { 
-  faPlus, faFilter, faSort, faCheckCircle, faClock, faExclamationTriangle,
-  faEdit, faTrash, faUser, faCalendarAlt, faTasks, faChartLine,
+  faPlus, faFilter, faSort, faEdit, faTrash, faUser, faCalendarAlt, faTasks,
   faThLarge, faList
 } from '@fortawesome/free-solid-svg-icons';
 import { useApp } from '../context/AppContext';
@@ -21,25 +18,6 @@ const TaskCardCollabDoc = () => {
   const [sortBy, setSortBy] = useState('priority');
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(null);
   const [viewMode, setViewMode] = useState('list'); // 'grid' or 'list'
-  const navigate = useNavigate();
-
-  const getStatusVariant = (status) => {
-    switch (status) {
-      case 'completed': return 'success';
-      case 'in-progress': return 'warning';
-      case 'pending': return 'secondary';
-      default: return 'secondary';
-    }
-  };
-
-  const getPriorityVariant = (priority) => {
-    switch (priority) {
-      case 'high': return 'danger';
-      case 'medium': return 'warning';
-      case 'low': return 'info';
-      default: return 'secondary';
-    }
-  };
 
   const getStatusIcon = (status) => {
     switch (status) {

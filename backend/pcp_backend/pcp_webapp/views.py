@@ -9,6 +9,12 @@ from django.core.files.storage import default_storage
 from django.core.files.base import ContentFile
 from django.http import HttpResponse
 from rest_framework.permissions import IsAuthenticated
+from .serializers import (
+    UserSerializer, ProjectSerializer, TaskSerializer, MessageSerializer,
+    DocumentSerializer, ActivityLogSerializer, DashboardStatsSerializer, NotificationSummarySerializer
+)
+from rest_framework.decorators import api_view, permission_classes
+from rest_framework import status, generics, permissions
 import bcrypt
 
 class LoginView(APIView):
@@ -527,4 +533,171 @@ class DocumentDownloadView(APIView):
         except Document.DoesNotExist:
             return Response({'error': 'Document not found'}, status=status.HTTP_404_NOT_FOUND)
         except Exception as e:
-            return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR) 
+            return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+class MessageListCreateView(APIView):
+    def get_user_from_token(self, request):
+        auth_header = request.headers.get('Authorization')
+        if not auth_header or not auth_header.startswith('Bearer '):
+            return None
+        token = auth_header.split(' ')[1]
+        try:
+            payload = UntypedToken(token).payload
+            user_email = payload.get('user_email')
+            return User.objects.get(email=user_email)
+        except:
+            return None
+
+    def get(self, request):
+        user = self.get_user_from_token(request)
+        if not user:
+            return Response({'error': 'Authentication required'}, status=status.HTTP_401_UNAUTHORIZED)
+        
+        messages = Message.objects.filter(recipient=user).order_by('-created_at')
+        serializer = MessageSerializer(messages, many=True)
+        return Response(serializer.data)
+
+    def post(self, request):
+        user = self.get_user_from_token(request)
+        if not user:
+            return Response({'error': 'Authentication required'}, status=status.HTTP_401_UNAUTHORIZED)
+        
+        try:
+            recipient = User.objects.get(email=request.data.get('recipient_email'))
+            
+            message = Message.objects.create(
+                sender=user,
+                recipient=recipient,
+                project_id=request.data.get('project_id'),
+                message_type=request.data.get('message_type', 'direct'),
+                subject=request.data.get('subject'),
+                content=request.data.get('content')
+            )
+            
+            serializer = MessageSerializer(message)
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+        except Exception as e:
+            return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
+@api_view(['PATCH'])
+def mark_message_read(request, message_id):
+    auth_header = request.headers.get('Authorization')
+    if not auth_header or not auth_header.startswith('Bearer '):
+        return Response({'error': 'Authentication required'}, status=status.HTTP_401_UNAUTHORIZED)
+    
+    token = auth_header.split(' ')[1]
+    try:
+        payload = UntypedToken(token).payload
+        user_email = payload.get('user_email')
+        user = User.objects.get(email=user_email)
+        
+        message = Message.objects.get(id=message_id, recipient=user)
+        message.is_read = True
+        message.save()
+        
+        return Response({'message': 'Message marked as read'})
+    except Exception as e:
+        return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
+@api_view(['GET'])
+def user_profile(request):
+    auth_header = request.headers.get('Authorization')
+    if not auth_header or not auth_header.startswith('Bearer '):
+        return Response({'error': 'Authentication required'}, status=status.HTTP_401_UNAUTHORIZED)
+    
+    token = auth_header.split(' ')[1]
+    try:
+        payload = UntypedToken(token).payload
+        user_email = payload.get('user_email')
+        user = User.objects.get(email=user_email)
+        
+        serializer = UserSerializer(user)
+        return Response(serializer.data)
+    except Exception as e:
+        return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
+@api_view(['GET'])
+def project_analytics(request, project_id):
+    auth_header = request.headers.get('Authorization')
+    if not auth_header or not auth_header.startswith('Bearer '):
+        return Response({'error': 'Authentication required'}, status=status.HTTP_401_UNAUTHORIZED)
+    
+    token = auth_header.split(' ')[1]
+    try:
+        payload = UntypedToken(token).payload
+        user_email = payload.get('user_email')
+        user = User.objects.get(email=user_email)
+        
+        project = Project.objects.get(id=project_id)
+        
+        # Check access
+        if not (project.owner == user or project.members.filter(email=user.email).exists()):
+            return Response({'error': 'Access denied'}, status=status.HTTP_403_FORBIDDEN)
+        
+        # Get analytics data
+        total_tasks = project.tasks.count()
+        completed_tasks = project.tasks.filter(status='completed').count()
+        overdue_tasks = project.tasks.filter(
+            due_date__lt=timezone.now(),
+            status__in=['todo', 'in_progress']
+        ).count()
+        
+        task_status_breakdown = project.tasks.values('status').annotate(count=Count('status'))
+        
+        return Response({
+            'project': ProjectSerializer(project).data,
+            'analytics': {
+                'total_tasks': total_tasks,
+                'completed_tasks': completed_tasks,
+                'overdue_tasks': overdue_tasks,
+                'completion_rate': (completed_tasks / total_tasks * 100) if total_tasks > 0 else 0,
+                'task_status_breakdown': list(task_status_breakdown)
+            }
+        })
+    except Exception as e:
+        return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
+    
+#Notification views
+class NotificationListView(generics.ListAPIView):
+    serializer_class = NotificationSummarySerializer
+    permission_classes = [permissions.IsAuthenticated]
+    
+    def get_queryset(self):
+        """Return notifications for the authenticated user"""
+        return Notification.objects.filter(recipient=self.request.user)
+
+class RecentNotificationsView(generics.ListAPIView):
+    serializer_class = NotificationSummarySerializer
+    permission_classes = [permissions.IsAuthenticated]
+    
+    def get_queryset(self):
+        """Return recent notifications (last 7 days)"""
+        
+        seven_days_ago = timezone.now() - timedelta(days=7)
+        return Notification.objects.filter(
+            recipient=self.request.user,
+            time_sent__gte=seven_days_ago
+        )
+
+class UnreadNotificationsView(generics.ListAPIView):
+    serializer_class = NotificationSummarySerializer
+    permission_classes = [permissions.IsAuthenticated]
+    
+    def get_queryset(self):
+        """Return unread notifications"""
+        return Notification.objects.filter(
+            recipient=self.request.user,
+        )
+
+class NotificationByTypeView(generics.ListAPIView):
+    serializer_class = NotificationSummarySerializer
+    permission_classes = [permissions.IsAuthenticated]
+    
+    def get_queryset(self):
+        """Filter notifications by type"""
+        notification_type = self.request.query_params.get('type')
+        queryset = Notification.objects.filter(recipient=self.request.user)
+        
+        if notification_type and notification_type in dict(Notification.NOTIFICATION_TYPES):
+            queryset = queryset.filter(notification_type=notification_type)
+        
+        return queryset

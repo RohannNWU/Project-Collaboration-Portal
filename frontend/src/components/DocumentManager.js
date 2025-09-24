@@ -5,11 +5,11 @@ import Loading from './common/Loading';
 import documentService from '../services/documentService';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import {
-  faFile, faTrash, faEdit, faEye, faDownload, faSearch,
-  faFilter, faSort, faFileAlt, faFilePdf, faFileWord,
+  faFile, faTrash, faEdit, faEye, faSearch,
+  faFileAlt, faFilePdf, faFileWord,
   faFileExcel, faFilePowerpoint, faFileImage, faFileVideo,
-  faFileAudio, faFileArchive, faFileCode, faPlus, faSave,
-  faTimes, faCalendarAlt, faUser, faWeight
+  faFileAudio, faFileArchive, faFileCode, faSave,
+  faTimes, faCalendarAlt, faWeight
 } from '@fortawesome/free-solid-svg-icons';
 import styles from './Dashboard.module.css';
 
@@ -29,7 +29,7 @@ const DocumentManager = () => {
   // Load documents from backend on component mount
   useEffect(() => {
     loadDocuments();
-  }, []);
+  });
 
   const loadDocuments = async () => {
     try {
@@ -269,21 +269,6 @@ const DocumentManager = () => {
     }
   };
 
-  // Handle document preview (for supported file types)
-  const handlePreview = (document) => {
-    // For now, show document details in a modal or alert
-    const details = `
-Document Details:
-- Title: ${document.name || document.title}
-- Description: ${document.description || 'No description'}
-- Size: ${formatFileSize(document.size || document.file_size || 0)}
-- Type: ${document.type || document.file_type || 'Unknown'}
-- Uploaded: ${formatDate(document.uploadDate || document.upload_date)}
-- Uploaded by: ${document.uploadedBy || document.uploaded_by || 'Unknown'}
-    `;
-    alert(details);
-  };
-
   if (loading) {
     return (
       <Layout title="Document Manager" subtitle="Managing your uploaded documents">
@@ -513,6 +498,7 @@ Document Details:
                 </button>
               </div>
             </div>
+            {error}
           </div>
         )}
       </div>

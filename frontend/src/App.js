@@ -1,5 +1,6 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { AppProvider } from "./context/AppContext";
 import Login from './components/Login';
 import Dashboard from './components/Dashboard';
 import Signup from './components/Signup';
@@ -18,6 +19,7 @@ import DocumentManager from "./components/DocumentManager";
 function App() {
   return (
     <Router>
+      <AppProvider>
         <Routes>
           <Route path="/" element={<Login />} />
           <Route path="/dashboard" element={<Dashboard />} />
@@ -27,13 +29,14 @@ function App() {
           <Route path="/mytasks" element={<MyTasks />} />
           <Route path="/collaborativedocumentation" element={<CollaborativeDocumentation />} />
           <Route path="/dashboardcollabdoc" element={<DashboardCollabDoc />} />
-          <Route path="/uploadcollabdoc" element={<UploadCollabDoc />} />
+          <Route path="/uploadcollaborativedocumentation" element={<UploadCollabDoc />} />
           <Route path="/taskcardcollabdoc" element={<TaskCardCollabDoc />} />
           <Route path="/stylecollabdoc" element={<StyleCollabDoc />} />
           <Route path="/appcollabdoc" element={<AppCollabDoc />} />
           <Route path="/newtaskcollabdoc" element={<NewTaskCollabDoc />} />
-          <Route path="/documentmanager" element={<DocumentManager />} />
+          <Route path="/documents" element={<DocumentManager />} />
         </Routes>
+      </AppProvider>
     </Router>
   );
 }

@@ -5,7 +5,7 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import {
   faFolder, faCheckCircle, faCalendar, faCodeBranch, faFile, faInbox,
   faBell, faCog, faSignOutAlt, faPlus, faEnvelope, faProjectDiagram,
-  faUserCheck, faComment, faUpload, faChevronLeft, faChevronRight
+  faUserCheck, faComment, faUpload, faChevronLeft, faChevronRight, faSearch
 } from '@fortawesome/free-solid-svg-icons';
 import styles from './Dashboard.module.css';
 
@@ -168,7 +168,7 @@ const Dashboard = () => {
   };
 
   const handleUploadClick = () => {
-    navigate('/upload-collaborative-documentation');
+    navigate('/uploadcollaborativedocumentation');
   };
 
   return (
@@ -972,11 +972,6 @@ const Dashboard = () => {
             <li>Create your first sprint board</li>
             <li>Enable calendar sync</li>
           </ul>
-        </section>
-
-        <section className={styles.panel}>
-          <div className={styles.panelHead}><h3>Student Calendar</h3></div>
-          <div ref={calendarRef} id="calendar"></div>
         </section>
 
         <footer className={styles.footer}>

@@ -7,7 +7,7 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { 
   faUpload, faFile, faCheckCircle, faCloudUploadAlt, faFileAlt,
   faFilePdf, faFileWord, faFileExcel, faFilePowerpoint, faFileCode,
-  faTrash, faEye, faDownload, faUsers, faCalendarAlt
+  faUsers
 } from '@fortawesome/free-solid-svg-icons';
 import dashboardStyles from './Dashboard.module.css';
 
