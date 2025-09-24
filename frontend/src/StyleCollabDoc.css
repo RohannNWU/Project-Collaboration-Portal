@@ -1,0 +1,61 @@
+:root {
+  --nwu-purple: #6f2e83;
+  --nwu-light: #e6e0f8;
+  --nwu-accent: #711c8b;
+}
+
+body {
+  margin: 0;
+  font-family: 'Segoe UI', sans-serif;
+  background-color: var(--nwu-light);
+}
+
+.app-header {
+  background-color: var(--nwu-purple);
+  color: white;
+  padding: 1rem;
+  text-align: center;
+}
+
+.dashboard {
+  padding: 2rem;
+}
+
+.role-selector {
+  margin-bottom: 1rem;
+}
+
+.task-card {
+  background-color: white;
+  border-left: 6px solid var(--nwu-accent);
+  padding: 1rem;
+  margin-bottom: 1rem;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.task-card.completed {
+  border-left-color: green;
+  opacity: 0.8;
+}
+
+.upload-form {
+  background-color: white;
+  padding: 1rem;
+  border: 1px solid var(--nwu-accent);
+  margin-top: 2rem;
+}
+
+.upload-form input {
+  display: block;
+  margin: 0.5rem 0;
+  padding: 0.5rem;
+  width: 100%;
+}
+
+.upload-form button {
+  background-color: var(--nwu-purple);
+  color: white;
+  padding: 0.5rem 1rem;
+  border: none;
+  cursor: pointer;
+}

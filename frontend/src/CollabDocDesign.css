@@ -1,0 +1,57 @@
+.nwu-theme {
+  background-color: #f4f0fa;
+  color: #5e0488;
+}
+
+.nwu-heading {
+  color: #5e0488;
+}
+
+.nwu-subheading {
+  color: #5e0488;
+  margin-top: 1.5rem;
+}
+
+.nwu-label {
+  font-weight: bold;
+  color: #5e0488;
+}
+
+.nwu-select,
+.nwu-input {
+  border: 1px solid #5e0488;
+  border-radius: 4px;
+  padding: 0.5rem;
+  width: 100%;
+  margin-top: 0.5rem;
+}
+
+.nwu-button {
+  background-color: #5e0488;
+  color: white;
+  border: none;
+  padding: 0.6rem 1.2rem;
+  border-radius: 4px;
+  cursor: pointer;
+  margin-top: 1rem;
+}
+
+.nwu-button:hover {
+  background-color: #3a2469;
+}
+
+.nwu-button.success {
+  background-color: #6a4fb6;
+}
+
+.nwu-button.final {
+  background-color: #a58de4;
+  color: #2e1a47;
+  font-weight: bold;
+}
+
+.nwu-status {
+  margin-left: 1rem;
+  color: green;
+  font-weight: bold;
+}

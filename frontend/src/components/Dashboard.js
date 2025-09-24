@@ -166,6 +166,7 @@ const Dashboard = () => {
   return (
     <div className={styles.dashboard}>
       {/* Sidebar */}
+      {/* Sidebar */}
       <aside className={styles.sidebar}>
         <div className={styles.brand}>
           <div className={styles.logo}>{username.split(' ').map(word => word.charAt(0).toUpperCase()).join('')}</div>
@@ -175,13 +176,15 @@ const Dashboard = () => {
           </div>
         </div>
 
+
         <nav className={styles.nav}>
           <button className={styles.navBtn}><FontAwesomeIcon icon={faFolder} /> My Projects</button>
           <button className={styles.navBtn} onClick={() => navigate('/mytasks', { state: { email: email, username: username } })}><FontAwesomeIcon icon={faCheckCircle} /> My Tasks</button>
           <button className={styles.navBtn}><FontAwesomeIcon icon={faCodeBranch} /> Repos</button>
-          <button className={styles.navBtn}><FontAwesomeIcon icon={faFile} /> Documents</button>
+          <button className={styles.navBtn} onClick={handleDocumentsClick}><FontAwesomeIcon icon={faFile} /> Documents</button>
           <button className={styles.navBtn}><FontAwesomeIcon icon={faInbox} /> Inbox</button>
         </nav>
+
 
         <div className={styles.quickActions}>
           <button className={styles.qaBtn} onClick={() => navigate('/newproject')}><FontAwesomeIcon icon={faPlus} /> New Project</button>
@@ -192,12 +195,24 @@ const Dashboard = () => {
       </aside>
 
       {/* Main Content */}
+
+      {/* Main Content */}
       <main className={styles.main}>
         <header className={styles.topbar}>
           <div className={styles.tbLeft}>
             <h1>Project Collaboration Portal</h1>
           </div>
           <div className={styles.tbRight}>
+            <div className={styles.search}>
+              <input type="text" placeholder="Search projects, tasks, people…" />
+              <FontAwesomeIcon icon={faSearch} className={styles.searchIcon} />
+            </div>
+            <button className={styles.iconBtn} title="Notifications">
+              <FontAwesomeIcon icon={faBell} />
+            </button>
+            <button className={styles.iconBtn} title="Settings">
+              <FontAwesomeIcon icon={faCog} />
+            </button>
             <button className={styles.iconBtn} title="Notifications">
               <FontAwesomeIcon icon={faBell} />
             </button>
@@ -212,6 +227,7 @@ const Dashboard = () => {
           </div>
         </header>
 
+        {/* KPIs */}
         {/* KPIs */}
         <section className={styles.cards}>
           <div className={styles.card}>
@@ -245,6 +261,7 @@ const Dashboard = () => {
         {/* Projects Table */}
         <section className={styles.panel}>
           <div className={styles.panelHead}>
+            <h2>Projects Overview</h2>
             <h2>Projects Overview</h2>
           </div>
           <button className={styles.addBtn} onClick={() => navigate('/newproject')}>+ Add Project</button>
@@ -865,10 +882,12 @@ const Dashboard = () => {
       </main>
 
       {/* Right Sidebar */}
+      {/* Right Sidebar */}
       <aside className={styles.rightbar}>
         <section className={styles.panel}>
           <div className={styles.panelHead}>
             <h3>Upcoming Deadlines</h3>
+            <button className={styles.iconBtn}><FontAwesomeIcon icon={faCalendar} /></button>
             <button className={styles.iconBtn}><FontAwesomeIcon icon={faCalendar} /></button>
           </div>
           <ul className={styles.list}>
@@ -912,13 +931,24 @@ const Dashboard = () => {
             <li><FontAwesomeIcon icon={faUserCheck} /> Michael completed task: API integration</li>
             <li><FontAwesomeIcon icon={faUserCheck} /> You uploaded meeting_notes.pdf</li>
           </ul>
+          <ul className={styles.list}>
+            <li><FontAwesomeIcon icon={faUserCheck} /> Sarah updated CMPG 323 documentation</li>
+            <li><FontAwesomeIcon icon={faUserCheck} /> Michael completed task: API integration</li>
+            <li><FontAwesomeIcon icon={faUserCheck} /> You uploaded meeting_notes.pdf</li>
+          </ul>
         </section>
 
         <section className={styles.panel}>
           <div className={styles.panelHead}>
             <h3>Inbox</h3>
             <button className={styles.iconBtn}><FontAwesomeIcon icon={faInbox} /></button>
+            <button className={styles.iconBtn}><FontAwesomeIcon icon={faInbox} /></button>
           </div>
+          <ul className={styles.list}>
+            <li><FontAwesomeIcon icon={faEnvelope} /> Dr. Smith - Project feedback</li>
+            <li><FontAwesomeIcon icon={faEnvelope} /> Team - Meeting reminder</li>
+            <li><FontAwesomeIcon icon={faEnvelope} /> System - Weekly digest</li>
+          </ul>
           <ul className={styles.list}>
             <li><FontAwesomeIcon icon={faEnvelope} /> Dr. Smith - Project feedback</li>
             <li><FontAwesomeIcon icon={faEnvelope} /> Team - Meeting reminder</li>
@@ -936,7 +966,13 @@ const Dashboard = () => {
           </ul>
         </section>
 
+        <section className={styles.panel}>
+          <div className={styles.panelHead}><h3>Student Calendar</h3></div>
+          <div ref={calendarRef} id="calendar"></div>
+        </section>
+
         <footer className={styles.footer}>
+          © {new Date().getFullYear()} Project Collaboration Portal · Student Dashboard
           © {new Date().getFullYear()} Project Collaboration Portal · Student Dashboard
         </footer>
       </aside>
