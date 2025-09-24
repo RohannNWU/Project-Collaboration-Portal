@@ -25,6 +25,14 @@ function App() {
           <Route path="/newproject" element={<NewProject />} />
           <Route path="/editproject" element={<EditProject />} />
           <Route path="/mytasks" element={<MyTasks />} />
+          <Route path="/collaborativedocumentation" element={<CollaborativeDocumentation />} />
+          <Route path="/dashboardcollabdoc" element={<DashboardCollabDoc />} />
+          <Route path="/uploadcollabdoc" element={<UploadCollabDoc />} />
+          <Route path="/taskcardcollabdoc" element={<TaskCardCollabDoc />} />
+          <Route path="/stylecollabdoc" element={<StyleCollabDoc />} />
+          <Route path="/appcollabdoc" element={<AppCollabDoc />} />
+          <Route path="/newtaskcollabdoc" element={<NewTaskCollabDoc />} />
+          <Route path="/documentmanager" element={<DocumentManager />} />
         </Routes>
     </Router>
   );
