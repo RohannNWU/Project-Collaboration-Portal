@@ -1,152 +1,95 @@
-from django.db import models
-from django.contrib.auth.models import AbstractUser
 from django.utils import timezone
-from django.core.validators import MinValueValidator, MaxValueValidator
+from django.db import models
+
+from django.contrib.auth.models import User as DjangoUser
+from django.conf import settings
 
 class User(models.Model):
-    email = models.CharField(max_length=100, unique=True, db_column='email', primary_key=True)
-    fname = models.CharField(max_length=50, db_column='fname')
-    lname = models.CharField(max_length=50, db_column='lname')
-    password = models.CharField(max_length=255, db_column='password')
-    created_at = models.DateTimeField(default=timezone.now)
-    last_login = models.DateTimeField(null=True, blank=True)
-    is_active = models.BooleanField(default=True)
+    email = models.CharField(max_length=100, unique=True, primary_key=True)
+    first_name = models.CharField(max_length=50)
+    last_name = models.CharField(max_length=50)
+    password = models.CharField(max_length=255)
 
     class Meta:
-        managed = False
-        db_table = 'pcpusers'
+        managed = True
 
     def __str__(self):
         return self.email
 
-    @property
-    def full_name(self):
-        return f"{self.fname} {self.lname}"
-
 class Project(models.Model):
-    PRIORITY_CHOICES = [
-        ('low', 'Low'),
-        ('medium', 'Medium'),
-        ('high', 'High'),
-        ('urgent', 'Urgent'),
-    ]
-    
-    STATUS_CHOICES = [
-        ('planning', 'Planning'),
-        ('in_progress', 'In Progress'),
-        ('review', 'Under Review'),
-        ('completed', 'Completed'),
-        ('on_hold', 'On Hold'),
-    ]
-
-    id = models.AutoField(primary_key=True)
-    name = models.CharField(max_length=200)
-    description = models.TextField(blank=True)
-    owner = models.ForeignKey(User, on_delete=models.CASCADE, related_name='owned_projects')
-    members = models.ManyToManyField(User, through='ProjectMember', related_name='projects')
-    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='planning')
-    priority = models.CharField(max_length=10, choices=PRIORITY_CHOICES, default='medium')
-    progress = models.IntegerField(
-        default=0, 
-        validators=[MinValueValidator(0), MaxValueValidator(100)]
-    )  # 0-100
-    start_date = models.DateField(null=True, blank=True)
-    due_date = models.DateField(null=True, blank=True)
-    created_at = models.DateTimeField(default=timezone.now)
-    updated_at = models.DateTimeField(auto_now=True)
+    project_id = models.AutoField(primary_key=True)
+    due_date = models.DateField()
+    cm_id = models.IntegerField(null=True, blank=True)
+    feedback = models.TextField(null=True, blank=True)
+    grade = models.IntegerField(null=True, blank=True)
+    project_name = models.CharField(max_length=100)
+    project_description = models.TextField(null=True, blank=True)
+    created_on = models.DateField()
 
     class Meta:
-        db_table = 'projects'
+        managed = True
 
     def __str__(self):
-        return self.name
-    
-    def update_progress(self):
-        """Auto-calculate progress based on completed tasks"""
-        total_tasks = self.tasks.count()
-        if total_tasks == 0:
-            self.progress = 0
-        else:
-            completed_tasks = self.tasks.filter(status='completed').count()
-            self.progress = round((completed_tasks / total_tasks) * 100)
-        self.save(update_fields=['progress'])
-    
-    @property
-    def is_overdue(self):
-        if self.due_date and self.status not in ['completed']:
-            return self.due_date < timezone.now().date()
-        return False
+        return self.project_name
 
-class ProjectMember(models.Model):
-    ROLE_CHOICES = [
-        ('member', 'Member'),
-        ('supervisor', 'Supervisor'),
-        ('admin', 'Admin'),
-    ]
-
-    project = models.ForeignKey(Project, on_delete=models.CASCADE)
-    user = models.ForeignKey(User, on_delete=models.CASCADE)
-    role = models.CharField(max_length=20, choices=ROLE_CHOICES, default='member')
-    joined_at = models.DateTimeField(default=timezone.now)
+class UserProject(models.Model):
+    user_project_id = models.BigAutoField(primary_key=True)
+    email = models.ForeignKey(User, on_delete=models.DO_NOTHING)
+    project_id = models.ForeignKey(Project, on_delete=models.DO_NOTHING)
+    role = models.CharField(max_length=50)
 
     class Meta:
-        db_table = 'project_members'
-        unique_together = ('project', 'user')
+        managed = True
 
+    def __str__(self):
+        return f"{self.email} - {self.user_project_id}"
+    
 class Task(models.Model):
-    STATUS_CHOICES = [
-        ('todo', 'To Do'),
-        ('in_progress', 'In Progress'),
-        ('review', 'Under Review'),
-        ('completed', 'Completed'),
-    ]
-
-    PRIORITY_CHOICES = [
-        ('low', 'Low'),
-        ('medium', 'Medium'),
-        ('high', 'High'),
-        ('urgent', 'Urgent'),
-    ]
-
-    id = models.AutoField(primary_key=True)
-    title = models.CharField(max_length=200)
-    description = models.TextField(blank=True)
-    project = models.ForeignKey(Project, on_delete=models.CASCADE, related_name='tasks')
-    assignee = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='assigned_tasks')
-    creator = models.ForeignKey(User, on_delete=models.CASCADE, related_name='created_tasks')
-    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='todo')
-    priority = models.CharField(max_length=10, choices=PRIORITY_CHOICES, default='medium')
-    due_date = models.DateTimeField(null=True, blank=True)
-    completed_at = models.DateTimeField(null=True, blank=True)
-    created_at = models.DateTimeField(default=timezone.now)
-    updated_at = models.DateTimeField(auto_now=True)
-    estimated_hours = models.IntegerField(null=True, blank=True, validators=[MinValueValidator(1)])
-    actual_hours = models.IntegerField(null=True, blank=True, validators=[MinValueValidator(1)])
+    task_id = models.AutoField(primary_key=True)
+    task_name = models.CharField(max_length=100)
+    task_description = models.TextField(null=True, blank=True)
+    task_due_date = models.DateField()
+    task_status = models.CharField(max_length=50)
+    task_priority = models.CharField(max_length=50)
+    project_id = models.ForeignKey(Project, on_delete=models.DO_NOTHING)
 
     class Meta:
-        db_table = 'tasks'
+        managed = True
+
+    def __str__(self):
+        return self.task_name
+
+class User_Task(models.Model):
+    user_task_id = models.AutoField(primary_key=True)
+    task_id = models.ForeignKey(Task, on_delete=models.DO_NOTHING)
+    email = models.ForeignKey(User, on_delete=models.DO_NOTHING)
+
+    class Meta:
+        managed = True
+
+    def __str__(self):
+        return f"{self.user_email} - {self.task_id}"
+class Document(models.Model):
+    """Document model for file uploads and management"""
+    doument_id = models.AutoField(primary_key=True)
+    task_id = models.ForeignKey(Task, on_delete=models.CASCADE, null=True, blank=True)
+    title = models.CharField(max_length=255)
+    description = models.TextField(null=True, blank=True)
+    datetime_uploaded = models.DateTimeField(auto_now_add=True)
+    doc_type = models.CharField(max_length=100)  # MIME type
+    date_last_modified = models.DateTimeField(auto_now=True)
+    last_modified_by = models.ForeignKey(DjangoUser, on_delete=models.CASCADE, related_name='modified_documents')
+    file_path = models.CharField(max_length=500)
+    file_size = models.BigIntegerField()
+    uploaded_by = models.ForeignKey(DjangoUser, on_delete=models.CASCADE, related_name='uploaded_documents')
+
+    class Meta:
+        managed = True
+        ordering = ['-datetime_uploaded']
 
     def __str__(self):
         return self.title
-    
-    def save(self, *args, **kwargs):
-        # Auto-set completed_at when status changes to completed
-        if self.status == 'completed' and not self.completed_at:
-            self.completed_at = timezone.now()
-        elif self.status != 'completed':
-            self.completed_at = None
-        
-        super().save(*args, **kwargs)
-        
-        # Update project progress after task status change
-        self.project.update_progress()
-    
-    @property
-    def is_overdue(self):
-        if self.due_date and self.status not in ['completed']:
-            return self.due_date < timezone.now()
-        return False
-
+      
 class Message(models.Model):
     MESSAGE_TYPES = [
         ('direct', 'Direct Message'),
@@ -156,7 +99,7 @@ class Message(models.Model):
 
     id = models.AutoField(primary_key=True)
     sender = models.ForeignKey(User, on_delete=models.CASCADE, related_name='sent_messages')
-    recipient = models.ForeignKey(User, on_delete=models.CASCADE, related_name='received_messages')
+    email = models.ForeignKey(User, on_delete=models.CASCADE, related_name='received_messages')
     project = models.ForeignKey(Project, on_delete=models.CASCADE, null=True, blank=True, related_name='messages')
     message_type = models.CharField(max_length=20, choices=MESSAGE_TYPES, default='direct')
     subject = models.CharField(max_length=200)
@@ -165,7 +108,7 @@ class Message(models.Model):
     created_at = models.DateTimeField(default=timezone.now)
 
     class Meta:
-        db_table = 'messages'
+        managed = True
         ordering = ['-created_at']
 
     def __str__(self):
@@ -207,8 +150,62 @@ class ActivityLog(models.Model):
     created_at = models.DateTimeField(default=timezone.now)
 
     class Meta:
-        db_table = 'activity_logs'
+        managed = True
+        #db_table = 'activity_logs'
         ordering = ['-created_at']
 
     def __str__(self):
         return f"{self.user.email} - {self.action_type}"
+class Notification(models.Model):
+    NOTIFICATION_TYPES = [
+        ('project_created', 'Project Created'),
+        ('task_assigned', 'Task Assigned'),
+        ('feedback_received', 'Feedback Received'),
+        ('deadline_approaching', 'Deadline Approaching'),
+        ('due_date_changed', 'Due Date Changed'),
+        ('edit_requested', 'Edit Requested'),
+    ]
+
+    notif_id = models.AutoField(primary_key=True)
+    project_id = models.ForeignKey(Project, on_delete=models.DO_NOTHING)
+    time_sent = models.DateTimeField(auto_now_add=True)
+    title = models.CharField(max_length=100)
+    message = models.TextField()
+    
+    # References
+    #project = models.ForeignKey('Project', on_delete=models.CASCADE, null=True, blank=True, 
+     #                          related_name='notifications')
+    #task = models.ForeignKey('Task', on_delete=models.CASCADE, null=True, blank=True, 
+     #                       related_name='notifications')
+    
+    # specific notification types
+    grades = models.CharField(max_length=100, null=True, blank=True)  # For feedback notifications
+    due_date = models.DateTimeField(null=True, blank=True)  # For deadline notifications
+    requested_by = models.ForeignKey('User', on_delete=models.SET_NULL, null=True, blank=True, 
+                                   related_name='requested_edits')
+
+    class Meta:
+        managed = True
+ 
+    def __str__(self):
+        return f"{self.title} - {self.time_sent} - {self.message}"
+    
+#for automated notifications
+class Feedback(models.Model):
+    task = models.ForeignKey("Task", on_delete=models.CASCADE, related_name="feedbacks")
+    supervisor = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
+    comment = models.TextField()
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"Feedback on {self.task.title} by {self.supervisor}"
+
+
+class EditRequest(models.Model):
+    task = models.ForeignKey("Task", on_delete=models.CASCADE, related_name="edit_requests")
+    requested_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
+    reason = models.TextField()
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"Edit requested for {self.task.title} by {self.requested_by}"

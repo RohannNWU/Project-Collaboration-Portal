@@ -65,10 +65,10 @@ WSGI_APPLICATION = 'pcp_backend.wsgi.application'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql',
-        'NAME': 'pcp',
+        'NAME': 'postgres',
         'USER': 'postgres',
-        'PASSWORD': 'Pcpadmin@2025',  # Replace with your actual password
-        'HOST': '34.35.89.15',
+        'PASSWORD': 'pcpadmin123',  # Replace with your actual password
+        'HOST': '127.0.0.1',
         'PORT': '5432',
     }
 }
@@ -148,7 +148,9 @@ LOGGING = {
 }
 
 # Disable authentication backends
-AUTHENTICATION_BACKENDS = []
+AUTHENTICATION_BACKENDS = [
+    'django.contrib.auth.backends.ModelBackend',
+]
 
 # REST Framework - Disable default JWT authentication
 REST_FRAMEWORK = {

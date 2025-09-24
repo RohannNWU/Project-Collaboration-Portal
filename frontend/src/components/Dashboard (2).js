@@ -1,32 +1,91 @@
-// components/Hloni.js
-import React, { useState, useEffect, useRef } from 'react';
-import styles from './Hloni.module.css';
+import React, { useRef, useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { 
-  faFolder, faTasks, faUsers, faCalendar, 
-  faCodeBranch, faFile, faInbox, faBell, 
-  faCog, faSignOutAlt, faPlus, faComment,
-  faUpload, faSearch, faEnvelope, faProjectDiagram,
-  faUserCheck, faCheckCircle
+import {
+  faFolder, faCheckCircle, faUsers, faCalendar, faCodeBranch, faFile, faInbox,
+  faBell, faCog, faSignOutAlt, faPlus, faSearch, faEnvelope, faProjectDiagram,
+  faUserCheck, faComment, faUpload
 } from '@fortawesome/free-solid-svg-icons';
+import styles from './Dashboard.module.css';
 
-const Hloni = () => {
-  const [userEmail, setUserEmail] = useState(() => {
-    try {
-      const storedUser = localStorage.getItem('user');
-      return storedUser ? JSON.parse(storedUser).email : 'Anonymous User';
-    } catch (e) {
-      console.error('Failed to parse user from localStorage:', e);
-      return 'Student';
-    }
+const getUserEmail = () => {
+  try {
+    const storedUser = localStorage.getItem('user');
+    return storedUser ? JSON.parse(storedUser).email : 'Anonymous User';
+  } catch (e) {
+    console.error('Failed to parse user from localStorage:', e);
+    return 'Student';
+  }
+};
+
+const Dashboard = () => {
+  const [email, setEmail] = useState(getUserEmail());
+  const [username, setUsername] = useState('');
+  const [taskStats, setTaskStats] = useState({
+    total: 12,
+    pending: 5,
+    inProgress: 4,
+    completed: 3,
+    unread: 3
   });
-
+  const [recentTasks, setRecentTasks] = useState([
+    { id: 1, title: 'Complete CMPG 321 Assignment', status: 'pending', priority: 'high', dueDate: '2025-09-25' },
+    { id: 2, title: 'Review Team Documentation', status: 'in-progress', priority: 'medium', dueDate: '2025-09-23' },
+    { id: 3, title: 'Prepare Presentation Slides', status: 'pending', priority: 'low', dueDate: '2025-09-28' }
+  ]);
+  const navigate = useNavigate();
   const calendarRef = useRef(null);
   const progressChartRef = useRef(null);
   const workloadChartRef = useRef(null);
 
   useEffect(() => {
-    // Initialize calendar after component mounts
+    const token = localStorage.getItem('access_token');
+    const refreshToken = localStorage.getItem('refresh_token');
+    const user = localStorage.getItem('user');
+    
+    console.log("=== Dashboard Authentication Check ===");
+    console.log("Access Token:", token);
+    console.log("Refresh Token:", refreshToken);
+    console.log("User:", user);
+    console.log("Token exists:", !!token);
+    
+    if (!token) {
+      console.log("No token found, redirecting to login");
+      navigate('/');
+      return;
+    } else {
+      console.log("Token found, staying on dashboard");
+    }
+
+    const API_BASE_URL = window.location.hostname === 'localhost'
+      ? 'http://127.0.0.1:8000'
+      : 'https://pcp-backend-f4a2.onrender.com';
+
+    fetch(`${API_BASE_URL}/api/dashboard/`, {
+      method: 'GET',
+      headers: { 
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json'
+      }
+    })
+      .then(response => {
+        if (response.status === 401) {
+          navigate('/');
+          return;
+        }
+        return response.json();
+      })
+      .then(data => {
+        if (data) {
+          setEmail(data.email);
+          setUsername(data.username);
+        }
+      })
+      .catch(err => {
+        console.error('Failed to fetch dashboard data:', err);
+      });
+
+    // Initialize calendar
     if (calendarRef.current && window.FullCalendar) {
       const calendar = new window.FullCalendar.Calendar(calendarRef.current, {
         initialView: "dayGridMonth",
@@ -39,12 +98,16 @@ const Hloni = () => {
         ]
       });
       calendar.render();
+
+      // Cleanup calendar on unmount
+      return () => calendar.destroy();
+    } else {
+      console.warn('FullCalendar is not available');
     }
 
     // Initialize charts
     if (progressChartRef.current && workloadChartRef.current && window.Chart) {
-      // Progress Chart
-      new window.Chart(progressChartRef.current, {
+      const progressChart = new window.Chart(progressChartRef.current, {
         type: 'line',
         data: {
           labels: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
@@ -60,42 +123,58 @@ const Hloni = () => {
         options: {
           responsive: true,
           plugins: {
-            legend: {
-              position: 'top',
-            }
+            legend: { position: 'top' }
           }
         }
       });
-      
-      // Workload Chart
-      new window.Chart(workloadChartRef.current, {
+
+      const workloadChart = new window.Chart(workloadChartRef.current, {
         type: 'doughnut',
         data: {
           labels: ['CMPG 321', 'CMPG 323', 'CMPG 311'],
           datasets: [{
             data: [40, 35, 25],
-            backgroundColor: [
-              '#3498db',
-              '#2ecc71',
-              '#e74c3c'
-            ]
+            backgroundColor: ['#3498db', '#2ecc71', '#e74c3c']
           }]
         },
         options: {
           responsive: true,
           plugins: {
-            legend: {
-              position: 'bottom',
-            }
+            legend: { position: 'bottom' }
           }
         }
       });
+
+      // Cleanup charts on unmount
+      return () => {
+        progressChart.destroy();
+        workloadChart.destroy();
+      };
+    } else {
+      console.warn('Chart.js is not available');
     }
-  }, []);
+  }, [navigate]);
+
+  const handleUploadClick = () => {
+    navigate('/upload-collaborative-documentation');
+  };
+
+  const handleMyTasksClick = () => {
+    navigate('/task-card-collaborative-documentation');
+  };
+
+  const handleNewTaskClick = () => {
+    navigate('/new-task-collaborative-documentation');
+  };
+
+  const handleDocumentsClick = () => {
+    navigate('/documents');
+  };
 
   const logout = () => {
-    alert("You have been logged out!");
-    window.location.href = "/login";
+    localStorage.removeItem('access_token');
+    localStorage.removeItem('user');
+    navigate("/");
   };
 
   return (
@@ -106,25 +185,28 @@ const Hloni = () => {
           <div className={styles.logo}>NWU</div>
           <div className={styles.brandText}>
             <h2>Project Collaboration Portal</h2>
-            <small>{userEmail}</small>
+            <small>{email}</small>
           </div>
         </div>
 
         <nav className={styles.nav}>
           <button className={styles.navBtn}><FontAwesomeIcon icon={faFolder} /> My Projects</button>
-          <button className={styles.navBtn}><FontAwesomeIcon icon={faCheckCircle} /> My Tasks</button>
+          <button className={`${styles.navBtn} ${styles.navBtnWithBadge}`} onClick={handleMyTasksClick}>
+            <FontAwesomeIcon icon={faCheckCircle} /> My Tasks
+            {taskStats.unread > 0 && <span className={styles.notificationBadge}>{taskStats.unread}</span>}
+          </button>
           <button className={styles.navBtn}><FontAwesomeIcon icon={faUsers} /> Teams</button>
           <button className={styles.navBtn}><FontAwesomeIcon icon={faCalendar} /> Calendar</button>
           <button className={styles.navBtn}><FontAwesomeIcon icon={faCodeBranch} /> Repos</button>
-          <button className={styles.navBtn}><FontAwesomeIcon icon={faFile} /> Documents</button>
+          <button className={styles.navBtn} onClick={handleDocumentsClick}><FontAwesomeIcon icon={faFile} /> Documents</button>
           <button className={styles.navBtn}><FontAwesomeIcon icon={faInbox} /> Inbox</button>
         </nav>
 
         <div className={styles.quickActions}>
           <button className={styles.qaBtn}><FontAwesomeIcon icon={faPlus} /> New Project</button>
-          <button className={styles.qaBtn}><FontAwesomeIcon icon={faPlus} /> New Task</button>
+          <button className={styles.qaBtn} onClick={handleNewTaskClick}><FontAwesomeIcon icon={faPlus} /> New Task</button>
           <button className={styles.qaBtn}><FontAwesomeIcon icon={faComment} /> Message Team</button>
-          <button className={styles.qaBtn}><FontAwesomeIcon icon={faUpload} /> Upload File</button>
+          <button className={styles.qaBtn} onClick={handleUploadClick}><FontAwesomeIcon icon={faUpload} /> Upload File</button>
         </div>
       </aside>
 
@@ -147,8 +229,8 @@ const Hloni = () => {
               <FontAwesomeIcon icon={faCog} />
             </button>
             <div className={styles.user}>
+              <span className={styles.username}>{username}</span>
               <div className={styles.avatar}>JM</div>
-              <span className={styles.username}>John M.</span>
               <button className={styles.logoutBtn} onClick={logout} title="Logout">
                 <FontAwesomeIcon icon={faSignOutAlt} />
               </button>
@@ -158,19 +240,29 @@ const Hloni = () => {
 
         {/* KPIs */}
         <section className={styles.cards}>
-          <div className={styles.card}>
-            <p>Active Projects</p>
-            <h2 id="kpi-projects">3</h2>
+          <div className={styles.card} onClick={handleMyTasksClick} style={{ cursor: 'pointer' }}>
+            <p>Total Tasks</p>
+            <h2 id="kpi-projects">{taskStats.total}</h2>
+            <small style={{ color: '#666', fontSize: '12px' }}>Click to view all tasks</small>
           </div>
-          <div className={styles.card}>
-            <p>Tasks Due This Week</p>
-            <h2 id="kpi-tasks-week">7</h2>
+          <div className={styles.card} onClick={handleMyTasksClick} style={{ cursor: 'pointer' }}>
+            <p>Pending Tasks</p>
+            <h2 id="kpi-tasks-week" style={{ color: '#ff6b6b' }}>{taskStats.pending}</h2>
+            <small style={{ color: '#666', fontSize: '12px' }}>Need attention</small>
           </div>
-          <div className={styles.card}>
-            <p>Unread Messages</p>
-            <h2 id="kpi-messages">2</h2>
+          <div className={styles.card} onClick={handleMyTasksClick} style={{ cursor: 'pointer' }}>
+            <p>In Progress</p>
+            <h2 id="kpi-messages" style={{ color: '#4ecdc4' }}>{taskStats.inProgress}</h2>
+            <small style={{ color: '#666', fontSize: '12px' }}>Currently working</small>
+          </div>
+          <div className={styles.card} onClick={handleMyTasksClick} style={{ cursor: 'pointer' }}>
+            <p>Completed</p>
+            <h2 style={{ color: '#45b7d1' }}>{taskStats.completed}</h2>
+            <small style={{ color: '#666', fontSize: '12px' }}>This week</small>
           </div>
         </section>
+
+
 
         {/* Projects Table */}
         <section className={styles.panel}>
@@ -193,7 +285,7 @@ const Hloni = () => {
                 <td>CMPG 321</td>
                 <td>
                   <div className={styles.progressBar}>
-                    <div className={styles.progress} style={{width: '80%'}}></div>
+                    <div className={styles.progress} style={{ width: '80%' }}></div>
                   </div>
                 </td>
                 <td>11/11/2025</td>
@@ -204,7 +296,7 @@ const Hloni = () => {
                 <td>CMPG 323</td>
                 <td>
                   <div className={styles.progressBar}>
-                    <div className={styles.progress} style={{width: '50%'}}></div>
+                    <div className={styles.progress} style={{ width: '50%' }}></div>
                   </div>
                 </td>
                 <td>06/10/2025</td>
@@ -215,7 +307,7 @@ const Hloni = () => {
                 <td>CMPG 311</td>
                 <td>
                   <div className={styles.progressBar}>
-                    <div className={styles.progress} style={{width: '20%'}}></div>
+                    <div className={styles.progress} style={{ width: '20%' }}></div>
                   </div>
                 </td>
                 <td>21/09/2025</td>
@@ -300,5 +392,4 @@ const Hloni = () => {
   );
 };
 
-export default Hloni;
 export default Dashboard;
