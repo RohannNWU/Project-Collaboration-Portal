@@ -8,14 +8,14 @@ class UserSerializer(serializers.ModelSerializer):
     
     class Meta:
         model = User
-        fields = ['email', 'fname', 'lname', 'full_name', 'created_at', 'last_login', 'is_active']
+        fields = ['email', 'first_name', 'last_name', 'full_name']  # Updated to match model
 
 class UserProjectSerializer(serializers.ModelSerializer):
     user = UserSerializer(read_only=True)
 
     class Meta:
         model = UserProject
-        fields = ['user', 'role', 'joined_at']
+        fields = ['user', 'role']
 
 class ProjectSerializer(serializers.ModelSerializer):
     owner = UserSerializer(read_only=True)
@@ -25,53 +25,52 @@ class ProjectSerializer(serializers.ModelSerializer):
     
     class Meta:
         model = Project
-        fields = ['id', 'name', 'description', 'owner', 'members_detail', 'status', 'priority', 
-                 'progress', 'start_date', 'due_date', 'created_at', 'updated_at', 
-                 'task_count', 'completed_tasks']
+        fields = ['project_id', 'project_name', 'project_description', 'owner', 'members_detail', 
+                  'task_count', 'completed_tasks', 'due_date', 'created_on']
 
     def get_task_count(self, obj):
-        return obj.tasks.count()
+        return obj.task_set.count()
 
     def get_completed_tasks(self, obj):
-        return obj.tasks.filter(status='completed').count()
+        return obj.task_set.filter(task_status='Completed').count()
 
 class TaskSerializer(serializers.ModelSerializer):
     assignee = UserSerializer(read_only=True)
     creator = UserSerializer(read_only=True)
-    project_name = serializers.CharField(source='project.name', read_only=True)
+    project_name = serializers.CharField(source='project_id.project_name', read_only=True)
     
     class Meta:
         model = Task
-        fields = ['id', 'title', 'description', 'project', 'project_name', 'assignee', 
-                 'creator', 'status', 'priority', 'due_date', 'completed_at', 
-                 'created_at', 'updated_at']
+        fields = ['task_id', 'task_name', 'task_description', 'project_id', 'project_name', 
+                  'assignee', 'creator', 'task_status', 'task_priority', 'task_due_date']
 
 class MessageSerializer(serializers.ModelSerializer):
     sender = UserSerializer(read_only=True)
     recipient = UserSerializer(read_only=True)
-    project_name = serializers.CharField(source='project.name', read_only=True)
+    project_name = serializers.CharField(source='project_id.project_name', read_only=True)
     
     class Meta:
         model = Message
-        fields = ['id', 'sender', 'recipient', 'project', 'project_name', 'message_type', 
-                 'subject', 'content', 'is_read', 'created_at']
+        fields = ['id', 'sender', 'recipient', 'project_id', 'project_name', 'message_type', 
+                  'subject', 'content', 'is_read', 'created_at']
 
 class DocumentSerializer(serializers.ModelSerializer):
     uploaded_by = UserSerializer(read_only=True)
-    project_name = serializers.CharField(source='project.name', read_only=True)
+    project_name = serializers.CharField(source='project_id.project_name', read_only=True, allow_null=True)
+    task_id = serializers.PrimaryKeyRelatedField(queryset=Task.objects.all(), source='task_id', allow_null=True)
     
     class Meta:
         model = Document
-        fields = ['id', 'name', 'file_path', 'file_size', 'file_type', 'project', 
-                 'project_name', 'uploaded_by', 'uploaded_at']
+        fields = ['document_id', 'document_title', 'document_description', 'doc_type', 
+                  'project_name', 'task_id', 'uploaded_by', 'last_modified', 'file']
 
 class ActivityLogSerializer(serializers.ModelSerializer):
     user = UserSerializer(read_only=True)
-    project_name = serializers.CharField(source='project.name', read_only=True)
+    project_name = serializers.CharField(source='project_id.project_name', read_only=True)
     
     class Meta:
         model = ActivityLog
-        fields = ['id', 'user', 'project', 'project_name', 'action_type', 'description', 'created_at']
+        fields = ['id', 'user', 'project_id', 'project_name', 'action_type', 'description', 'created_at']
 
 class DashboardStatsSerializer(serializers.Serializer):
     active_projects = serializers.IntegerField()
@@ -80,31 +79,19 @@ class DashboardStatsSerializer(serializers.Serializer):
     total_tasks = serializers.IntegerField()
     completed_tasks = serializers.IntegerField()
     overdue_tasks = serializers.IntegerField()
-    
+
 class NotificationSummarySerializer(serializers.ModelSerializer):
     time_ago = serializers.SerializerMethodField()
     
     class Meta:
         model = Notification
-        fields = [
-            'id',
-            'notification_type',
-            'title',
-            'message',
-            'time_ago',
-            'time_sent',
-            'project',
-            'task',
-            'grades',
-            'due_date'
-        ]
+        fields = ['notif_id', 'notification_type', 'title', 'message', 'time_ago', 
+                  'time_sent', 'project_id', 'task_id', 'grades', 'due_date']
         read_only_fields = ['time_sent']
     
     def get_time_ago(self, obj):
-        """Calculate human-readable time difference"""
         now = timezone.now()
         diff = now - obj.time_sent
-        
         if diff < timedelta(minutes=1):
             return "just now"
         elif diff < timedelta(hours=1):

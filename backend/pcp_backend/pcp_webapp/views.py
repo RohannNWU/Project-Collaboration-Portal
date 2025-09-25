@@ -84,6 +84,7 @@ class DashboardView(APIView):
             user_projects = UserProject.objects.filter(email=user).select_related('project_id')
             projects = [
                 {
+                    'project_id': user_project.project_id.project_id,
                     'project_name': user_project.project_id.project_name,
                     'progress': 0,
                     'dueDate': user_project.project_id.due_date.strftime('%d/%m/%Y'),
@@ -194,7 +195,7 @@ class AddTaskView(APIView):
             task_due_date = request.data.get('task_due_date')
             task_status = request.data.get('task_status')
             task_priority = request.data.get('task_priority')
-            project_id = Project.objects.get(project_name=request.data.get('project_name'))
+            project_id = Project.objects.get(project_id=request.data.get('project_id'))
             task_members = request.data.get('task_members', [])
 
             # Create new task using ORM
@@ -217,6 +218,8 @@ class AddTaskView(APIView):
             return Response({'message': 'Task added successfully'}, status=status.HTTP_201_CREATED)
         except Exception as e:
             return Response({'error': f'Failed to add task: {str(e)}'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        except Project.DoesNotExist:
+           return Response({'error': 'Project not found'}, status=status.HTTP_404_NOT_FOUND)
         
 class CalendarView(APIView):
     def get(self, request):
@@ -827,3 +830,57 @@ class NotificationListView(APIView):
             queryset = queryset.filter(notification_type=notification_type)
         
         return queryset
+    
+#View to handle document upload - Francois 
+class DocumentUploadView(APIView):
+    def post(self, request):
+        logger.info(f"Received document upload request: {dict(request.data)}")
+        user = get_user_from_token(request)
+        if not user:
+            logger.error("Authentication failed: No valid user token")
+            return Response({'error': 'Authentication required'}, status=status.HTTP_401_UNAUTHORIZED)
+
+        file = request.FILES.get('file')
+        title = request.data.get('title')
+        description = request.data.get('description')
+        task_id = request.data.get('task_id')  # Optional
+
+        if not file or not title:
+            logger.error("Missing required fields: file or title")
+            return Response({'error': 'File and title are required'}, status=status.HTTP_400_BAD_REQUEST)
+
+        task = None
+        if task_id:
+            try:
+                task_id_int = int(task_id)  # Ensure task_id is an integer
+                task = Task.objects.get(task_id=task_id_int)
+                logger.info(f"Found task: task_id={task_id_int}")
+            except ValueError:
+                logger.error(f"Invalid task_id: {task_id}")
+                return Response({'error': 'Invalid task ID'}, status=status.HTTP_400_BAD_REQUEST)
+            except Task.DoesNotExist:
+                logger.error(f"Task not found: task_id={task_id}")
+                return Response({'error': 'Task not found'}, status=status.HTTP_404_NOT_FOUND)
+
+        try:
+            document = Document(
+                task_id=task,
+                document_title=title,
+                document_description=description,
+                doc_type=file.content_type or file.name.split('.')[-1],
+                last_modified_by=user,
+                file=file
+            )
+            document.save()
+            logger.info(f"Document saved: document_id={document.document_id}")
+        except Exception as e:
+            logger.error(f"Error saving document: {str(e)}")
+            return Response({'error': f'Failed to save document: {str(e)}'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+        try:
+            serializer = DocumentSerializer(document)
+            logger.info(f"Serialized document: {serializer.data}")
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+        except Exception as e:
+            logger.error(f"Serialization error: {str(e)}")
+            return Response({'error': f'Serialization error: {str(e)}'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)

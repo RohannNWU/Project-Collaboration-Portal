@@ -69,7 +69,9 @@ class User_Task(models.Model):
 
     def __str__(self):
         return f"{self.user_email} - {self.task_id}"
-# Removed conflicting Document model - using the correct one below (lines 117-131)
+    
+
+# Removed conflicting Document model using the correct one below (lines 117-131)
       
 class Message(models.Model):
     MESSAGE_TYPES = [
@@ -104,6 +106,8 @@ class Document(models.Model):
     doc_type = models.CharField(max_length=50)
     date_time_last_modified = models.DateTimeField(auto_now=True)
     last_modified_by = models.ForeignKey(User, on_delete=models.CASCADE)
+    file = models.FileField(upload_to='documents/')  # Added this to store the actual file
+
     class Meta:
         managed = True
 
