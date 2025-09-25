@@ -84,6 +84,7 @@ class DashboardView(APIView):
             user_projects = UserProject.objects.filter(email=user).select_related('project_id')
             projects = [
                 {
+                    'project_id': user_project.project_id.project_id,
                     'project_name': user_project.project_id.project_name,
                     'progress': 0,
                     'dueDate': user_project.project_id.due_date.strftime('%d/%m/%Y'),
@@ -194,7 +195,7 @@ class AddTaskView(APIView):
             task_due_date = request.data.get('task_due_date')
             task_status = request.data.get('task_status')
             task_priority = request.data.get('task_priority')
-            project_id = Project.objects.get(project_name=request.data.get('project_name'))
+            project_id = Project.objects.get(project_id=request.data.get('project_id'))
             task_members = request.data.get('task_members', [])
 
             # Create new task using ORM

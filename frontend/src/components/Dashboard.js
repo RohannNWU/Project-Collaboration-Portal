@@ -787,9 +787,6 @@ const Dashboard = () => {
                               gap: '15px',
                               flexWrap: 'wrap'
                             }}>
-                              <span style={{ minWidth: '120px' }}>
-                                {event.start ? new Date(event.start).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) : 'All day'}
-                              </span>
                               {event.description && (
                                 <span style={{ maxWidth: '200px' }}>
                                   {event.description.length > 50 

@@ -1,6 +1,5 @@
 from django.utils import timezone
 from django.db import models
-
 from django.contrib.auth.models import User as DjangoUser
 from django.conf import settings
 
@@ -96,21 +95,19 @@ class Message(models.Model):
         return f"{self.subject} - {self.sender.email} to {self.recipient.email}"
 
 class Document(models.Model):
-    id = models.AutoField(primary_key=True)
-    name = models.CharField(max_length=200)
-    description = models.TextField(blank=True, null=True)
-    file_path = models.CharField(max_length=500)
-    file_size = models.BigIntegerField()
-    file_type = models.CharField(max_length=50)
-    project = models.ForeignKey(Project, on_delete=models.CASCADE, related_name='documents')
-    uploaded_by = models.ForeignKey(User, on_delete=models.CASCADE, related_name='uploaded_documents')
-    uploaded_at = models.DateTimeField(default=timezone.now)
-
+    document_id = models.AutoField(primary_key=True)
+    task_id = models.ForeignKey(Task, on_delete=models.CASCADE, null=True, blank=True)
+    document_title = models.CharField(max_length=200)
+    document_description = models.TextField(blank=True, null=True)
+    date_time_uploaded = models.DateTimeField(default=timezone.now)
+    doc_type = models.CharField(max_length=50)
+    date_time_last_modified = models.DateTimeField(auto_now=True)
+    last_modified_by = models.ForeignKey(User, on_delete=models.CASCADE)
     class Meta:
-        db_table = 'documents'
+        managed = True
 
     def __str__(self):
-        return self.name
+        return self.document_title
 
 class ActivityLog(models.Model):
     ACTION_TYPES = [
@@ -181,7 +178,6 @@ class Feedback(models.Model):
 
     def __str__(self):
         return f"Feedback on {self.task.title} by {self.supervisor}"
-
 
 class EditRequest(models.Model):
     task = models.ForeignKey("Task", on_delete=models.CASCADE, related_name="edit_requests")
