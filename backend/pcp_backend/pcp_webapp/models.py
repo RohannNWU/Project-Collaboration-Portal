@@ -69,10 +69,6 @@ class User_Task(models.Model):
 
     def __str__(self):
         return f"{self.user_email} - {self.task_id}"
-<<<<<<< HEAD
-
-class Notification(models.Model):
-=======
 # Removed conflicting Document model - using the correct one below (lines 117-131)
       
 class Message(models.Model):
@@ -100,21 +96,19 @@ class Message(models.Model):
         return f"{self.subject} - {self.sender.email} to {self.recipient.email}"
 
 class Document(models.Model):
-    id = models.AutoField(primary_key=True)
-    name = models.CharField(max_length=200)
-    description = models.TextField(blank=True, null=True)
-    file_path = models.CharField(max_length=500)
-    file_size = models.BigIntegerField()
-    file_type = models.CharField(max_length=50)
-    project = models.ForeignKey(Project, on_delete=models.CASCADE, related_name='documents')
-    uploaded_by = models.ForeignKey(User, on_delete=models.CASCADE, related_name='uploaded_documents')
-    uploaded_at = models.DateTimeField(default=timezone.now)
-
+    document_id = models.AutoField(primary_key=True)
+    task_id = models.ForeignKey(Task, on_delete=models.CASCADE, null=True, blank=True)
+    document_title = models.CharField(max_length=200)
+    document_description = models.TextField(blank=True, null=True)
+    date_time_uploaded = models.DateTimeField(default=timezone.now)
+    doc_type = models.CharField(max_length=50)
+    date_time_last_modified = models.DateTimeField(auto_now=True)
+    last_modified_by = models.ForeignKey(User, on_delete=models.CASCADE)
     class Meta:
-        db_table = 'documents'
-
+        managed = True
+ 
     def __str__(self):
-        return self.name
+        return self.document_title
 
 class ActivityLog(models.Model):
     ACTION_TYPES = [
@@ -152,21 +146,11 @@ class Notification(models.Model):
         ('edit_requested', 'Edit Requested'),
     ]
 
->>>>>>> main
     notif_id = models.AutoField(primary_key=True)
     project_id = models.ForeignKey(Project, on_delete=models.DO_NOTHING)
     time_sent = models.DateTimeField(auto_now_add=True)
     title = models.CharField(max_length=100)
     message = models.TextField()
-<<<<<<< HEAD
- 
-=======
-    
-    # References
-    #project = models.ForeignKey('Project', on_delete=models.CASCADE, null=True, blank=True, 
-     #                          related_name='notifications')
-    #task = models.ForeignKey('Task', on_delete=models.CASCADE, null=True, blank=True, 
-     #                       related_name='notifications')
     
     # specific notification types
     grades = models.CharField(max_length=100, null=True, blank=True)  # For feedback notifications
@@ -174,14 +158,10 @@ class Notification(models.Model):
     requested_by = models.ForeignKey('User', on_delete=models.SET_NULL, null=True, blank=True, 
                                    related_name='requested_edits')
 
->>>>>>> main
     class Meta:
         managed = True
  
     def __str__(self):
-<<<<<<< HEAD
-        return f"{self.title} - {self.time_sent} - {self.message}"
-=======
         return f"{self.title} - {self.time_sent} - {self.message}"
     
 #for automated notifications
@@ -203,4 +183,3 @@ class EditRequest(models.Model):
 
     def __str__(self):
         return f"Edit requested for {self.task.title} by {self.requested_by}"
->>>>>>> main
