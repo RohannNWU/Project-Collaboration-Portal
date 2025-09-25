@@ -117,17 +117,18 @@ const DocumentManager = () => {
     });
 
   // Handle document deletion
-  const handleDelete = async (documentId) => {
+  const handleDelete = async (document) => {
     if (window.confirm('Are you sure you want to delete this document? This action cannot be undone.')) {
       try {
-        console.log('Deleting document with ID:', documentId);
+        console.log('Deleting document:', document);
         setLoading(true);
         
-        const response = await documentService.deleteDocument(documentId);
+        // Pass the complete document object to deleteDocument
+        const response = await documentService.deleteDocument(document);
         console.log('Delete response:', response);
         
-        // Remove document from local state
-        const updatedDocuments = documents.filter(doc => doc.id !== documentId);
+        // Remove document from local state using file_path as the unique identifier
+        const updatedDocuments = documents.filter(doc => doc.file_path !== document.file_path);
         setDocuments(updatedDocuments);
         setSelectedDocument(null);
         
@@ -175,10 +176,18 @@ const DocumentManager = () => {
     }
 
     try {
-      console.log('Updating document:', selectedDocument.id, editForm);
+      console.log('Updating document:', selectedDocument, editForm);
       setLoading(true);
       
-      const updatedDocument = await documentService.updateDocument(selectedDocument.id, {
+      // Create a copy of the selected document with updated fields
+      const updatedDoc = {
+        ...selectedDocument,
+        title: editForm.name,
+        name: editForm.name,
+        description: editForm.description
+      };
+      
+      const updatedDocument = await documentService.updateDocument(updatedDoc, {
         title: editForm.name,
         name: editForm.name,
         description: editForm.description
@@ -189,7 +198,7 @@ const DocumentManager = () => {
       // Update document in local state
       setDocuments(documents.map(doc => 
         doc.id === selectedDocument.id 
-          ? { ...doc, name: editForm.name, title: editForm.name, description: editForm.description }
+          ? { ...doc, ...updatedDocument }
           : doc
       ));
 
@@ -198,10 +207,10 @@ const DocumentManager = () => {
       if (appContext.addNotification) {
         appContext.addNotification({
           type: 'success',
-          message: 'Document updated successfully'
+          message: 'Document updated successfully!'
         });
       }
-
+      
       setIsEditing(false);
       setSelectedDocument(null);
       setEditForm({ name: '', description: '' });
@@ -227,13 +236,44 @@ const DocumentManager = () => {
     setEditForm({ name: '', description: '' });
   };
 
-  // Handle document view/download
+  // Handle document view
   const handleView = async (document) => {
+    try {
+      console.log('Viewing document:', document);
+      setLoading(true);
+      
+      // Use the new viewDocument method to open in new tab
+      const result = await documentService.viewDocument(document);
+      console.log('View result:', result);
+      
+      if (appContext.addNotification) {
+        appContext.addNotification({
+          type: 'success',
+          message: 'Document opened for viewing'
+        });
+      }
+    } catch (error) {
+      console.error('Failed to view document:', error);
+      alert('Failed to view document. Please try again.');
+      
+      if (appContext.addNotification) {
+        appContext.addNotification({
+          type: 'error',
+          message: 'Failed to view document. Please try again.'
+        });
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Handle document download
+  const handleDownload = async (document) => {
     try {
       console.log('Downloading document:', document);
       setLoading(true);
       
-      const blob = await documentService.downloadDocument(document.id);
+      const blob = await documentService.downloadDocument(document);
       console.log('Download blob received:', blob);
       
       // Create a URL for the blob and trigger download
@@ -245,8 +285,6 @@ const DocumentManager = () => {
       link.click();
       window.document.body.removeChild(link);
       window.URL.revokeObjectURL(url);
-      
-      alert('Document downloaded successfully!');
       
       if (appContext.addNotification) {
         appContext.addNotification({
@@ -441,9 +479,17 @@ Document Details:
                   <button
                     onClick={() => handleView(document)}
                     className={`${styles.actionButton} ${styles.viewButton}`}
-                    title="View/Download"
+                    title="View Document"
                   >
                     <FontAwesomeIcon icon={faEye} />
+                  </button>
+                  
+                  <button
+                    onClick={() => handleDownload(document)}
+                    className={`${styles.actionButton} ${styles.downloadButton}`}
+                    title="Download Document"
+                  >
+                    <FontAwesomeIcon icon={faDownload} />
                   </button>
                   
                   <button
@@ -455,7 +501,7 @@ Document Details:
                   </button>
                   
                   <button
-                    onClick={() => handleDelete(document.id)}
+                    onClick={() => handleDelete(document)}
                     className={`${styles.actionButton} ${styles.deleteButton}`}
                     title="Delete"
                   >

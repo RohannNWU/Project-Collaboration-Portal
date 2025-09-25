@@ -16,6 +16,9 @@ from .serializers import (
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework import status, generics, permissions
 import bcrypt
+import logging
+
+logger = logging.getLogger(__name__)
 
 def get_user_from_token(request):
     """Helper function to extract user from JWT token"""
@@ -334,28 +337,33 @@ class DocumentListView(APIView):
     """API endpoint to list all documents for a user or create a new document"""
     
     def get(self, request):
+        # Use manual JWT authentication
+        user = get_user_from_token(request)
+        if not user:
+            return Response({'error': 'Authentication required'}, status=status.HTTP_401_UNAUTHORIZED)
+        
         try:
-            documents = Document.objects.filter(uploaded_by=request.user)
+            documents = Document.objects.filter(uploaded_by=user)
             document_list = []
             
             for doc in documents:
                 document_list.append({
-                    'id': doc.id,  # Document ID (PK) - using 'id' for frontend compatibility
+                    'id': doc.id,  # Document ID (PK)
                     'doc_id': doc.id,  # DOC_ID (PK) - keeping for backward compatibility
-                    'task_id': doc.task.id if doc.task else None,  # TASK_ID (FK)
-                    'title': doc.title,  # Title
-                    'name': doc.title,  # Name alias for frontend compatibility
-                    'description': doc.description,  # Description
-                    'datetime_uploaded': doc.datetime_uploaded.isoformat(),  # DateTime_Uploaded
-                    'upload_date': doc.datetime_uploaded.isoformat(),  # Upload date alias
-                    'doc_type': doc.doc_type,  # Doc_Type (MIME type)
-                    'file_type': doc.doc_type,  # File type alias
-                    'date_last_modified': doc.date_last_modified.isoformat(),  # Date_Last_Modified
-                    'last_modified_by': doc.last_modified_by.username,  # Last_Modified_By(User)
+                    'task_id': None,  # No task relationship in current model
+                    'title': doc.name,  # Using name field as title
+                    'name': doc.name,  # Name field
+                    'description': doc.description or '',  # Description field
+                    'datetime_uploaded': doc.uploaded_at.isoformat(),  # uploaded_at field
+                    'upload_date': doc.uploaded_at.isoformat(),  # Upload date alias
+                    'doc_type': doc.file_type,  # file_type field
+                    'file_type': doc.file_type,  # File type field
+                    'date_last_modified': doc.uploaded_at.isoformat(),  # No last_modified field, using uploaded_at
+                    'last_modified_by': doc.uploaded_by.email,  # Using uploaded_by user email
                     'file_path': doc.file_path,
                     'file_size': doc.file_size,
                     'size': doc.file_size,  # Size alias for frontend compatibility
-                    'uploaded_by': doc.uploaded_by.username
+                    'uploaded_by': doc.uploaded_by.email  # Using email from custom User model
                 })
             
             return Response({'documents': document_list}, status=status.HTTP_200_OK)
@@ -363,15 +371,17 @@ class DocumentListView(APIView):
             return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
     
     def post(self, request):
+        # Use manual JWT authentication
+        user = get_user_from_token(request)
+        if not user:
+            return Response({'error': 'Authentication required'}, status=status.HTTP_401_UNAUTHORIZED)
+        
         try:
             # Handle file upload
             uploaded_file = request.FILES.get('file')
             title = request.data.get('title', '')
             description = request.data.get('description', '')
-            task_id = request.data.get('task_id', None)
-            
-            if not request.user.is_authenticated:
-                return Response({'error': 'Authentication required'}, status=status.HTTP_401_UNAUTHORIZED)
+            project_id = request.data.get('project_id', None)
             
             if not uploaded_file:
                 return Response({'error': 'File is required'}, status=status.HTTP_400_BAD_REQUEST)
@@ -380,52 +390,89 @@ class DocumentListView(APIView):
             if not title:
                 title = uploaded_file.name
             
-            # Get task if task_id is provided
-            task = None
-            if task_id:
+            # Handle project_id - frontend sends "null" as string when no project
+            if project_id == 'null' or project_id == '' or project_id is None:
+                project_id = None
+            
+            # Get project if project_id is provided, otherwise create a default project
+            project = None
+            if project_id:
                 try:
-                    task = Task.objects.get(id=task_id)
-                except Task.DoesNotExist:
-                    return Response({'error': 'Task not found'}, status=status.HTTP_404_NOT_FOUND)
+                    project = Project.objects.get(pk=project_id)
+                except Project.DoesNotExist:
+                    return Response({'error': f'Project with ID {project_id} not found'}, status=status.HTTP_404_NOT_FOUND)
+            else:
+                # If no project_id provided, try to get or create a default project for the user
+                try:
+                    # First, try to find any project for the user
+                    user_projects = UserProject.objects.filter(email=user)
+                    if user_projects.exists():
+                        project = user_projects.first().project_id
+                    else:
+                        # Create a default project for the user
+                        from datetime import date
+                        default_project = Project.objects.create(
+                            project_name=f"Default Project - {user.email}",
+                            project_description="Default project for document uploads",
+                            due_date=date(2025, 12, 31),
+                            created_on=date.today()
+                        )
+                        # Associate user with the project
+                        UserProject.objects.create(
+                            email=user,
+                            project_id=default_project,
+                            role="owner"
+                        )
+                        project = default_project
+                except Exception as e:
+                    logger.error(f"Error creating default project: {str(e)}")
+                    return Response({'error': f'Error creating default project: {str(e)}'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
             
             # Save file to storage
             file_name = uploaded_file.name
-            file_path = default_storage.save(f'documents/{request.user.username}/{file_name}', ContentFile(uploaded_file.read()))
+            file_path = default_storage.save(f'documents/{user.email}/{file_name}', ContentFile(uploaded_file.read()))
             
-            # Create document record
+            # Create document record using the correct model structure
             document = Document.objects.create(
-                task=task,  # TASK_ID (FK)
-                title=title,  # Title
-                description=description,  # Description
-                doc_type=uploaded_file.content_type,  # Doc_Type (MIME type)
-                last_modified_by=request.user,  # Last_Modified_By(User)
+                name=title,  # name field
+                description=description,  # description field
                 file_path=file_path,
                 file_size=uploaded_file.size,
-                uploaded_by=request.user
+                file_type=uploaded_file.content_type,  # file_type field
+                project=project,  # project FK
+                uploaded_by=user  # uploaded_by FK to custom User model
             )
             
             return Response({
                 'message': 'Document uploaded successfully',
                 'document': {
-                    'id': document.id,  # Document ID (PK) - using 'id' for frontend compatibility
+                    'id': document.id,  # Document ID (PK)
                     'doc_id': document.id,
-                    'task_id': document.task.id if document.task else None,
-                    'title': document.title,
-                    'name': document.title,  # Name alias for frontend compatibility
-                    'description': document.description,
-                    'datetime_uploaded': document.datetime_uploaded.isoformat(),
-                    'upload_date': document.datetime_uploaded.isoformat(),  # Upload date alias
-                    'doc_type': document.doc_type,
-                    'file_type': document.doc_type,  # File type alias
-                    'date_last_modified': document.date_last_modified.isoformat(),
-                    'last_modified_by': document.last_modified_by.username,
+                    'task_id': None,  # No task relationship in current model
+                    'title': document.name,  # Using name field as title
+                    'name': document.name,  # Name field
+                    'description': document.description or '',  # Description field
+                    'datetime_uploaded': document.uploaded_at.isoformat(),
+                    'upload_date': document.uploaded_at.isoformat(),  # Upload date alias
+                    'doc_type': document.file_type,
+                    'file_type': document.file_type,  # File type field
+                    'date_last_modified': document.uploaded_at.isoformat(),  # No last_modified field
+                    'last_modified_by': document.uploaded_by.email,  # Using uploaded_by user email
                     'file_size': document.file_size,
                     'size': document.file_size,  # Size alias for frontend compatibility
-                    'uploaded_by': document.uploaded_by.username
+                    'uploaded_by': document.uploaded_by.email  # Using email from custom User model
                 }
             }, status=status.HTTP_201_CREATED)
         except Exception as e:
-            return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+            import traceback
+            error_details = {
+                'error': str(e),
+                'error_type': type(e).__name__,
+                'traceback': traceback.format_exc()
+            }
+            logger.error(f"Document upload error: {error_details}")
+            print(f"DOCUMENT UPLOAD ERROR: {error_details}")  # Debug print
+            return Response({'error': str(e), 'details': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
         
 class DocumentDetailView(APIView):
     """API endpoint to retrieve, update, or delete a specific document"""
@@ -521,7 +568,7 @@ class DocumentDetailView(APIView):
             return Response({'error': 'Document not found'}, status=status.HTTP_404_NOT_FOUND)
         except Exception as e:
             return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-        
+
 class DocumentDownloadView(APIView):
     """API endpoint to download a document"""
     permission_classes = [IsAuthenticated]

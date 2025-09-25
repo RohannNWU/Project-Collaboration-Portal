@@ -1,12 +1,10 @@
 // Document API Service
-const API_BASE_URL = window.location.hostname === 'localhost'
-  ? 'http://127.0.0.1:8000'
-  : 'https://pcp-backend-f4a2.onrender.com';
+const API_BASE_URL = 'http://127.0.0.1:8000';
 
 class DocumentService {
   // Get authentication headers
   getAuthHeaders() {
-    const token = localStorage.getItem('access_token');
+    const token = localStorage.getItem('token'); // Fixed: using 'token' instead of 'access_token'
     console.log('Auth token from localStorage:', token ? 'Token exists' : 'No token found');
     
     if (!token) {
@@ -22,7 +20,7 @@ class DocumentService {
 
   // Get multipart headers for file uploads
   getMultipartHeaders() {
-    const token = localStorage.getItem('access_token');
+    const token = localStorage.getItem('token'); // Fixed: using 'token' instead of 'access_token'
     console.log('Auth token for multipart:', token ? 'Token exists' : 'No token found');
     
     if (!token) {
@@ -68,10 +66,10 @@ class DocumentService {
     }
   }
 
-  // Get all documents for the current user
+  // Get all documents for the current user using the new upload endpoint
   async getDocuments() {
     try {
-      const response = await fetch(`${API_BASE_URL}/api/documents/`, {
+      const response = await fetch(`${API_BASE_URL}/api/uploads/`, {
         method: 'GET',
         headers: this.getAuthHeaders(),
       });
@@ -88,16 +86,15 @@ class DocumentService {
     }
   }
 
-  // Upload a new document
+  // Upload a new document using the new dedicated upload endpoint
   async uploadDocument(file, projectId, title = '', description = '') {
     try {
       const formData = new FormData();
       formData.append('file', file);
-      formData.append('project_id', projectId);
       formData.append('title', title);
       formData.append('description', description);
 
-      const response = await fetch(`${API_BASE_URL}/api/documents/`, {
+      const response = await fetch(`${API_BASE_URL}/api/upload/`, {
         method: 'POST',
         headers: this.getMultipartHeaders(),
         body: formData,
@@ -105,7 +102,7 @@ class DocumentService {
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.message || `HTTP error! status: ${response.status}`);
+        throw new Error(errorData.error || errorData.message || `HTTP error! status: ${response.status}`);
       }
 
       return await response.json();
@@ -135,58 +132,119 @@ class DocumentService {
     }
   }
 
-  // Update a document
-  async updateDocument(documentId, updates, newFile = null) {
+  // Update a document's metadata in the file-based system
+  async updateDocument(document, updates) {
     try {
-      let response;
+      if (!document) {
+        throw new Error('No document provided for update');
+      }
       
-      if (newFile) {
-        // If updating with a new file, use FormData
-        const formData = new FormData();
-        formData.append('name', updates.name || '');
-        formData.append('description', updates.description || '');
-        formData.append('file', newFile);
-
-        response = await fetch(`${API_BASE_URL}/api/documents/${documentId}/`, {
-          method: 'PUT',
-          headers: this.getMultipartHeaders(),
-          body: formData,
-        });
+      // In our file-based system, we'll update the metadata file
+      const filePath = document.file_path || document.path || '';
+      
+      if (!filePath) {
+        throw new Error('Document file path is missing');
+      }
+      
+      // Create metadata path by replacing the file extension with _metadata.json
+      // or appending _metadata.json if no extension is found
+      let metadataPath;
+      const lastDotIndex = filePath.lastIndexOf('.');
+      if (lastDotIndex > 0) {
+        metadataPath = filePath.substring(0, lastDotIndex) + '_metadata.json';
       } else {
-        // If only updating metadata, use JSON
-        response = await fetch(`${API_BASE_URL}/api/documents/${documentId}/`, {
-          method: 'PUT',
-          headers: this.getAuthHeaders(),
-          body: JSON.stringify(updates),
-        });
+        metadataPath = filePath + '_metadata.json';
       }
-
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.message || `HTTP error! status: ${response.status}`);
+      
+      console.log('Fetching metadata from:', metadataPath);
+      
+      // Get the current metadata
+      const metadataResponse = await fetch(`${API_BASE_URL}/api/view/${encodeURIComponent(metadataPath)}/`, {
+        method: 'GET',
+        headers: this.getAuthHeaders(),
+      });
+      
+      if (!metadataResponse.ok) {
+        const errorText = await metadataResponse.text();
+        console.error('Failed to fetch metadata:', errorText);
+        throw new Error(`Failed to fetch document metadata: ${metadataResponse.status} - ${errorText}`);
       }
-
-      return await response.json();
+      
+      let metadata;
+      try {
+        metadata = await metadataResponse.json();
+      } catch (e) {
+        console.error('Failed to parse metadata JSON:', e);
+        throw new Error('Invalid metadata format received from server');
+      }
+      
+      // Update the metadata with the new values
+      const updatedMetadata = {
+        ...metadata,
+        title: updates.title !== undefined ? updates.title : (metadata.title || document.title || document.name || ''),
+        name: updates.name !== undefined ? updates.name : (metadata.name || document.name || document.title || ''),
+        description: updates.description !== undefined ? updates.description : (metadata.description || document.description || ''),
+        last_modified: new Date().toISOString(),
+      };
+      
+      console.log('Updating metadata with:', updatedMetadata);
+      
+      // Save the updated metadata back to the file
+      const updateResponse = await fetch(`${API_BASE_URL}/api/update-metadata/`, {
+        method: 'POST',
+        headers: {
+          ...this.getAuthHeaders(),
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          file_path: metadataPath,
+          metadata: updatedMetadata,
+        }),
+      });
+      
+      if (!updateResponse.ok) {
+        const errorData = await updateResponse.json().catch(() => ({}));
+        console.error('Update metadata failed:', errorData);
+        throw new Error(errorData.message || `HTTP error! status: ${updateResponse.status}`);
+      }
+      
+      // Return the updated document with all the changes
+      const result = {
+        ...document,
+        ...updates,
+        file_path: filePath,
+        last_modified: updatedMetadata.last_modified,
+      };
+      
+      console.log('Update successful, returning:', result);
+      return result;
     } catch (error) {
       console.error('Error updating document:', error);
       throw error;
     }
   }
 
-  // Delete a document
-  async deleteDocument(documentId) {
+  // Delete a document using file path
+  async deleteDocument(document) {
     try {
-      const url = `${API_BASE_URL}/api/documents/${documentId}/`;
+      // Use the file_path from the document object instead of documentId
+      const url = `${API_BASE_URL}/api/delete-document/`;
       const headers = this.getAuthHeaders();
       
       console.log('Delete request details:');
       console.log('URL:', url);
       console.log('Headers:', headers);
-      console.log('Document ID:', documentId);
+      console.log('Document:', document);
       
       const response = await fetch(url, {
-        method: 'DELETE',
-        headers: headers,
+        method: 'POST',
+        headers: {
+          ...headers,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          file_path: document.file_path
+        }),
       });
 
       console.log('Delete response status:', response.status);
@@ -198,7 +256,7 @@ class DocumentService {
         throw new Error(`HTTP error! status: ${response.status} - ${errorText}`);
       }
 
-      // Try to parse JSON response, but handle cases where response might be empty
+      // Get the response data
       let data;
       try {
         const responseText = await response.text();
@@ -222,26 +280,124 @@ class DocumentService {
     }
   }
 
-  // Download a document (placeholder - would need file serving endpoint)
-  async downloadDocument(documentId) {
+  // View a document using the new file-based endpoint
+  async viewDocument(doc) {
     try {
-      const response = await fetch(`${API_BASE_URL}/api/documents/${documentId}/download/`, {
+      const token = localStorage.getItem('token');
+      if (!token) {
+        throw new Error('No authentication token found');
+      }
+
+      // Construct the view URL using the file_path from the document
+      const filePath = encodeURIComponent(doc.file_path);
+      const viewUrl = `${API_BASE_URL}/api/view/${filePath}/`;
+      
+      // Add token to URL as a query parameter
+      const url = new URL(viewUrl);
+      url.searchParams.append('token', token);
+      
+      // Open the URL in a new tab
+      window.open(url.toString(), '_blank');
+      
+      return { success: true, message: 'Document opened for viewing' };
+    } catch (error) {
+      console.error('Error viewing document:', error);
+      throw error;
+    }
+}
+
+// Download a document using the new file-based endpoint
+async downloadDocument(document) {
+  try {
+    const token = localStorage.getItem('token');
+    if (!token) {
+      throw new Error('No authentication token found');
+    }
+
+    const filePath = document.file_path || `${document.uploader}/${document.filename}`;
+    const response = await fetch(`${API_BASE_URL}/api/view/${filePath}/`, {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+      },
+    });
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+
+    const blob = await response.blob();
+    return blob;
+  } catch (error) {
+    console.error('Error downloading document:', error);
+    throw error;
+  }
+  }
+
+  // Task-Based Document Management Methods
+
+  // Get all tasks with documents and user permissions
+  async getUserTasksWithDocuments() {
+    try {
+      const token = localStorage.getItem('token');
+      if (!token) {
+        throw new Error('No authentication token found');
+      }
+
+      const response = await fetch(`${API_BASE_URL}/api/tasks/documents/`, {
         method: 'GET',
-        headers: this.getAuthHeaders(),
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
       });
 
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
 
-      // Return blob for download
-      const blob = await response.blob();
-      return blob;
+      const data = await response.json();
+      return data;
     } catch (error) {
-      console.error('Error downloading document:', error);
+      console.error('Error fetching user tasks with documents:', error);
+      throw error;
+    }
+  }
+
+  // Upload document to a specific task
+  async uploadTaskDocument(taskId, file, title, description) {
+    try {
+      const token = localStorage.getItem('token');
+      if (!token) {
+        throw new Error('No authentication token found');
+      }
+
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('task_id', taskId);
+      formData.append('title', title || file.name);
+      formData.append('description', description || '');
+
+      const response = await fetch(`${API_BASE_URL}/api/tasks/upload/`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+        body: formData,
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const data = await response.json();
+      return data;
+    } catch (error) {
+      console.error('Error uploading task document:', error);
       throw error;
     }
   }
 }
 
-export default new DocumentService();
+const documentService = new DocumentService();
+export default documentService;

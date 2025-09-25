@@ -7,6 +7,7 @@ const Layout = ({ children, title, subtitle }) => {
 
   const navigationItems = [
     { path: '/', label: 'Home', exact: true },
+    { path: '/documents', label: 'Documents' },
     { path: '/upload-collaborative-documentation', label: 'Upload' }
   ];
 
