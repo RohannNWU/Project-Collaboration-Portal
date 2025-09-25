@@ -5,7 +5,7 @@
   align-items: center;
   justify-content: center;
 }
-input {
+input, textarea {
   margin: 10px;
   padding: 8px;
   width: 200px;

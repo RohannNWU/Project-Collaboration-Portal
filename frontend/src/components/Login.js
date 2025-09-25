@@ -1,9 +1,10 @@
-import React, { useState } from 'react';
+import React, { useState, useContext } from 'react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 import styles from './login.module.css';
 import { faEnvelope, faLock, faEye, faEyeSlash, faArrowRight } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { useAuth } from '../context/AuthProvider';
 
 const Login = () => {
   const [showPassword, setShowPassword] = useState(false);
@@ -12,18 +13,40 @@ const Login = () => {
   const [error, setError] = useState('');
   const navigate = useNavigate();
   
+  const { setUser } = useAuth();
+  
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setError('');
     try {
       const API_BASE_URL = window.location.hostname === 'localhost'
         ? 'http://127.0.0.1:8000'
         : 'https://pcp-backend-f4a2.onrender.com';
         
       const response = await axios.post(`${API_BASE_URL}/api/login/`, { email, password });
+      
+      // Store tokens and user data
       localStorage.setItem('access_token', response.data.access);
+      localStorage.setItem('username', response.data.username);
+      localStorage.setItem('email', response.data.email);
+      
+      // Update auth context
+      setUser({
+        username: response.data.username,
+        email: response.data.email,
+        token: response.data.access
+      });
+      
+      // Navigate to dashboard
       navigate('/dashboard');
     } catch (err) {
-      setError('Invalid credentials');
+      console.error('Login error:', err);
+      setError('Invalid email or password. Please try again.');
+      // Clear any partial login state
+      localStorage.removeItem('access_token');
+      localStorage.removeItem('username');
+      localStorage.removeItem('email');
+      setUser(null);
     }
   };
   

@@ -42,7 +42,11 @@ const NewProject = () => {
     const handleAddMember = (e) => {
         e.preventDefault();
         if (memberName.trim()) {
+<<<<<<< HEAD
             const emailWithDomain = `${memberName.trim()}@gmail.com`;
+=======
+            const emailWithDomain = `${memberName.trim()}@mynwu.ac.za`;
+>>>>>>> main
             setProjectMembers([emailWithDomain, ...project_members]);
             setMemberName('');
         }
@@ -112,7 +116,11 @@ const NewProject = () => {
                     type="text"
                     value={project_members.join('; \n')}
                     disabled
+<<<<<<< HEAD
                     rows="8"
+=======
+                    rows={8}
+>>>>>>> main
                 />
                 <br />
                 <button type="submit">Create Project</button>
