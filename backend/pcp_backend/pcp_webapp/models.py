@@ -106,7 +106,6 @@ class Document(models.Model):
     last_modified_by = models.ForeignKey(User, on_delete=models.CASCADE)
     class Meta:
         managed = True
- 
     def __str__(self):
         return self.document_title
 
