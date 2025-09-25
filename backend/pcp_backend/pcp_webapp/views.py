@@ -4,10 +4,6 @@ from rest_framework import status
 from rest_framework_simplejwt.tokens import UntypedToken, AccessToken
 from rest_framework_simplejwt.exceptions import InvalidToken
 from datetime import datetime, timedelta
-<<<<<<< HEAD
-from .models import User, Project, UserProject, Project, Task, User_Task
-import bcrypt
-=======
 from .models import User, Project, UserProject, Task, User_Task, Document
 from django.core.files.storage import default_storage
 from django.core.files.base import ContentFile
@@ -21,7 +17,6 @@ from rest_framework.decorators import api_view, permission_classes
 from rest_framework import status, generics, permissions
 import bcrypt
 import logging
->>>>>>> main
 
 logger = logging.getLogger(__name__)
 
@@ -170,9 +165,6 @@ class AddProjectView(APIView):
         except Exception as e:
             return Response({'error': f'Failed to add project: {str(e)}'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
-<<<<<<< HEAD
-
-=======
 class GetMembersView(APIView):
     def post(self, request):
             try:
@@ -226,7 +218,6 @@ class AddTaskView(APIView):
         except Exception as e:
             return Response({'error': f'Failed to add task: {str(e)}'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
         
->>>>>>> main
 class CalendarView(APIView):
     def get(self, request):
         auth_header = request.headers.get('Authorization')
@@ -278,9 +269,6 @@ class CalendarView(APIView):
         except User.DoesNotExist:
             return Response({'error': 'User not found'}, status=status.HTTP_401_UNAUTHORIZED)
         except Exception as e:
-<<<<<<< HEAD
-            return Response({'error': f'Database error: {str(e)}'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-=======
             return Response({'error': f'Database error: {str(e)}'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 class GetTasksView(APIView):
@@ -839,4 +827,3 @@ class NotificationListView(APIView):
             queryset = queryset.filter(notification_type=notification_type)
         
         return queryset
->>>>>>> main
