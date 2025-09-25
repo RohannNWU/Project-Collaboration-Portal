@@ -5,10 +5,6 @@ import { AuthProvider, useAuth } from './context/AuthProvider';
 import Login from './components/Login';
 import Dashboard from './components/Dashboard';
 import Signup from './components/Signup';
-<<<<<<< HEAD
-import Calendar from './components/Calendar';
-import NewProject from './components/NewProject';
-=======
 import NewProject from './components/NewProject';
 import MyTasks from './components/MyTasks';
 import EditProject from './components/EditProject';
@@ -27,20 +23,10 @@ const ProtectedRoute = ({ children }) => {
   
   return children ? children : <Outlet />;
 };
->>>>>>> main
 
 function App() {
   return (
     <Router>
-<<<<<<< HEAD
-        <Routes>
-          <Route path="/" element={<Login />} />
-          <Route path="/dashboard" element={<Dashboard />} />
-          <Route path="/adduser" element={<Signup />} />
-          <Route path="/calendar" element={<Calendar />} />
-          <Route path="/newProject" element={<NewProject />} />
-        </Routes>
-=======
       <AuthProvider>
         <AppProvider>
           <Routes>
@@ -63,7 +49,6 @@ function App() {
           </Routes>
         </AppProvider>
       </AuthProvider>
->>>>>>> main
     </Router>
   );
 }
