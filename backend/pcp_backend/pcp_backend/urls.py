@@ -2,9 +2,6 @@ from django.contrib import admin
 from django.conf import settings
 from django.conf.urls.static import static
 from django.urls import path
-<<<<<<< HEAD
-from pcp_webapp.views import LoginView, DashboardView, AddUserView, AddProjectView, CalendarView
-=======
 from pcp_webapp.views import (
     MessageListCreateView, mark_message_read,
     LoginView, DashboardView, AddUserView, AddProjectView, 
@@ -16,7 +13,6 @@ from pcp_webapp.upload_views import (
     get_user_tasks_with_documents, upload_task_document, delete_document,
     update_metadata
 )
->>>>>>> main
 
 urlpatterns = [
     path('admin/', admin.site.urls),
@@ -24,10 +20,6 @@ urlpatterns = [
     path('api/dashboard/', DashboardView.as_view(), name='dashboard'),
     path('api/adduser/', AddUserView.as_view(), name='adduser'),
     path('api/newproject/', AddProjectView.as_view(), name='newproject'),
-<<<<<<< HEAD
-    path('api/calendar/', CalendarView.as_view(), name='calendar'),
-]
-=======
     path('api/getmembers/', GetMembersView.as_view(), name='getmembers'),
     path('api/addtask/', AddTaskView.as_view(), name='addtask'),
     path('api/calendar/', CalendarView.as_view(), name='calendar'),
@@ -51,4 +43,3 @@ urlpatterns = [
 # Serve media files during development
 if settings.DEBUG:
     urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
->>>>>>> main
