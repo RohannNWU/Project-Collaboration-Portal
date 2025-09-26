@@ -1,11 +1,12 @@
+// Dashboard.js
 import React, { useState, useEffect, useCallback } from 'react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import {
-  faFolder, faCheckCircle, faCalendar, faCodeBranch, faFile, faInbox,
-  faBell, faCog, faSignOutAlt, faPlus, faEnvelope, faProjectDiagram,
-  faUserCheck, faComment, faUpload, faChevronLeft, faChevronRight
+  faFolder, faCheckCircle, faUsers, faCodeBranch, faFile, faInbox,
+  faBell, faCog, faSignOutAlt, faPlus, faSearch, faEnvelope, faProjectDiagram,
+  faComment, faUpload, faChevronLeft, faChevronRight, faCalendar
 } from '@fortawesome/free-solid-svg-icons';
 import styles from './Dashboard.module.css';
 
@@ -177,9 +178,8 @@ const Dashboard = () => {
 
         <nav className={styles.nav}>
           <button className={styles.navBtn}><FontAwesomeIcon icon={faFolder} /> My Projects</button>
-          <button className={styles.navBtn}><FontAwesomeIcon icon={faCheckCircle} /> My Tasks</button>
-          <button className={styles.navBtn}><FontAwesomeIcon icon={faCodeBranch} /> Repos</button>
-          <button className={styles.navBtn}><FontAwesomeIcon icon={faFile} /> Documents</button>
+          <button className={styles.navBtn} onClick={() => navigate('/mytasks', { state: { email } })}><FontAwesomeIcon icon={faCheckCircle} /> My Tasks</button>
+          <button className={styles.navBtn} onClick={() => navigate('/collabdoc')}><FontAwesomeIcon icon={faFile} /> Documents</button>
           <button className={styles.navBtn}><FontAwesomeIcon icon={faInbox} /> Inbox</button>
         </nav>
 
@@ -202,8 +202,13 @@ const Dashboard = () => {
         <header className={styles.topbar}>
           <div className={styles.tbLeft}>
             <h1>Project Collaboration Portal</h1>
+            <span className={styles.badge}>Student</span>
           </div>
           <div className={styles.tbRight}>
+            <div className={styles.search}>
+              <input type="text" placeholder="Search projects, tasks, people…" />
+              <FontAwesomeIcon icon={faSearch} className={styles.searchIcon} />
+            </div>
             <button className={styles.iconBtn} title="Notifications">
               <FontAwesomeIcon icon={faBell} />
             </button>
@@ -212,7 +217,7 @@ const Dashboard = () => {
             </button>
             <div className={styles.user}>
               <button className={styles.logoutBtn} onClick={logout} title="Logout">
-                Logout <FontAwesomeIcon icon={faSignOutAlt} />
+                <FontAwesomeIcon icon={faSignOutAlt} />
               </button>
             </div>
           </div>
@@ -225,12 +230,12 @@ const Dashboard = () => {
             <h2 id="kpi-projects">{projects.length}</h2>
           </div>
           <div className={styles.card}>
-            <p>Tasks Due This Week</p>
-            <h2 id="kpi-tasks-week">7</h2>
+            <p>Calendar Events</p>
+            <h2 id="kpi-events">{calendarEvents.length}</h2>
           </div>
           <div className={styles.card}>
-            <p>Unread Messages</p>
-            <h2 id="kpi-messages">2</h2>
+            <p>Total Deadlines</p>
+            <h2 id="kpi-deadlines">{projects.length + calendarEvents.length}</h2>
           </div>
         </section>
 
@@ -267,7 +272,7 @@ const Dashboard = () => {
             <tbody>
               {projects.map((project, index) => (
                 <tr key={index}>
-                  <td>{project.project_name}</td>
+                  <td>{project.project_id} - {project.project_name}</td>
                   <td>
                     <div className={styles.progressBar}>
                       <div
@@ -278,7 +283,7 @@ const Dashboard = () => {
                   </td>
                   <td>{project.dueDate}</td>
                   <td>
-                    <button className={styles.editBtn} onClick={() => navigate('/editproject', { state: { projectName: project.project_name } })}>Edit</button>
+                    <button className={styles.editBtn} onClick={() => navigate('/editproject', { state: { projectId: project.project_id, projectName: project.project_name } })}>Edit</button>
                   </td>
                   <td>
                     <input
@@ -788,6 +793,9 @@ const Dashboard = () => {
                               gap: '15px',
                               flexWrap: 'wrap'
                             }}>
+                              <span style={{ minWidth: '120px' }}>
+                                {event.start ? new Date(event.start).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) : 'All day'}
+                              </span>
                               {event.description && (
                                 <span style={{ maxWidth: '200px' }}>
                                   {event.description.length > 50 
@@ -904,19 +912,6 @@ const Dashboard = () => {
             {calendarEvents.length === 0 && (
               <li style={{ color: '#666', fontStyle: 'italic' }}>No recent events</li>
             )}
-          </ul>
-        </section>
-
-
-        <section className={styles.panel}>
-          <div className={styles.panelHead}>
-            <h3>Team Activity</h3>
-            <span className={styles.live}>Live</span>
-          </div>
-          <ul className={styles.list}>
-            <li><FontAwesomeIcon icon={faUserCheck} /> Sarah updated CMPG 323 documentation</li>
-            <li><FontAwesomeIcon icon={faUserCheck} /> Michael completed task: API integration</li>
-            <li><FontAwesomeIcon icon={faUserCheck} /> You uploaded meeting_notes.pdf</li>
           </ul>
         </section>
 

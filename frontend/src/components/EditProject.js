@@ -5,6 +5,7 @@ import { jwtDecode } from 'jwt-decode';
 
 const EditProject = () => {
   const [user, setUser] = useState('');
+  const [projectId, setProjectId] = useState('');
   const [projectName, setProjectName] = useState('');
   const [projectMembers, setProjectMembers] = useState([]); // Initialize as empty array
   const [memberName, setMemberName] = useState('');
@@ -20,9 +21,9 @@ const EditProject = () => {
   // Fetch project members when projectName changes
   useEffect(() => {
     const fetchMembers = async () => {
-      if (projectName) {
+      if (projectId) {
         try {
-          const response = await axios.post(`${API_BASE_URL}/api/getmembers/`, { projectName });
+          const response = await axios.post(`${API_BASE_URL}/api/getmembers/`, { projectId });
           setProjectMembers(response.data.members || []);
         } catch (error) {
           console.error('Error fetching members:', error);
@@ -32,7 +33,7 @@ const EditProject = () => {
     };
 
     fetchMembers();
-  }, [projectName, API_BASE_URL]); // Run when projectName changes
+  }, [projectId, API_BASE_URL]); // Run when projectName changes
 
   // Handle token and projectName initialization
   useEffect(() => {
@@ -50,8 +51,9 @@ const EditProject = () => {
     }
 
     // Get project data from navigation state
-    if (location.state?.projectName) {
-      setProjectName(location.state.projectName);
+    if (location.state?.projectId && location.state?.projectName) {
+        setProjectId(location.state.projectId);
+        setProjectName(location.state.projectName);
     }
   }, [navigate, location]);
 
@@ -73,7 +75,7 @@ const EditProject = () => {
       const response = await axios.post(
         `${API_BASE_URL}/api/addtask/`,
         {
-          project_name: projectName,
+          project_id: projectId,
           task_name: event.target.taskName.value,
           task_description: event.target.taskDescription.value,
           task_due_date: event.target.taskDueDate.value,
@@ -89,7 +91,7 @@ const EditProject = () => {
 
   return (
     <div>
-      <h1>Edit Project: {projectName}</h1>
+      <h1>Edit Project: {projectId}</h1>
       <small>{user} viewing project</small>
       <br />
       <br />
