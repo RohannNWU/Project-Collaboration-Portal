@@ -103,7 +103,7 @@ class Document(models.Model):
     document_title = models.CharField(max_length=200)
     document_description = models.TextField(blank=True, null=True)
     date_time_uploaded = models.DateTimeField(default=timezone.now)
-    doc_type = models.CharField(max_length=50)
+    doc_type = models.CharField(max_length=500)
     date_time_last_modified = models.DateTimeField(auto_now=True)
     last_modified_by = models.ForeignKey(User, on_delete=models.CASCADE)
     file = models.FileField(upload_to='documents/')  # Added this to store the actual file

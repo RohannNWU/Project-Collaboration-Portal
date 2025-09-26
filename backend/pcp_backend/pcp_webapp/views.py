@@ -1,3 +1,4 @@
+import os
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
@@ -17,6 +18,8 @@ from rest_framework.decorators import api_view, permission_classes
 from rest_framework import status, generics, permissions
 import bcrypt
 import logging
+import mimetypes
+import unicodedata
 
 logger = logging.getLogger(__name__)
 
@@ -179,10 +182,21 @@ class GetMembersView(APIView):
                         {'error': 'projectId is required'},
                         status=status.HTTP_400_BAD_REQUEST
                     )
-
-                members = UserProject.objects.filter(project_id=project_id).values('email')
-                first_names = User.objects.filter(email__in=members).values('email', 'first_name')
-                members_list = [{'email': member['email'], 'first_name': member['first_name']} for member in first_names]
+ 
+                members = UserProject.objects.filter(project_id=project_id).values('email', 'role')
+                emails = [member['email'] for member in members]
+                first_names = User.objects.filter(email__in=emails).values('email', 'first_name', 'last_name')
+                first_name_map = {item['email']: item['first_name'] for item in first_names}
+                last_name_map = {item['email']: item['last_name'] for item in first_names}
+                members_list = [
+                    {
+                        'email': member['email'],
+                        'first_name': first_name_map.get(member['email'], 'Unknown'),  # Default to 'Unknown' if no first_name
+                        'last_name': last_name_map.get(member['email'], 'Unknown'),   # Default to 'Unknown' if no last_name
+                        'role': member['role']
+                    }
+                    for member in members
+                ]
                 return Response({'members': members_list}, status=status.HTTP_200_OK)
             except Exception as e:
                 return Response(
@@ -575,28 +589,6 @@ class DocumentDetailView(APIView):
         except Exception as e:
             return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
-class DocumentDownloadView(APIView):
-    """API endpoint to download a document"""
-    permission_classes = [IsAuthenticated]
-    
-    def get(self, request, document_id):
-        try:
-            document = Document.objects.get(id=document_id)
-            
-            if not document.file_path or not default_storage.exists(document.file_path):
-                return Response({'error': 'File not found'}, status=status.HTTP_404_NOT_FOUND)
-            
-            # Open and return the file
-            file_content = default_storage.open(document.file_path)
-            response = HttpResponse(file_content.read(), content_type=document.doc_type)
-            response['Content-Disposition'] = f'attachment; filename="{document.title}"'
-            return response
-            
-        except Document.DoesNotExist:
-            return Response({'error': 'Document not found'}, status=status.HTTP_404_NOT_FOUND)
-        except Exception as e:
-            return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-
 class MessageListCreateView(APIView):
     def get_user_from_token(self, request):
         auth_header = request.headers.get('Authorization')
@@ -834,59 +826,6 @@ class NotificationListView(APIView):
         
         return queryset
     
-#View to handle document upload - Francois 
-class DocumentUploadView(APIView):
-    def post(self, request):
-        logger.info(f"Received document upload request: {dict(request.data)}")
-        user = get_user_from_token(request)
-        if not user:
-            logger.error("Authentication failed: No valid user token")
-            return Response({'error': 'Authentication required'}, status=status.HTTP_401_UNAUTHORIZED)
-
-        file = request.FILES.get('file')
-        title = request.data.get('title')
-        description = request.data.get('description')
-        task_id = request.data.get('task_id')  # Optional
-
-        if not file or not title:
-            logger.error("Missing required fields: file or title")
-            return Response({'error': 'File and title are required'}, status=status.HTTP_400_BAD_REQUEST)
-
-        task = None
-        if task_id:
-            try:
-                task_id_int = int(task_id)  # Ensure task_id is an integer
-                task = Task.objects.get(task_id=task_id_int)
-                logger.info(f"Found task: task_id={task_id_int}")
-            except ValueError:
-                logger.error(f"Invalid task_id: {task_id}")
-                return Response({'error': 'Invalid task ID'}, status=status.HTTP_400_BAD_REQUEST)
-            except Task.DoesNotExist:
-                logger.error(f"Task not found: task_id={task_id}")
-                return Response({'error': 'Task not found'}, status=status.HTTP_404_NOT_FOUND)
-
-        try:
-            document = Document(
-                task_id=task,
-                document_title=title,
-                document_description=description,
-                doc_type=file.content_type or file.name.split('.')[-1],
-                last_modified_by=user,
-                file=file
-            )
-            document.save()
-            logger.info(f"Document saved: document_id={document.document_id}")
-        except Exception as e:
-            logger.error(f"Error saving document: {str(e)}")
-            return Response({'error': f'Failed to save document: {str(e)}'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-
-        try:
-            serializer = DocumentSerializer(document)
-            logger.info(f"Serialized document: {serializer.data}")
-            return Response(serializer.data, status=status.HTTP_201_CREATED)
-        except Exception as e:
-            logger.error(f"Serialization error: {str(e)}")
-            return Response({'error': f'Serialization error: {str(e)}'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 class GetProjectTasksView(APIView):
     def get(self, request):
@@ -934,6 +873,7 @@ class GetProjectTasksView(APIView):
         except Exception as e:
             return Response({'error': f'Failed to fetch tasks: {str(e)}'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
+
 class GetTaskDocumentsView(APIView):
     def get(self, request):
         try:
@@ -942,21 +882,269 @@ class GetTaskDocumentsView(APIView):
                 return Response({'error': 'Task ID is required'}, status=status.HTTP_400_BAD_REQUEST)
             
             documents = Document.objects.filter(task_id__task_id=task_id)
-            document_list = []
+            serializer = DocumentSerializer(documents, many=True)
             
-            for doc in documents:
-                document_list.append({
-                    'document_id': doc.document_id,  # DOC_ID (PK) - keeping for backward compatibility
-                    'task_id': doc.task_id.task_id if doc.task_id else None,  # TASK_ID (FK)
-                    'document_title': doc.document_title,  # Using name field as title
-                    'document_description': doc.document_description or '',  # Description field
-                    'datetime_uploaded': doc.date_time_uploaded.isoformat(),  # uploaded_at field
-                    'doc_type': doc.doc_type,  # file_type field
-                    'date_last_modified': doc.date_time_last_modified.isoformat(),  # No last_modified field, using uploaded_at
-                    'last_modified_by': doc.last_modified_by.email,  # Using uploaded_by user email
-                    'file': doc.file,
-                })
-            
-            return Response({'documents': document_list}, status=status.HTTP_200_OK)
+            return Response({'documents': serializer.data}, status=status.HTTP_200_OK)
         except Exception as e:
-            return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+            logger.error(f"Error in GetTaskDocumentsView: {str(e)}")
+            return Response({'error': f'Failed to fetch documents: {str(e)}'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+class GetProjectDataView(APIView):
+    def get(self, request):
+        try:
+            project_id = request.GET.get('project_id')
+            if not project_id:
+                return Response({'error': 'Project ID is required'}, status=status.HTTP_400_BAD_REQUEST)
+           
+            project = Project.objects.get(project_id=project_id)
+ 
+            project_data = {
+                'project_name': project.project_name,
+                'project_description': project.project_description,
+                'due_date': project.due_date.strftime('%d/%m/%Y') if project.due_date else 'No due date',
+                'created_on': project.created_on.strftime('%d/%m/%Y'),
+                'feedback': project.feedback or '',
+                'grade': project.grade or ''
+            }
+ 
+            return Response({'project_data': project_data}, status=status.HTTP_200_OK)
+        except Project.DoesNotExist:
+            return Response({'error': 'Project not found'}, status=status.HTTP_404_NOT_FOUND)
+
+class DocumentUploadView(APIView):
+    def get_mime_type_and_extension(self, file):
+
+        # Get filename and extension
+        filename = file.name
+        file_ext = os.path.splitext(filename)[1].lower() if filename else ''
+        
+        # First try to get MIME type from file content_type
+        mime_type = file.content_type
+        
+        # If content_type is unreliable, guess from filename
+        if not mime_type or mime_type == 'application/octet-stream':
+            guessed_mime, _ = mimetypes.guess_type(filename)
+            if guessed_mime:
+                mime_type = guessed_mime
+            else:
+                mime_type = 'application/octet-stream'
+        
+        # Normalize MIME type and get proper extension
+        mime_to_ext = {
+            'application/pdf': '.pdf',
+            'application/vnd.openxmlformats-officedocument.wordprocessingml.document': '.docx',
+            'application/msword': '.doc',
+            'image/jpeg': '.jpg',
+            'image/jpg': '.jpg',
+            'image/png': '.png',
+            'text/plain': '.txt',
+            'text/csv': '.csv',
+            'application/vnd.ms-excel': '.xls',
+            'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': '.xlsx',
+            'application/vnd.ms-powerpoint': '.ppt',
+            'application/vnd.openxmlformats-officedocument.presentationml.presentation': '.pptx',
+            'application/zip': '.zip',
+            'application/x-zip-compressed': '.zip',
+        }
+        
+        # Get proper extension based on MIME type
+        proper_ext = mime_to_ext.get(mime_type)
+        
+        # If we couldn't determine proper extension from MIME type, use file extension
+        if not proper_ext:
+            if file_ext and file_ext != '.bin':
+                proper_ext = file_ext
+            else:
+                proper_ext = '.bin'
+        
+        logger.info(f"File: {filename}, Detected MIME: {mime_type}, Extension: {proper_ext}")
+        return mime_type, proper_ext
+
+    def post(self, request):
+        logger.info(f"Received document upload request: {dict(request.data)}")
+        user = get_user_from_token(request)
+        if not user:
+            logger.error("Authentication failed: No valid user token")
+            return Response({'error': 'Authentication required'}, status=status.HTTP_401_UNAUTHORIZED)
+
+        file = request.FILES.get('file')
+        title = request.data.get('title')
+        description = request.data.get('description')
+        task_id = request.data.get('task_id')  # Optional
+
+        if not file or not title:
+            logger.error("Missing required fields: file or title")
+            return Response({'error': 'File and title are required'}, status=status.HTTP_400_BAD_REQUEST)
+
+        task = None
+        if task_id:
+            try:
+                task_id_int = int(task_id)
+                task = Task.objects.get(task_id=task_id_int)
+                logger.info(f"Found task: task_id={task_id_int}")
+            except ValueError:
+                logger.error(f"Invalid task_id: {task_id}")
+                return Response({'error': 'Invalid task ID'}, status=status.HTTP_400_BAD_REQUEST)
+            except Task.DoesNotExist:
+                logger.error(f"Task not found: task_id={task_id}")
+                return Response({'error': 'Task not found'}, status=status.HTTP_404_NOT_FOUND)
+
+        try:
+            # Use improved MIME type and extension detection
+            mime_type, proper_ext = self.get_mime_type_and_extension(file)
+            
+            # Ensure title has proper extension
+            title_base = os.path.splitext(title)[0]  # Remove existing extension if any
+            final_title = f"{title_base}{proper_ext}"
+            
+            logger.info(f"Final title: {final_title}, MIME type: {mime_type}")
+
+            document = Document(
+                task_id=task,
+                document_title=final_title,
+                document_description=description,
+                doc_type=mime_type,
+                last_modified_by=user,
+                file=file
+            )
+            document.save()
+            
+            logger.info(f"Document saved: document_id={document.document_id}, doc_type={document.doc_type}")
+            serializer = DocumentSerializer(document)
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+            
+        except Exception as e:
+            logger.error(f"Error saving document: {str(e)}")
+            return Response({'error': f'Failed to save document: {str(e)}'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+class DownloadDocumentView(APIView):
+    def get_proper_mime_type(self, filename, stored_mime_type=None):
+        """
+        Get the most accurate MIME type for a file based on its extension
+        """
+        # Comprehensive MIME type mapping - prioritize these over guessed types
+        extension_to_mime = {
+            '.pdf': 'application/pdf',
+            '.docx': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+            '.doc': 'application/msword',
+            '.xlsx': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+            '.xls': 'application/vnd.ms-excel',
+            '.pptx': 'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+            '.ppt': 'application/vnd.ms-powerpoint',
+            '.txt': 'text/plain',
+            '.csv': 'text/csv',
+            '.jpg': 'image/jpeg',
+            '.jpeg': 'image/jpeg',
+            '.png': 'image/png',
+            '.gif': 'image/gif',
+            '.zip': 'application/zip',
+            '.rar': 'application/x-rar-compressed',
+            '.7z': 'application/x-7z-compressed',
+        }
+        
+        # Get file extension
+        file_ext = os.path.splitext(filename)[1].lower()
+        
+        # First priority: our explicit mapping
+        if file_ext in extension_to_mime:
+            return extension_to_mime[file_ext]
+        
+        # Second priority: Python's mimetypes guess
+        guessed_mime, _ = mimetypes.guess_type(filename)
+        if guessed_mime:
+            return guessed_mime
+            
+        # Third priority: stored MIME type (if reliable)
+        if stored_mime_type and stored_mime_type != 'application/octet-stream':
+            return stored_mime_type
+            
+        # Fallback
+        return 'application/octet-stream'
+
+    def get_safe_filename(self, filename):
+        """
+        Ensure filename is safe for download and properly encoded
+        """
+        # Remove any path separators and clean up filename
+        safe_filename = os.path.basename(filename)
+        
+        # Replace any problematic characters
+        problematic_chars = ['<', '>', ':', '"', '|', '?', '*']
+        for char in problematic_chars:
+            safe_filename = safe_filename.replace(char, '_')
+            
+        return safe_filename
+
+    def get(self, request):
+        user = get_user_from_token(request)
+        if not user:
+            logger.error("Authentication failed: No valid user token")
+            return Response({'error': 'Authentication required'}, status=status.HTTP_401_UNAUTHORIZED)
+
+        document_id = request.GET.get('document_id')
+        if not document_id:
+            logger.error("Missing document_id")
+            return Response({'error': 'Document ID is required'}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            document = Document.objects.get(document_id=document_id)
+            
+            # Verify user has access to the project associated with the document's task
+            if document.task_id:
+                project_id = document.task_id.project_id
+                if not UserProject.objects.filter(email=user, project_id=project_id).exists():
+                    logger.error(f"User {user.email} does not have access to project {project_id.project_id}")
+                    return Response({'error': 'Access denied to this document'}, status=status.HTTP_403_FORBIDDEN)
+
+            if not document.file:
+                logger.error(f"No file associated with document_id {document_id}")
+                return Response({'error': 'No file found for this document'}, status=status.HTTP_404_NOT_FOUND)
+
+            # Get the filename - prefer document title, fallback to file name
+            filename = document.document_title
+            if not filename:
+                filename = document.file.name.split('/')[-1] if document.file.name else f"document_{document_id}"
+            
+            # Ensure filename is safe
+            safe_filename = self.get_safe_filename(filename)
+            
+            # Get proper MIME type
+            mime_type = self.get_proper_mime_type(safe_filename, document.doc_type)
+            
+            logger.info(f"Downloading: {safe_filename}, MIME: {mime_type}")
+
+            # Read and serve the file
+            try:
+                file_content = document.file.open('rb')
+                file_data = file_content.read()
+                file_content.close()
+                
+                response = HttpResponse(
+                    content=file_data,
+                    content_type=mime_type
+                )
+                
+                # Set proper headers for download
+                # Use both filename and filename* for better browser compatibility
+                response['Content-Disposition'] = f'attachment; filename="{safe_filename}"; filename*=UTF-8\'\'{safe_filename}'
+                response['Content-Length'] = len(file_data)
+                response['Content-Type'] = mime_type
+                
+                # Additional headers to help with file association
+                response['X-Content-Type-Options'] = 'nosniff'
+                response['Cache-Control'] = 'no-cache, no-store, must-revalidate'
+                
+                logger.info(f"Serving file: {safe_filename} ({len(file_data)} bytes) with MIME: {mime_type}")
+                return response
+                
+            except Exception as file_error:
+                logger.error(f"Error reading file: {str(file_error)}")
+                return Response({'error': f'Error reading file: {str(file_error)}'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+        except Document.DoesNotExist:
+            logger.error(f"Document not found: document_id={document_id}")
+            return Response({'error': 'Document not found'}, status=status.HTTP_404_NOT_FOUND)
+        except Exception as e:
+            logger.error(f"Error downloading document: {str(e)}")
+            return Response({'error': f'Failed to download document: {str(e)}'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
