@@ -91,7 +91,7 @@ const EditProject = () => {
 
   return (
     <div>
-      <h1>Edit Project: {projectId}</h1>
+      <h1>Edit Project: {projectId} - {projectName}</h1>
       <small>{user} viewing project</small>
       <br />
       <br />

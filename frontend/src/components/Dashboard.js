@@ -280,6 +280,9 @@ const Dashboard = () => {
                     <button className={styles.openBtn} onClick={() => navigate('/studentdashboard', { state: { projectId: project.project_id, projectName: project.project_name } })}>Open</button>
                   </td>
                   <td>
+                    <button className={styles.openBtn} onClick={() => navigate('/editproject', { state: { projectId: project.project_id, projectName: project.project_name } })}>Edit</button>
+                  </td>
+                  <td>
                     <input
                       type="checkbox"
                       checked={project.role.toLowerCase() === 'supervisor'}

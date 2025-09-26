@@ -86,6 +86,9 @@ class DashboardView(APIView):
                 {
                     'project_id': user_project.project_id.project_id,
                     'project_name': user_project.project_id.project_name,
+                    'project_description': user_project.project_id.project_description,
+                    'feedback': user_project.project_id.feedback,
+                    'grade': user_project.project_id.grade,
                     'progress': 0,
                     'dueDate': user_project.project_id.due_date.strftime('%d/%m/%Y'),
                     'role': user_project.role
@@ -274,7 +277,7 @@ class CalendarView(APIView):
         except Exception as e:
             return Response({'error': f'Database error: {str(e)}'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
-class GetTasksView(APIView):
+class GetUserTasksView(APIView):
     def get(self, request):
         try:
             auth_header = request.headers.get('Authorization')
@@ -884,3 +887,76 @@ class DocumentUploadView(APIView):
         except Exception as e:
             logger.error(f"Serialization error: {str(e)}")
             return Response({'error': f'Serialization error: {str(e)}'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+class GetProjectTasksView(APIView):
+    def get(self, request):
+        try:
+            requested_project_id = request.GET.get('project_id')
+            if not requested_project_id:
+                return Response({'error': 'Project ID is required'}, status=status.HTTP_400_BAD_REQUEST)
+            project = Project.objects.get(project_id=requested_project_id)
+            tasks = Task.objects.filter(project_id=project)
+            task_members = User_Task.objects.filter(task_id__in=tasks).select_related('email', 'task_id')
+            task_members_dict = {}
+            for task_member in task_members:
+                task_id = task_member.task_id.task_id
+                try:
+                    user = User.objects.get(email=task_member.email.email)
+                    # Initialize list for task_id if it doesn't exist
+                    if task_id not in task_members_dict:
+                        task_members_dict[task_id] = []
+                    # Append user details to the list for this task_id
+                    task_members_dict[task_id].append({
+                        'fname': user.first_name,
+                        'lname': user.last_name
+                    })
+                except User.DoesNotExist:
+                    # Handle case where user is not found (optional)
+                    if task_id not in task_members_dict:
+                        task_members_dict[task_id] = []
+                    task_members_dict[task_id].append({'fname': 'Unknown', 'lname': 'Unknown'})
+            print(f"Task Members Dict: {task_members_dict}")
+            tasks_list = [
+                {
+                    'task_id': task.task_id,
+                    'task_name': task.task_name,
+                    'task_description': task.task_description,
+                    'task_status': task.task_status,
+                    'task_due_date': task.task_due_date.strftime('%d/%m/%Y') if task.task_due_date else 'No due date',
+                    'task_priority': task.task_priority,
+                    'assigned_members': task_members_dict.get(task.task_id, [])
+                }
+                for task in tasks
+            ]
+            return Response({'tasks': tasks_list, 'members': task_members_dict}, status=status.HTTP_200_OK)
+        except Project.DoesNotExist:
+            return Response({'error': 'Project not found'}, status=status.HTTP_404_NOT_FOUND)
+        except Exception as e:
+            return Response({'error': f'Failed to fetch tasks: {str(e)}'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+class GetTaskDocumentsView(APIView):
+    def get(self, request):
+        try:
+            task_id = request.GET.get('task_id')
+            if not task_id:
+                return Response({'error': 'Task ID is required'}, status=status.HTTP_400_BAD_REQUEST)
+            
+            documents = Document.objects.filter(task_id__task_id=task_id)
+            document_list = []
+            
+            for doc in documents:
+                document_list.append({
+                    'document_id': doc.document_id,  # DOC_ID (PK) - keeping for backward compatibility
+                    'task_id': doc.task_id.task_id if doc.task_id else None,  # TASK_ID (FK)
+                    'document_title': doc.document_title,  # Using name field as title
+                    'document_description': doc.document_description or '',  # Description field
+                    'datetime_uploaded': doc.date_time_uploaded.isoformat(),  # uploaded_at field
+                    'doc_type': doc.doc_type,  # file_type field
+                    'date_last_modified': doc.date_time_last_modified.isoformat(),  # No last_modified field, using uploaded_at
+                    'last_modified_by': doc.last_modified_by.email,  # Using uploaded_by user email
+                    'file': doc.file,
+                })
+            
+            return Response({'documents': document_list}, status=status.HTTP_200_OK)
+        except Exception as e:
+            return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
