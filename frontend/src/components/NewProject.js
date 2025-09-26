@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
+import styles from './NewProject.module.css';
 
 const NewProject = () => {
     const [email, setEmail] = useState('');
@@ -71,54 +72,84 @@ const NewProject = () => {
     }
 
     return (
-        <div>
-            <h1>New Project for {email}</h1>
-            <form onSubmit={createNewProject}>
-                <input
-                    type="text"
-                    placeholder="Project Name"
-                    value={projectname}
-                    onChange={(e) => setProjectname(e.target.value)}
-                    required
-                />
-                <br />
-                <textarea
-                    type="text"
-                    placeholder="Project Description"
-                    value={project_description}
-                    onChange={(e) => setProjectDescription(e.target.value)}
-                    required
-                />
-                <br />
-                <input
-                    type="date"
-                    placeholder='Submission Date'
-                    value={project_due_date}
-                    onChange={(e) => setProjectDueDate(e.target.value)}
-                    required
-                />
-                <br />
-                <input
-                    type="text"
-                    placeholder="Project Member"
-                    value={memberName}
-                    onChange={handleInputChange}
-                />
-                <button onClick={handleAddMember}>
-                    Add Member
+        <div className={styles.container}>
+            <div className={styles.card}>
+                <h1 className={styles.title}>
+                    New Project for {email}
+                </h1>
+                <form onSubmit={createNewProject} className={styles.form}>
+                    <div>
+                        <input
+                            type="text"
+                            placeholder="Project Name"
+                            value={projectname}
+                            onChange={(e) => setProjectname(e.target.value)}
+                            required
+                            className={styles.input}
+                        />
+                    </div>
+                    <div>
+                        <textarea
+                            placeholder="Project Description"
+                            value={project_description}
+                            onChange={(e) => setProjectDescription(e.target.value)}
+                            required
+                            className={styles.textarea}
+                            rows="4"
+                        />
+                    </div>
+                    <div>
+                        <input
+                            type="date"
+                            placeholder="Submission Date"
+                            value={project_due_date}
+                            onChange={(e) => setProjectDueDate(e.target.value)}
+                            required
+                            className={styles.input}
+                        />
+                    </div>
+                    <div className={styles.memberInputContainer}>
+                        <input
+                            type="text"
+                            placeholder="Project Member"
+                            value={memberName}
+                            onChange={handleInputChange}
+                            className={styles.memberInput}
+                        />
+                        <button
+                            onClick={handleAddMember}
+                            className={styles.addButton}
+                        >
+                            Add Member
+                        </button>
+                    </div>
+                    <div>
+                        <textarea
+                            value={project_members.join('; \n')}
+                            disabled
+                            rows="8"
+                            className={styles.disabledTextarea}
+                        />
+                    </div>
+                    <div>
+                        <button
+                            type="submit"
+                            className={styles.submitButton}
+                        >
+                            Create Project
+                        </button>
+                    </div>
+                    {message && (
+                        <p className={styles.message}>{message}</p>
+                    )}
+                </form>
+                <button
+                    onClick={() => navigate('/dashboard')}
+                    className={styles.backButton}
+                >
+                    Back to Dashboard
                 </button>
-                <br />
-                <textarea
-                    type="text"
-                    value={project_members.join('; \n')}
-                    disabled
-                    rows={8}
-                />
-                <br />
-                <button type="submit">Create Project</button>
-                {message && <p>{message}</p>}
-            </form>
-            <button onClick={() => navigate('/dashboard')}>Back to Dashboard</button>
+            </div>
         </div>
     );
 };

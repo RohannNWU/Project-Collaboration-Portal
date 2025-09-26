@@ -4,25 +4,73 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
+  min-height: 100vh;
+  background: linear-gradient(135deg, #075061 0%, #042454 100%);
+  padding: 1.5rem;
+  box-sizing: border-box;
 }
+
 input, textarea {
-  margin: 10px;
-  padding: 8px;
-  width: 200px;
-  border: 1px solid var(--border);
-  border-radius: 4px;
+  margin: 0.75rem 0;
+  padding: 0.75rem 1rem;
+  width: 100%;
+  max-width: 320px;
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  border-radius: 8px;
+  font-size: 1rem;
+  background: rgba(255, 255, 255, 0.7);
+  backdrop-filter: blur(10px);
+  transition: all 0.3s ease;
 }
+
+input:focus, textarea:focus {
+  outline: none;
+  border-color: #228693;
+  box-shadow: 0 0 0 3px rgba(34, 134, 147, 0.2);
+}
+
 .message {
-  color: #ec2323
+  color: #e53e3e;
+  font-size: 0.875rem;
+  margin-top: 0.5rem;
+  text-align: center;
 }
+
 button {
+  display: flex;
   align-items: center;
   justify-content: center;
-  margin: 10px;
-  padding: 8px;
-  background: var(--nwu-turquoise);
+  margin: 1rem 0;
+  padding: 0.75rem 1.5rem;
+  width: 100%;
+  max-width: 320px;
+  background: linear-gradient(90deg, #228693, #83C8D1);
   color: white;
   border: none;
-  border-radius: 4px;
+  border-radius: 8px;
+  font-size: 1rem;
+  font-weight: 500;
   cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+button:hover {
+  background: linear-gradient(90deg, #83C8D1, #228693);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(34, 134, 147, 0.3);
+}
+
+button:active {
+  transform: translateY(0);
+  box-shadow: 0 2px 6px rgba(34, 134, 147, 0.2);
+}
+
+@media (max-width: 480px) {
+  input, textarea, button {
+    max-width: 100%;
+  }
+
+  .signupContainer {
+    padding: 1rem;
+  }
 }

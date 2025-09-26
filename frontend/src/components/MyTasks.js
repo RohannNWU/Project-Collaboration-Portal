@@ -32,6 +32,9 @@ const MyTasks = () => {
     }, [location, user]);
 
     useEffect(() => {
+        const API_BASE_URL = window.location.hostname === 'localhost'
+            ? 'http://127.0.0.1:8000'
+            : 'https://pcp-backend-f4a2.onrender.com';
         const fetchDocuments = async () => {
             try {
                 // Create an array of promises for all API calls

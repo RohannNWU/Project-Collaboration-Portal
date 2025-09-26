@@ -4,7 +4,7 @@ import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import {
-  faFolder, faCheckCircle, faUsers, faCodeBranch, faFile, faInbox,
+  faFolder, faCheckCircle, faFile, faInbox,
   faBell, faCog, faSignOutAlt, faPlus, faSearch, faEnvelope, faProjectDiagram,
   faComment, faUpload, faChevronLeft, faChevronRight, faCalendar
 } from '@fortawesome/free-solid-svg-icons';
@@ -790,9 +790,6 @@ const Dashboard = () => {
                               gap: '15px',
                               flexWrap: 'wrap'
                             }}>
-                              <span style={{ minWidth: '120px' }}>
-                                {event.start ? new Date(event.start).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) : 'All day'}
-                              </span>
                               {event.description && (
                                 <span style={{ maxWidth: '200px' }}>
                                   {event.description.length > 50 

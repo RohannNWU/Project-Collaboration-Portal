@@ -32,39 +32,47 @@ const AddUser = () => {
   };
 
   return (
-    <div>
-      <div className={styles.signupContainer}>
-        <h2>Add New User</h2>
-        <input
-          type="text"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          placeholder="Email Address"
-        />
-        <input
-          type="text"
-          value={fname}
-          onChange={(e) => setFname(e.target.value)}
-          placeholder="First Name"
-        />
-        <input
-          type='text'
-          value={lname}
-          onChange={(e) => setLname(e.target.value)}
-          placeholder='Last Name'
-        />
-        <input
-          type="password"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          placeholder="Password"
-        />
-      </div>
-      <div>
-        <button onClick={handleAddUser}>Add User</button>
-        <button onClick={() => navigate('/')}>Back to Login</button>
-        {message && <p className={styles.message}>{message}</p>}
-      </div>
+    <div className={styles.signupContainer}>
+      <h2
+        style={{
+          fontSize: '1.5rem',
+          fontWeight: '600',
+          color: 'white',
+          marginBottom: '1.5rem',
+          textAlign: 'center',
+          contentEditable: false,
+          tabIndex: "-1"
+        }}
+      >
+        Sign Up for the<br />Project Collaboration Portal
+      </h2>
+      <input
+        type="text"
+        value={email}
+        onChange={(e) => setEmail(e.target.value)}
+        placeholder="Email Address"
+      />
+      <input
+        type="text"
+        value={fname}
+        onChange={(e) => setFname(e.target.value)}
+        placeholder="First Name"
+      />
+      <input
+        type="text"
+        value={lname}
+        onChange={(e) => setLname(e.target.value)}
+        placeholder="Last Name"
+      />
+      <input
+        type="password"
+        value={password}
+        onChange={(e) => setPassword(e.target.value)}
+        placeholder="Password"
+      />
+      <button onClick={handleAddUser}>Add User</button>
+      <button onClick={() => navigate('/')}>Back to Login</button>
+      {message && <p className={styles.message}>{message}</p>}
     </div>
   );
 };

@@ -76,11 +76,7 @@ class DashboardView(APIView):
             UntypedToken(token)
             payload = UntypedToken(token).payload
             user_email = payload.get('user_email')
-            
-            # Fetch user
             user = User.objects.get(email=user_email)
-            
-            # Fetch user projects using ORM
             user_projects = UserProject.objects.filter(email=user).select_related('project_id')
             projects = [
                 {
@@ -180,9 +176,20 @@ class GetMembersView(APIView):
                         status=status.HTTP_400_BAD_REQUEST
                     )
 
-                members = UserProject.objects.filter(project_id=project_id).values('email')
-                first_names = User.objects.filter(email__in=members).values('email', 'first_name')
-                members_list = [{'email': member['email'], 'first_name': member['first_name']} for member in first_names]
+                members = UserProject.objects.filter(project_id=project_id).values('email', 'role')
+                emails = [member['email'] for member in members]
+                first_names = User.objects.filter(email__in=emails).values('email', 'first_name', 'last_name')
+                first_name_map = {item['email']: item['first_name'] for item in first_names}
+                last_name_map = {item['email']: item['last_name'] for item in first_names}
+                members_list = [
+                    {
+                        'email': member['email'],
+                        'first_name': first_name_map.get(member['email'], 'Unknown'),  # Default to 'Unknown' if no first_name
+                        'last_name': last_name_map.get(member['email'], 'Unknown'),   # Default to 'Unknown' if no last_name
+                        'role': member['role']
+                    }
+                    for member in members
+                ]
                 return Response({'members': members_list}, status=status.HTTP_200_OK)
             except Exception as e:
                 return Response(
@@ -960,3 +967,25 @@ class GetTaskDocumentsView(APIView):
             return Response({'documents': document_list}, status=status.HTTP_200_OK)
         except Exception as e:
             return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        
+class GetProjectDataView(APIView):
+    def get(self, request):
+        try:
+            project_id = request.GET.get('project_id')
+            if not project_id:
+                return Response({'error': 'Project ID is required'}, status=status.HTTP_400_BAD_REQUEST)
+            
+            project = Project.objects.get(project_id=project_id)
+
+            project_data = {
+                'project_name': project.project_name,
+                'project_description': project.project_description,
+                'due_date': project.due_date.strftime('%d/%m/%Y') if project.due_date else 'No due date',
+                'created_on': project.created_on.strftime('%d/%m/%Y'),
+                'feedback': project.feedback or '',
+                'grade': project.grade or ''
+            }
+
+            return Response({'project_data': project_data}, status=status.HTTP_200_OK)
+        except Project.DoesNotExist:
+            return Response({'error': 'Project not found'}, status=status.HTTP_404_NOT_FOUND)

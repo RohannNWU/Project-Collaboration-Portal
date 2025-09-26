@@ -6,7 +6,8 @@ from pcp_webapp.views import (
     MessageListCreateView, mark_message_read,
     LoginView, DashboardView, AddUserView, AddProjectView, 
     GetMembersView, AddTaskView, CalendarView, GetUserTasksView, 
-    UpdateTaskView, DocumentUploadView, GetProjectTasksView, GetTaskDocumentsView
+    UpdateTaskView, DocumentUploadView, GetProjectTasksView,
+    GetTaskDocumentsView, GetProjectDataView
 )
 
 urlpatterns = [
@@ -25,6 +26,7 @@ urlpatterns = [
     path('api/messages/', MessageListCreateView.as_view(), name='messages'),
     path('api/messages/<int:message_id>/read/', mark_message_read, name='mark_message_read'),
     path('api/document-upload/', DocumentUploadView.as_view(), name='document_upload'),
+    path('api/getprojectdata/', GetProjectDataView.as_view(), name='get_project_data'),
 ]
 
 # Serve media files during development
