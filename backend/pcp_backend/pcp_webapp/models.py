@@ -140,6 +140,7 @@ class ActivityLog(models.Model):
 
     def __str__(self):
         return f"{self.user.email} - {self.action_type}"
+    
 class Notification(models.Model):
     NOTIFICATION_TYPES = [
         ('project_created', 'Project Created'),

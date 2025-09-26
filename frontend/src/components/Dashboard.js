@@ -277,7 +277,7 @@ const Dashboard = () => {
                   </td>
                   <td>{project.dueDate}</td>
                   <td>
-                    <button className={styles.editBtn} onClick={() => navigate('/editproject', { state: { projectId: project.project_id, projectName: project.project_name } })}>Edit</button>
+                    <button className={styles.openBtn} onClick={() => navigate('/studentdashboard', { state: { projectId: project.project_id, projectName: project.project_name } })}>Open</button>
                   </td>
                   <td>
                     <input

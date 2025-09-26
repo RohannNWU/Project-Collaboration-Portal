@@ -11,6 +11,7 @@ import EditProject from './components/EditProject';
 import UploadCollabDoc from './components/UploadCollabDoc';
 import CollaborativeDocumentation from './components/CollaborativeDocumentation';
 import DocumentManager from './components/DocumentManager';
+import StudentDashboard from './components/StudentDashboard';
 
 // Protected Route component
 const ProtectedRoute = ({ children }) => {
@@ -42,6 +43,7 @@ function App() {
               <Route path="/uploadcollabdoc" element={<UploadCollabDoc />} />
               <Route path="/collabdoc" element={<CollaborativeDocumentation />} />
               <Route path="/documents" element={<DocumentManager />} />
+              <Route path="/studentdashboard" element={<StudentDashboard />} />
             </Route>
             
             {/* Redirect any unknown paths to home */}
