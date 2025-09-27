@@ -1,0 +1,56 @@
+.container {
+    padding: 18px;
+    background: #ffffff;
+    border-radius: 12px;
+    box-shadow: 0 6px 18px rgba(16, 24, 40, 0.06);
+    color: #2d2d2d;
+  }
+  
+  /* Title */
+  h2 {
+    margin: 0 0 12px 0;
+    font-size: 18px;
+    color: #3b2a63; /* purple tone */
+  }
+  
+  /* table */
+  .table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 12px;
+  }
+  .table th,
+  .table td {
+    padding: 10px 12px;
+    text-align: left;
+    font-size: 14px;
+    border-bottom: 1px solid #eef1f6;
+  }
+  
+  /* header row */
+  .table thead th {
+    color: #6f5a91;
+    font-weight: 600;
+    font-size: 13px;
+  }
+  
+  /* message button */
+  .msgBtn {
+    background: linear-gradient(90deg,#7f349f 0%, #5e3370 100%);
+    color: white;
+    border: none;
+    padding: 8px 12px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-weight: 600;
+    transition: transform .08s ease, box-shadow .08s;
+  }
+  .msgBtn:hover { transform: translateY(-1px); box-shadow: 0 6px 18px rgba(97,61,132,0.12); }
+  
+  
+  /* small responsive tweaks */
+  @media (max-width: 820px) {
+    .table th, .table td { font-size: 13px; padding: 8px; }
+    .progressBar { width: 120px; }
+  }
+  

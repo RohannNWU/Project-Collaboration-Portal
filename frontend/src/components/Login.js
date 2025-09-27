@@ -2,7 +2,7 @@ import React, { useState, useContext } from 'react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 import styles from './login.module.css';
-import { faEnvelope, faLock, faEye, faEyeSlash, faArrowRight } from '@fortawesome/free-solid-svg-icons';
+import { faEnvelope, faLock, faEye, faEyeSlash, faArrowRight, faUsers, faComments, faChartLine, faChalkboardTeacher } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { useAuth } from '../context/AuthProvider';
 
@@ -11,6 +11,7 @@ const Login = () => {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
   
   const { setUser } = useAuth();
@@ -18,6 +19,8 @@ const Login = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
+    setIsLoading(true);
+    
     try {
       const API_BASE_URL = window.location.hostname === 'localhost'
         ? 'http://127.0.0.1:8000'
@@ -47,6 +50,8 @@ const Login = () => {
       localStorage.removeItem('username');
       localStorage.removeItem('email');
       setUser(null);
+    } finally {
+      setIsLoading(false);
     }
   };
   
@@ -61,102 +66,151 @@ const Login = () => {
   return (
     <div className={styles.loginPage}>
       <div className={styles.loginContainer}>
-        <div className={styles.loginContent}>
-          <div className={styles.branding}>
+        {/* Left Side - Branding */}
+        <div className={styles.brandSection}>
+          <div className={styles.brandContent}>
+            <div className={styles.logo}>
+              <FontAwesomeIcon icon={faUsers} />
+            </div>
             <h1>Project Collaboration Portal</h1>
-            <p>Your collaborative workspace</p>
+            <p>Connect • Collaborate • Create</p>
+            <div className={styles.brandSection}>
+  <div className={styles.brandContent}>
+    <div className={styles.logo}>
+      <FontAwesomeIcon icon={faUsers} />
+    </div>
+    <h1>Project Collaboration Portal</h1>
+    <p>Connect • Collaborate • Create</p>
+    <div className={styles.featureList}>
+      <div className={styles.featureItem}>
+            <span className={styles.featureIcon}>
+              <FontAwesomeIcon icon={faComments} />
+            </span>
+            <span>Real-time team messaging</span>
           </div>
-
-          <div className={styles.welcome}>
-            <h2>Welcome back</h2>
-            <p>Sign in to your collaboration workspace</p>
+          <div className={styles.featureItem}>
+            <span className={styles.featureIcon}>
+              <FontAwesomeIcon icon={faChartLine} />
+            </span>
+            <span>Project progress tracking</span>
           </div>
+          <div className={styles.featureItem}>
+            <span className={styles.featureIcon}>
+              <FontAwesomeIcon icon={faChalkboardTeacher} />
+            </span>
+            <span>Supervisor collaboration</span>
+          </div>
+    </div>
+  </div>
+</div>
+          </div>
+        </div>
 
-          <form id="loginForm" className={styles.loginForm} onSubmit={handleSubmit}>
-            <div className={styles.formGroup}>
-              <label htmlFor="email">Email address</label>
-              <div className={styles.passwordInputContainer}>
-                <FontAwesomeIcon icon={faEnvelope} className={styles.inputIcon} />
-                <input
-                  type="email"
-                  id="email"
-                  name="email"
-                  placeholder="Enter your email"
-                  required
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                />
-              </div>
+        {/* Right Side - Login Form */}
+        <div className={styles.formSection}>
+          <div className={styles.formContent}>
+            <div className={styles.welcome}>
+              <h2>Welcome back!</h2>
+              <p>Sign in to continue your collaboration journey</p>
             </div>
 
-            <div className={styles.formGroup}>
-              <label htmlFor="password">Password</label>
-              <div className={styles.passwordInputContainer}>
-                <FontAwesomeIcon icon={faLock} className={styles.inputIcon} />
-                <input
-                  type={showPassword ? 'text' : 'password'}
-                  id="password"
-                  name="password"
-                  placeholder="Enter your password"
-                  required
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                />
+            <form id="loginForm" className={styles.loginForm} onSubmit={handleSubmit}>
+              <div className={styles.formGroup}>
+                <label htmlFor="email" className={styles.inputLabel}>Email address</label>
+                <div className={styles.inputContainer}>
+                  <FontAwesomeIcon icon={faEnvelope} className={styles.inputIcon} />
+                  <input
+                    type="email"
+                    id="email"
+                    name="email"
+                    placeholder="Enter your email"
+                    required
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    className={styles.inputField}
+                  />
+                </div>
+              </div>
+
+              <div className={styles.formGroup}>
+                <label htmlFor="password" className={styles.inputLabel}>Password</label>
+                <div className={styles.inputContainer}>
+                  <FontAwesomeIcon icon={faLock} className={styles.inputIcon} />
+                  <input
+                    type={showPassword ? 'text' : 'password'}
+                    id="password"
+                    name="password"
+                    placeholder="Enter your password"
+                    required
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    className={styles.inputField}
+                  />
+                  <button
+                    type="button"
+                    className={styles.togglePassword}
+                    onClick={togglePasswordVisibility}
+                  >
+                    <FontAwesomeIcon icon={showPassword ? faEyeSlash : faEye} />
+                  </button>
+                </div>
+              </div>
+
+              <div className={styles.formOptions}>
+                <label className={styles.rememberMe}>
+                  <input type="checkbox" id="rememberMe" />
+                  <span className={styles.checkboxLabel}>Remember me</span>
+                </label>
                 <button
                   type="button"
-                  id="togglePassword"
-                  className={styles.togglePassword}
-                  aria-label="Toggle password visibility"
-                  onClick={togglePasswordVisibility}
+                  className={styles.forgotPassword}
+                  onClick={() => navigate('/forgot-password')}
                 >
-                  <FontAwesomeIcon icon={showPassword ? faEyeSlash : faEye} />
+                  Forgot password?
                 </button>
               </div>
-            </div>
 
-            <div className={styles.formOptions}>
-              <label className={styles.rememberMe}>
-                <input type="checkbox" id="rememberMe" />
-                <span>Remember me</span>
-              </label>
               <button
-                type="button"
-                className={styles.forgotPassword}
-                onClick={() => navigate('/forgot-password')}
+                type="submit"
+                className={`${styles.loginButton} ${isLoading ? styles.loading : ''}`}
+                disabled={isLoading}
               >
-                Forgot password?
+                {isLoading ? (
+                  <div className={styles.spinner}></div>
+                ) : (
+                  <>
+                    Sign in 
+                    <FontAwesomeIcon icon={faArrowRight} className={styles.buttonIcon} />
+                  </>
+                )}
               </button>
+            </form>
+
+            <div className={styles.divider}>
+              <span>New to PCP?</span>
             </div>
 
-            <button
-              type="submit"
-              className={styles.loginButton}
-              id="loginButton"
-            >
-              <span>Sign in <FontAwesomeIcon icon={faArrowRight} /></span>
-            </button>
-          </form>
-
-          <div className={styles.divider}>
-            <span>OR</span>
-          </div>
-
-          <div className={styles.signupLink}>
-            <p>
-              Don't have an account?
+            <div className={styles.signupSection}>
               <button
                 type="button"
                 className={styles.signupButton}
                 onClick={goToAddUser}
               >
-                Sign up
+                Create your account
               </button>
-            </p>
+            </div>
           </div>
         </div>
       </div>
 
-      {error && <div id="toast" className={styles.toast}>{error}</div>}
+      {error && (
+        <div className={styles.toast}>
+          <div className={styles.toastContent}>
+            <span className={styles.toastMessage}>{error}</span>
+            <button onClick={() => setError('')} className={styles.toastClose}>×</button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -1,7 +1,7 @@
 from rest_framework import serializers
 from django.utils import timezone
 from datetime import timedelta
-from .models import User, Project, Task, Message, Document, ActivityLog, UserProject, Notification, ChatMessage
+from .models import User, Project, Task, Message, Document, ActivityLog, UserProject, Notification, ChatMessage, ProjectChat
 
 class UserSerializer(serializers.ModelSerializer):
     full_name = serializers.ReadOnlyField()
@@ -102,7 +102,7 @@ class NotificationSummarySerializer(serializers.ModelSerializer):
             return f"{hours} hour{'s' if hours != 1 else ''} ago"
         else:
             days = diff.days
-            return f"{days} day{'s' if days != 1 else ''} ago"from rest_framework import serializers
+            return f"{days} day{'s' if days != 1 else ''} ago"
 
 class UserSerializer(serializers.ModelSerializer):
     full_name = serializers.ReadOnlyField()
@@ -203,9 +203,8 @@ class NotificationSummarySerializer(serializers.ModelSerializer):
             return f"{hours} hour{'s' if hours != 1 else ''} ago"
         else:
             days = diff.days
-            return f"{days} day{'s' if days != 1 else ''} ago"from rest_framework import serializers
-from .models import User, Project, UserProject, ProjectChat, ChatMessage
-
+            return f"{days} day{'s' if days != 1 else ''} ago"
+        
 #User Serializer
 class UserSerializer(serializers.ModelSerializer):
     class Meta:

@@ -4,7 +4,7 @@ import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import {
-  faFolder, faCheckCircle, faUsers, faCodeBranch, faFile, faInbox,
+  faFolder, faCheckCircle, faFile, faInbox,
   faBell, faCog, faSignOutAlt, faPlus, faSearch, faEnvelope, faProjectDiagram,
   faComment, faUpload, faChevronLeft, faChevronRight, faCalendar
 } from '@fortawesome/free-solid-svg-icons';
@@ -188,12 +188,11 @@ const Dashboard = () => {
           <button className={styles.qaBtn}><FontAwesomeIcon icon={faPlus} /> New Task</button>
           <button
             className={styles.qaBtn}
-            onClick={() => navigate(`/chatwindow/${projects.id}`)}
+            onClick={() => navigate("/message-teams", { state: { projects } })}
           >
             <FontAwesomeIcon icon={faComment} /> Message Team
           </button>
-
-          <button className={styles.qaBtn}><FontAwesomeIcon icon={faUpload} /> Upload File</button>
+          <button className={styles.qaBtn} onClick={() => navigate('/uploadcollabdoc')}><FontAwesomeIcon icon={faUpload} /> Upload File</button>
         </div>
       </aside>
 
@@ -283,7 +282,10 @@ const Dashboard = () => {
                   </td>
                   <td>{project.dueDate}</td>
                   <td>
-                    <button className={styles.editBtn} onClick={() => navigate('/editproject', { state: { projectId: project.project_id, projectName: project.project_name } })}>Edit</button>
+                    <button className={styles.openBtn} onClick={() => navigate('/studentdashboard', { state: { projectId: project.project_id, projectName: project.project_name } })}>Open</button>
+                  </td>
+                  <td>
+                    <button className={styles.openBtn} onClick={() => navigate('/editproject', { state: { projectId: project.project_id, projectName: project.project_name } })}>Edit</button>
                   </td>
                   <td>
                     <input
