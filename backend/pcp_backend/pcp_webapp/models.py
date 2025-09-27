@@ -5,6 +5,9 @@ from django.conf import settings #Shaun's code
 from django.contrib.auth.models import User as DjangoUser
 from django.conf import settings
 
+from django.contrib.auth.models import User as DjangoUser
+from django.conf import settings
+
 class User(models.Model):
     email = models.CharField(max_length=100, unique=True, primary_key=True)
     first_name = models.CharField(max_length=50)
