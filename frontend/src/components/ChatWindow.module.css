@@ -58,7 +58,7 @@
   position: relative;
 }
 
-[title]:hover::after {
+/* [title]:hover::after {
   content: attr(title);
   position: absolute;
   bottom: -30px;
@@ -71,7 +71,7 @@
   font-size: 12px;
   white-space: nowrap;
   z-index: 1000;
-}
+} */
 
 .groupInfo {
   margin-left: 12px;

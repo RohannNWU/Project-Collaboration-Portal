@@ -74,35 +74,26 @@ const Login = () => {
             </div>
             <h1>Project Collaboration Portal</h1>
             <p>Connect • Collaborate • Create</p>
-            <div className={styles.brandSection}>
-  <div className={styles.brandContent}>
-    <div className={styles.logo}>
-      <FontAwesomeIcon icon={faUsers} />
-    </div>
-    <h1>Project Collaboration Portal</h1>
-    <p>Connect • Collaborate • Create</p>
-    <div className={styles.featureList}>
-      <div className={styles.featureItem}>
-            <span className={styles.featureIcon}>
-              <FontAwesomeIcon icon={faComments} />
-            </span>
-            <span>Real-time team messaging</span>
-          </div>
-          <div className={styles.featureItem}>
-            <span className={styles.featureIcon}>
-              <FontAwesomeIcon icon={faChartLine} />
-            </span>
-            <span>Project progress tracking</span>
-          </div>
-          <div className={styles.featureItem}>
-            <span className={styles.featureIcon}>
-              <FontAwesomeIcon icon={faChalkboardTeacher} />
-            </span>
-            <span>Supervisor collaboration</span>
-          </div>
-    </div>
-  </div>
-</div>
+            <div className={styles.featureList}>
+              <div className={styles.featureItem}>
+                <span className={styles.featureIcon}>
+                  <FontAwesomeIcon icon={faComments} />
+                </span>
+                <span>Real-time team messaging</span>
+              </div>
+              <div className={styles.featureItem}>
+                <span className={styles.featureIcon}>
+                  <FontAwesomeIcon icon={faChartLine} />
+                </span>
+                <span>Project progress tracking</span>
+              </div>
+              <div className={styles.featureItem}>
+                <span className={styles.featureIcon}>
+                  <FontAwesomeIcon icon={faChalkboardTeacher} />
+                </span>
+                <span>Supervisor collaboration</span>
+              </div>
+            </div>
           </div>
         </div>
 
