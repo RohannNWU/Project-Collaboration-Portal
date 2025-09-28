@@ -258,7 +258,7 @@ const Dashboard = () => {
             <tbody>
               {projects.map((project, index) => (
                 <tr key={index}>
-                  <td>{project.project_id} - {project.project_name}</td>
+                  <td>{project.project_name}</td>
                   <td>
                     <div className={styles.progressBar}>
                       <div
