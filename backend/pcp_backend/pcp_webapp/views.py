@@ -1058,7 +1058,6 @@ class DocumentUploadView(APIView):
             logger.error(f"Error saving document: {str(e)}")
             return Response({'error': f'Failed to save document: {str(e)}'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
-
 class DownloadDocumentView(APIView):
     def get_proper_mime_type(self, filename, stored_mime_type=None):
         """
@@ -1237,4 +1236,49 @@ class DeleteDocumentView(APIView):
         
         except Exception as e:
             logger.error(f"Error deleting document: {str(e)}")
-            return Response({'error': f'Failed to delete document: {str(e)}'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)        
+            return Response({'error': f'Failed to delete document: {str(e)}'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+class GetCompletedTasksView(APIView):
+    def get(self, request):
+        try:
+            requested_project_id = request.GET.get('project_id')
+            if not requested_project_id:
+                return Response({'error': 'Project ID is required'}, status=status.HTTP_400_BAD_REQUEST)
+            project = Project.objects.get(project_id=requested_project_id)
+            tasks = Task.objects.filter(project_id=project, task_status='Completed')
+            task_members = User_Task.objects.filter(task_id__in=tasks).select_related('email', 'task_id')
+            task_members_dict = {}
+            for task_member in task_members:
+                task_id = task_member.task_id.task_id
+                try:
+                    user = User.objects.get(email=task_member.email.email)
+                    # Initialize list for task_id if it doesn't exist
+                    if task_id not in task_members_dict:
+                        task_members_dict[task_id] = []
+                    # Append user details to the list for this task_id
+                    task_members_dict[task_id].append({
+                        'fname': user.first_name,
+                        'lname': user.last_name
+                    })
+                except User.DoesNotExist:
+                    # Handle case where user is not found (optional)
+                    if task_id not in task_members_dict:
+                        task_members_dict[task_id] = []
+                    task_members_dict[task_id].append({'fname': 'Unknown', 'lname': 'Unknown'})
+            tasks_list = [
+                {
+                    'task_id': task.task_id,
+                    'task_name': task.task_name,
+                    'task_description': task.task_description,
+                    'task_status': task.task_status,
+                    'task_due_date': task.task_due_date.strftime('%d/%m/%Y') if task.task_due_date else 'No due date',
+                    'task_priority': task.task_priority,
+                    'assigned_members': task_members_dict.get(task.task_id, [])
+                }
+                for task in tasks
+            ]
+            return Response({'tasks': tasks_list, 'members': task_members_dict}, status=status.HTTP_200_OK)
+        except Project.DoesNotExist:
+            return Response({'error': 'Project not found'}, status=status.HTTP_404_NOT_FOUND)
+        except Exception as e:
+            return Response({'error': f'Failed to fetch tasks: {str(e)}'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)

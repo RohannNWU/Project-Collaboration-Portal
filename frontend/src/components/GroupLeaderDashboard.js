@@ -127,7 +127,7 @@ const GroupLeaderDashboard = () => {
                         ? 'http://127.0.0.1:8000'
                         : 'https://pcp-backend-f4a2.onrender.com';
 
-                    const response = await axios.get(`${API_BASE_URL}/api/getprojecttasks/?project_id=${projectId}`, {
+                    const response = await axios.get(`${API_BASE_URL}/api/getcompletedtasks/?project_id=${projectId}`, {
                         headers: { Authorization: `Bearer ${token}` },
                     });
 
@@ -695,7 +695,21 @@ const GroupLeaderDashboard = () => {
                                                 <p style={{ fontSize: '0.85rem', color: '#6b7280' }}>
                                                     Due: {task.task_due_date} | Status: {task.task_status} | Priority: {task.task_priority}
                                                 </p>
-                                                <button style={{ width: '150px' }} onClick={() => handleDelete(task.task_id)}>Delete Task</button>
+                                                <p>
+                                                    <p>
+                                                        Submitted by:{' '}
+                                                        {task.assigned_members && task.assigned_members.length > 0 ? (
+                                                            task.assigned_members.map((member, index) => (
+                                                                <span key={index}>
+                                                                    {member.fname} {member.lname}
+                                                                    {index < task.assigned_members.length - 1 ? ', ' : ''}
+                                                                </span>
+                                                            ))
+                                                        ) : (
+                                                            'N/A'
+                                                        )}
+                                                    </p>
+                                                </p>
                                             </div>
                                             <div
                                                 style={{
@@ -772,7 +786,6 @@ const GroupLeaderDashboard = () => {
                                     </div>
                                 ))}
                             </div>
-                            <button style={{ width: '200px' }} onClick={() => handleAddNewTask(projectId)}>Add New Task</button>
                         </div>
                     )}
                 </div>
