@@ -821,7 +821,7 @@
 /* Empty state legend */
 .emptyStateLegend {
   display: flex;
-  gap: 8px;
+  gap: 50px;
   justify-content: center;
   flex-wrap: wrap;
   font-size: 12px;
@@ -830,7 +830,7 @@
 }
 
 /* Empty state legend item */
-.emptyStateLegendItem {
+.emptyStaptyteLegendItem {
   display: flex;
   align-items: center;
   gap: 4px;
@@ -842,6 +842,7 @@
   height: 12px;
   background: #228693;
   border-radius: 50%;
+  gap: 4px 8px;
 }
 
 /* Empty state event indicator */

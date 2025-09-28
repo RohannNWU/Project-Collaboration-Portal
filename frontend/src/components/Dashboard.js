@@ -172,11 +172,6 @@ const Dashboard = () => {
           <button className={styles.navBtn} onClick={() => navigate('/collabdoc')}><FontAwesomeIcon icon={faFile} /> Documents</button>
           <button className={styles.navBtn}><FontAwesomeIcon icon={faInbox} /> Inbox</button>
         </nav>
-
-        <div className={styles.quickActions}>
-          <button className={styles.qaBtn}><FontAwesomeIcon icon={faComment} /> Message Team</button>
-          <button className={styles.qaBtn} onClick={() => navigate('/uploadcollabdoc')}><FontAwesomeIcon icon={faUpload} /> Upload File</button>
-        </div>
       </aside>
 
       {/* Main Content */}
@@ -343,7 +338,7 @@ const Dashboard = () => {
                         </div>
 
                         {dayData.projects.length > 0 && (
-                          <div style={{ display: 'flex', gap: '2px', justifyContent: 'flex-start', flexWrap: 'wrap' }}>
+                          <div style={{ display: 'flex', justifyContent: 'flex-start', flexWrap: 'wrap' }}>
                             {dayData.projects.slice(0, 3).map((project, projIndex) => (
                               <div
                                 key={projIndex}
@@ -360,7 +355,7 @@ const Dashboard = () => {
                         )}
 
                         {dayData.tasks.length > 0 && (
-                          <div style={{ display: 'flex', gap: '2px', justifyContent: 'flex-start', flexWrap: 'wrap' }}>
+                          <div style={{ display: 'flex', justifyContent: 'flex-start', flexWrap: 'wrap' }}>
                             {dayData.tasks.slice(0, 3).map((task, taskIndex) => (
                               <div
                                 key={taskIndex}
@@ -468,16 +463,6 @@ const Dashboard = () => {
                             </div>
                             <div className={styles.selectedDateItemMeta}>
                               <span>Project: <span className={styles.selectedDateItemProgress}>{task.project ? task.project.name : 'No associated project'}</span></span>
-                              <span>Status: <span className={styles.selectedDateItemStatus}>{task.status}</span></span>
-                              <span>Priority: <span className={styles.selectedDateItemPriority}>{task.priority}</span></span>
-                              {task.description && (
-                                <span className={styles.selectedDateItemDescription}>
-                                  {task.description.length > 50
-                                    ? `${task.description.substring(0, 50)}...`
-                                    : task.description
-                                  }
-                                </span>
-                              )}
                             </div>
                           </li>
                         ))}
@@ -502,9 +487,8 @@ const Dashboard = () => {
                   </div>
                   <div className={styles.emptyStateLegend}>
                     <div className={styles.emptyStateLegendItem}>
-                      <div className={styles.emptyStateProject}>
+                      <div className={styles.emptyStateProject}></div>
                       <span>Project due date</span>
-                      </div>
                     </div>
                     <div className={styles.emptyStateLegendItem}>
                       <div className={styles.emptyStateEvent}></div>

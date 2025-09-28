@@ -1,6 +1,5 @@
-import React, { useContext } from 'react';
+import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate, Outlet } from 'react-router-dom';
-import { AppProvider } from "./context/AppContext";
 import { AuthProvider, useAuth } from './context/AuthProvider';
 import Login from './components/Login';
 import Dashboard from './components/Dashboard';
@@ -8,9 +7,6 @@ import Signup from './components/Signup';
 import NewProject from './components/NewProject';
 import MyTasks from './components/MyTasks';
 import EditProject from './components/EditProject';
-import UploadCollabDoc from './components/UploadCollabDoc';
-import CollaborativeDocumentation from './components/CollaborativeDocumentation';
-import DocumentManager from './components/DocumentManager';
 import StudentDashboard from './components/StudentDashboard';
 import AddProjectMembers from './components/AddProjectMembers';
 import SupervisorDashboard from './components/SupervisorDashboard';
@@ -32,7 +28,6 @@ function App() {
   return (
     <Router>
       <AuthProvider>
-        <AppProvider>
           <Routes>
             <Route path="/" element={<Login />} />
             <Route path="/login" element={<Login />} />
@@ -44,9 +39,6 @@ function App() {
               <Route path="/newproject" element={<NewProject />} />
               <Route path="/mytasks" element={<MyTasks />} />
               <Route path="/editproject" element={<EditProject />} />
-              <Route path="/uploadcollabdoc" element={<UploadCollabDoc />} />
-              <Route path="/collabdoc" element={<CollaborativeDocumentation />} />
-              <Route path="/documents" element={<DocumentManager />} />
               <Route path="/studentdashboard" element={<StudentDashboard />} />
               <Route path="/supervisordashboard" element={<SupervisorDashboard />} />
               <Route path="/groupleaderdashboard" element={<GroupLeaderDashboard />} />
@@ -56,7 +48,6 @@ function App() {
             {/* Redirect any unknown paths to home */}
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
-        </AppProvider>
       </AuthProvider>
     </Router>
   );

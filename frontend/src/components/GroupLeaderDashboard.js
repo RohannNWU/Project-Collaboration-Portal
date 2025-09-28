@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 
@@ -8,15 +8,174 @@ const GroupLeaderDashboard = () => {
     const [tasks, setTasks] = useState([]);
     const [members, setMembers] = useState([]);
     const [documentsByTask, setDocumentsByTask] = useState({});
+    const [chatMessages, setChatMessages] = useState([]);
+    const [messageInput, setMessageInput] = useState('');
     const [expandedTasks, setExpandedTasks] = useState({});
     const [loadingProject, setLoadingProject] = useState(false);
     const [loadingTasks, setLoadingTasks] = useState(false);
     const [loadingMembers, setLoadingMembers] = useState(false);
     const [loadingDocuments, setLoadingDocuments] = useState({});
+    const [loadingChat, setLoadingChat] = useState(false);
     const [error, setError] = useState('');
     const location = useLocation();
     const navigate = useNavigate();
     const { projectId } = location.state || {};
+    const chatContainerRef = useRef(null);
+
+    // Helper function for CHAT
+    function getGradientColors(senderName) {
+        const colors = [
+            '#3b82f6, #1d4ed8', // Blue
+            '#10b981, #059669', // Green
+            '#f59e0b, #d97706', // Amber
+            '#ef4444, #dc2626', // Red
+            '#8b5cf6, #7c3aed', // Purple
+            '#06b6d4, #0891b2', // Cyan
+            '#f97316, #ea580c', // Orange
+            '#ec4899, #db2777', // Pink
+        ];
+
+        // Generate a consistent index based on the sender name
+        let hash = 0;
+        for (let i = 0; i < senderName.length; i++) {
+            hash = senderName.charCodeAt(i) + ((hash << 5) - hash);
+        }
+        const index = Math.abs(hash) % colors.length;
+        return colors[index];
+    }
+
+    // Effect to scroll to the latest message when chatMessages update
+    useEffect(() => {
+        if (chatContainerRef.current) {
+            chatContainerRef.current.scrollTop = chatContainerRef.current.scrollHeight;
+        }
+    }, [chatMessages]);
+
+    // Fetch chat messages when Chat tab is clicked
+    useEffect(() => {
+        if (activeTab === 'chat' && projectId) {
+            fetchChat();
+        }
+    }, [activeTab, projectId, navigate]);
+
+    // Fetch chat messages function
+    const fetchChat = async () => {
+        setLoadingChat(true);
+        setError('');
+        try {
+            const token = localStorage.getItem('access_token');
+            if (!token) {
+                navigate('/');
+                return;
+            }
+
+            const API_BASE_URL = window.location.hostname === 'localhost'
+                ? 'http://127.0.0.1:8000'
+                : 'https://pcp-backend-f4a2.onrender.com';
+
+            const response = await axios.get(`${API_BASE_URL}/api/getprojectchat/?project_id=${projectId}`, {
+                headers: { Authorization: `Bearer ${token}` },
+            });
+
+
+            const serverMessages = response.data.messages || [];
+            setChatMessages(prev => {
+                // Filter out temporary messages and replace with server messages
+                const nonTempMessages = prev.filter(msg => {
+                    // Safe check: ensure id exists and is a string before calling startsWith
+                    return !(msg.id && typeof msg.id === 'string' && msg.id.startsWith('temp-'));
+                });
+                if (JSON.stringify(nonTempMessages) !== JSON.stringify(serverMessages)) {
+                    return serverMessages;
+                }
+                return prev;
+            });
+            //setChatMessages(response.data.messages || []);
+        } catch (err) {
+            console.error('Error fetching chat messages:', err);
+            if (err.response?.status === 400) {
+                setError('Project ID is required');
+            } else if (err.response?.status === 404) {
+                setError('Project not found');
+            } else if (err.response?.status === 403) {
+                setError('Access denied to this project');
+            } else if (err.response?.status === 401) {
+                localStorage.removeItem('access_token');
+                navigate('/');
+            } else {
+                setError('Failed to fetch chat messages');
+            }
+        } finally {
+            setLoadingChat(false);
+        }
+    };
+
+    // Handle sending chat message
+    const handleSendMessage = async () => {
+        if (!messageInput.trim()) return;
+
+        const messageContent = messageInput.trim();
+        const tempMessage = {
+            id: `temp-${Date.now()}`,
+            content: messageContent,
+            sender_name: 'You',
+            role: 'Student', // You might want to get the actual user role from your auth system
+            sent_at: new Date().toLocaleString('en-GB', {
+                year: 'numeric',
+                month: '2-digit',
+                day: '2-digit',
+                hour: '2-digit',
+                minute: '2-digit',
+                second: '2-digit',
+                hour12: false
+            }).replace(/(\d{2})\/(\d{2})\/(\d{4}), (\d{2}:\d{2}:\d{2})/, '$3-$2-$1 $4')
+        };
+
+        // Optimistically add the message to UI
+        setChatMessages(prev => [...prev, tempMessage]);
+        setMessageInput('');
+
+        try {
+            const token = localStorage.getItem('access_token');
+            if (!token) {
+                navigate('/');
+                return;
+            }
+
+            const API_BASE_URL = window.location.hostname === 'localhost'
+                ? 'http://127.0.0.1:8000'
+                : 'https://pcp-backend-f4a2.onrender.com';
+
+            await axios.post(`${API_BASE_URL}/api/sendchatmessage/`, {
+                project_id: projectId,
+                content: messageContent
+            }, {
+                headers: { Authorization: `Bearer ${token}` },
+            });
+
+            // Refresh chat messages to get the server's version
+            fetchChat();
+        } catch (err) {
+            console.error('Error sending chat message:', err);
+
+            // Remove the optimistic message on error
+            setChatMessages(prev => prev.filter(msg => msg.id !== tempMessage.id));
+            setMessageInput(messageContent); // Restore the message input
+
+            if (err.response?.status === 400) {
+                setError('Invalid input');
+            } else if (err.response?.status === 404) {
+                setError('Project not found');
+            } else if (err.response?.status === 403) {
+                setError('Access denied to this project');
+            } else if (err.response?.status === 401) {
+                localStorage.removeItem('access_token');
+                navigate('/');
+            } else {
+                setError('Failed to send message');
+            }
+        }
+    };
 
     // Redirect if no projectId
     useEffect(() => {
@@ -632,7 +791,7 @@ const GroupLeaderDashboard = () => {
                                     </div>
                                 ))}
                             </div>
-                            
+
                         </div>
                     )}
                     <button style={{ width: '200px' }} onClick={() => handleAddNewTask(projectId)}>Add New Task</button>
@@ -796,73 +955,332 @@ const GroupLeaderDashboard = () => {
             id: 'chat',
             label: 'Chat',
             content: (
-                <div style={{ padding: '1.5rem' }}>
-                    <h2 style={{ fontSize: '1.25rem', fontWeight: '600', marginBottom: '1rem', color: '#1f2937' }}>
-                        Team Chat
+                <div key="chat-stable" style={{
+                    padding: '1.5rem',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    height: '600px',
+                    background: 'linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%)',
+                    overflow: 'hidden',
+                }}>
+                    <h2 style={{
+                        fontSize: '1.5rem',
+                        fontWeight: '700',
+                        marginBottom: '1.5rem',
+                        color: '#1e293b',
+                        textAlign: 'center',
+                        textShadow: '0 1px 3px rgba(0,0,0,0.1)'
+                    }}>
+                        Project Chat
                     </h2>
-                    <div
-                        style={{
-                            backgroundColor: 'white',
-                            borderRadius: '0.25rem',
-                            border: '1px solid #d1d5db',
-                            height: '16rem',
-                            padding: '1rem',
-                            overflowY: 'auto',
-                            marginBottom: '1rem',
-                        }}
-                    >
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-                            <div style={{ display: 'flex', alignItems: 'flex-start', gap: '0.5rem' }}>
-                                <div
-                                    style={{
-                                        width: '2rem',
-                                        height: '2rem',
-                                        backgroundColor: '#3b82f6',
-                                        borderRadius: '50%',
-                                        display: 'flex',
-                                        alignItems: 'center',
-                                        justifyContent: 'center',
-                                        color: 'white',
-                                        fontSize: '0.875rem',
-                                        flexShrink: 0,
-                                    }}
-                                >
-                                    A
-                                </div>
-                                <div>
-                                    <p style={{ fontSize: '0.875rem', fontWeight: '500', color: '#1f2937', marginBottom: '0.25rem' }}>
-                                        Alice
-                                    </p>
-                                    <p style={{ fontSize: '0.875rem', color: '#4b5563' }}>
-                                        Hey team, how's the project coming along?
-                                    </p>
-                                </div>
-                            </div>
-                            {/* Other chat messages */}
+
+                    {error && (
+                        <div
+                            style={{
+                                backgroundColor: '#fef2f2',
+                                color: '#dc2626',
+                                padding: '1rem',
+                                borderRadius: '0.75rem',
+                                marginBottom: '1rem',
+                                border: '1px solid #fecaca',
+                                textAlign: 'center',
+                                boxShadow: '0 2px 4px rgba(220, 38, 38, 0.1)',
+                                fontSize: '0.9rem',
+                                fontWeight: '500'
+                            }}
+                        >
+                            {error}
                         </div>
-                    </div>
-                    <div style={{ display: 'flex', gap: '0.5rem' }}>
+                    )}
+
+                    {loadingChat ? (
+                        <div style={{
+                            textAlign: 'center',
+                            color: '#64748b',
+                            padding: '2rem',
+                            fontSize: '1rem',
+                            fontWeight: '500'
+                        }}>
+                            <div style={{
+                                display: 'inline-block',
+                                width: '2rem',
+                                height: '2rem',
+                                border: '3px solid #e2e8f0',
+                                borderTop: '3px solid #3b82f6',
+                                borderRadius: '50%',
+                                animation: 'spin 1s linear infinite',
+                                marginBottom: '1rem'
+                            }}></div>
+                            <div>Loading chat...</div>
+                        </div>
+                    ) : chatMessages.length === 0 ? (
+                        <div style={{
+                            textAlign: 'center',
+                            color: '#64748b',
+                            padding: '3rem',
+                            backgroundColor: '#ffffff',
+                            borderRadius: '1rem',
+                            boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
+                            border: '2px dashed #cbd5e1'
+                        }}>
+                            <div style={{
+                                fontSize: '3rem',
+                                marginBottom: '1rem',
+                                opacity: '0.6'
+                            }}>💬</div>
+                            <div style={{ fontSize: '1.1rem', fontWeight: '600', marginBottom: '0.5rem' }}>
+                                No messages yet
+                            </div>
+                            <div style={{ fontSize: '0.9rem' }}>
+                                Start the conversation with your team!
+                            </div>
+                        </div>
+                    ) : (
+                        <div
+                            ref={chatContainerRef}
+                            style={{
+                                flex: '1 1 0',
+                                overflowY: 'auto',
+                                paddingRight: '0.5rem',
+                                display: 'flex',
+                                flexDirection: 'column',
+                                backgroundColor: '#ffffff',
+                                borderRadius: '1rem',
+                                padding: '1rem',
+                                boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)',
+                                border: '1px solid #e2e8f0',
+                                scrollBehavior: 'smooth',
+                                minHeight: '0', // Important: allows flex item to shrink
+                                position: 'relative' // Create stacking context
+                            }}
+                        >
+                            {(() => {
+                                const messagesWithDates = [];
+                                let prevDate = null;
+                                chatMessages.forEach((msg, index) => {
+                                    const [dateStr, timeStr] = msg.sent_at.split(' ');
+                                    const msgDate = new Date(dateStr);
+                                    const today = new Date();
+                                    const diffTime = today - msgDate;
+                                    const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+
+                                    let displayDate;
+                                    if (diffDays === 0) {
+                                        displayDate = 'Today';
+                                    } else if (diffDays === 1) {
+                                        displayDate = 'Yesterday';
+                                    } else if (diffDays < 7) {
+                                        displayDate = msgDate.toLocaleDateString('en-US', { weekday: 'long' });
+                                    } else {
+                                        displayDate = msgDate.toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' });
+                                    }
+
+                                    if (dateStr !== prevDate) {
+                                        messagesWithDates.push(
+                                            <div
+                                                key={`date-${index}`}
+                                                style={{
+                                                    textAlign: 'center',
+                                                    margin: '1.5rem 0',
+                                                    position: 'relative'
+                                                }}
+                                            >
+                                                <div style={{
+                                                    display: 'inline-block',
+                                                    backgroundColor: '#f1f5f9',
+                                                    color: '#64748b',
+                                                    fontSize: '0.875rem',
+                                                    fontWeight: '600',
+                                                    padding: '0.5rem 1.5rem',
+                                                    borderRadius: '2rem',
+                                                    boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
+                                                    border: '1px solid #e2e8f0',
+                                                    flexShrink: 0, // Prevent input area from shrinking
+                                                    position: 'relative',
+                                                    zIndex: 1
+                                                }}>
+                                                    {displayDate}
+                                                </div>
+                                                <div style={{
+                                                    position: 'absolute',
+                                                    top: '50%',
+                                                    left: '0',
+                                                    right: '0',
+                                                    height: '1px',
+                                                    backgroundColor: '#e2e8f0',
+                                                    zIndex: 0
+                                                }}></div>
+                                            </div>
+                                        );
+                                        prevDate = dateStr;
+                                    }
+
+                                    const shortTime = timeStr.slice(0, 5);
+                                    const isCurrentUser = msg.sender_name === 'You'; // You'll need to determine this based on your user data
+
+                                    messagesWithDates.push(
+                                        <div
+                                            key={msg.id}
+                                            style={{
+                                                display: 'flex',
+                                                alignItems: 'flex-start',
+                                                gap: '0.75rem',
+                                                marginBottom: '1rem',
+                                                padding: '0.5rem',
+                                                borderRadius: '0.75rem',
+                                                transition: 'all 0.2s ease',
+                                                cursor: 'pointer'
+                                            }}
+                                            onMouseEnter={(e) => {
+                                                e.currentTarget.style.backgroundColor = '#f8fafc';
+                                            }}
+                                            onMouseLeave={(e) => {
+                                                e.currentTarget.style.backgroundColor = 'transparent';
+                                            }}
+                                        >
+                                            <div
+                                                style={{
+                                                    width: '2.5rem',
+                                                    height: '2.5rem',
+                                                    background: `linear-gradient(135deg, ${getGradientColors(msg.sender_name)})`,
+                                                    borderRadius: '50%',
+                                                    display: 'flex',
+                                                    alignItems: 'center',
+                                                    justifyContent: 'center',
+                                                    color: 'white',
+                                                    fontSize: '1rem',
+                                                    fontWeight: '600',
+                                                    flexShrink: 0,
+                                                    boxShadow: '0 2px 8px rgba(59, 130, 246, 0.3)',
+                                                    border: '2px solid #ffffff'
+                                                }}
+                                            >
+                                                {msg.sender_name.split(' ')[0].charAt(0).toUpperCase()}
+                                            </div>
+                                            <div style={{ flex: 1, minWidth: 0 }}>
+                                                <div style={{
+                                                    display: 'flex',
+                                                    alignItems: 'center',
+                                                    gap: '0.5rem',
+                                                    marginBottom: '0.25rem'
+                                                }}>
+                                                    <p style={{
+                                                        fontSize: '0.9rem',
+                                                        fontWeight: '600',
+                                                        color: '#1e293b',
+                                                        margin: 0
+                                                    }}>
+                                                        {msg.sender_name} <span style={{
+                                                            color: msg.role === 'Supervisor' ? '#dc2626' : msg.role === 'Group Leader' ? '#10b981' : '#94a3b8'
+                                                        }}>({msg.role})</span>
+                                                    </p>
+                                                    <span style={{
+                                                        fontSize: '0.75rem',
+                                                        color: '#94a3b8',
+                                                        fontWeight: '500'
+                                                    }}>
+                                                        {shortTime}
+                                                    </span>
+                                                </div>
+                                                <div
+                                                    style={{
+                                                        display: 'inline-block',
+                                                        backgroundColor: '#ffffff',
+                                                        padding: '0.75rem 1rem',
+                                                        borderRadius: '1rem 1rem 1rem 0.25rem',
+                                                        maxWidth: '85%',
+                                                        boxShadow: '0 2px 8px rgba(0,0,0,0.08)',
+                                                        border: '1px solid #f1f5f9',
+                                                        position: 'relative',
+                                                        wordBreak: 'break-word'
+                                                    }}
+                                                >
+                                                    <p style={{
+                                                        fontSize: '0.9rem',
+                                                        color: '#334155',
+                                                        margin: 0,
+                                                        lineHeight: '1.5'
+                                                    }}>
+                                                        {msg.content}
+                                                    </p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    );
+                                });
+                                return messagesWithDates;
+                            })()}
+                        </div>
+                    )}
+
+                    <div style={{
+                        display: 'flex',
+                        gap: '0.75rem',
+                        marginTop: '1rem',
+                        padding: '1rem',
+                        backgroundColor: '#ffffff',
+                        borderRadius: '1rem',
+                        boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
+                        border: '1px solid #e2e8f0'
+                    }}>
                         <input
                             type="text"
                             placeholder="Type your message..."
+                            value={messageInput}
+                            onChange={(e) => setMessageInput(e.target.value)}
+                            onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
                             style={{
                                 flex: 1,
-                                padding: '0.5rem',
-                                border: '1px solid #d1d5db',
-                                borderRadius: '0.25rem',
+                                padding: '0.75rem 1rem',
+                                border: '2px solid #e2e8f0',
+                                borderRadius: '0.75rem',
                                 outline: 'none',
-                                fontSize: '0.875rem',
+                                fontSize: '0.9rem',
+                                transition: 'all 0.2s ease',
+                                backgroundColor: '#f8fafc'
+                            }}
+                            onFocus={(e) => {
+                                e.target.style.borderColor = '#3b82f6';
+                                e.target.style.backgroundColor = '#ffffff';
+                                e.target.style.boxShadow = '0 0 0 3px rgba(59, 130, 246, 0.1)';
+                            }}
+                            onBlur={(e) => {
+                                e.target.style.borderColor = '#e2e8f0';
+                                e.target.style.backgroundColor = '#f8fafc';
+                                e.target.style.boxShadow = 'none';
                             }}
                         />
                         <button
+                            onClick={handleSendMessage}
+                            disabled={!messageInput.trim()}
                             style={{
-                                padding: '0.5rem 1rem',
-                                backgroundColor: '#3b82f6',
-                                color: 'white',
-                                borderRadius: '0.25rem',
+                                padding: '0.75rem 1.5rem',
+                                background: messageInput.trim()
+                                    ? 'linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%)'
+                                    : '#e2e8f0',
+                                color: messageInput.trim() ? 'white' : '#94a3b8',
+                                borderRadius: '0.75rem',
                                 border: 'none',
-                                cursor: 'pointer',
-                                fontSize: '0.875rem',
+                                cursor: messageInput.trim() ? 'pointer' : 'not-allowed',
+                                fontSize: '0.9rem',
+                                fontWeight: '600',
+                                transition: 'all 0.2s ease',
+                                boxShadow: messageInput.trim()
+                                    ? '0 4px 12px rgba(59, 130, 246, 0.4)'
+                                    : 'none',
+                                transform: 'translateY(0)'
+                            }}
+                            onMouseEnter={(e) => {
+                                if (messageInput.trim()) {
+                                    e.target.style.transform = 'translateY(-1px)';
+                                    e.target.style.boxShadow = '0 6px 16px rgba(59, 130, 246, 0.5)';
+                                }
+                            }}
+                            onMouseLeave={(e) => {
+                                if (messageInput.trim()) {
+                                    e.target.style.transform = 'translateY(0)';
+                                    e.target.style.boxShadow = '0 4px 12px rgba(59, 130, 246, 0.4)';
+                                }
                             }}
                         >
                             Send
