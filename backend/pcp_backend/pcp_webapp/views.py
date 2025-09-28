@@ -850,7 +850,6 @@ class GetProjectTasksView(APIView):
                     if task_id not in task_members_dict:
                         task_members_dict[task_id] = []
                     task_members_dict[task_id].append({'fname': 'Unknown', 'lname': 'Unknown'})
-            print(f"Task Members Dict: {task_members_dict}")
             tasks_list = [
                 {
                     'task_id': task.task_id,
@@ -869,6 +868,14 @@ class GetProjectTasksView(APIView):
         except Exception as e:
             return Response({'error': f'Failed to fetch tasks: {str(e)}'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
+class DeleteTaskView(APIView):
+    def delete(self, request, task_id):
+        try:
+            task = Task.objects.get(task_id=task_id)
+            task.delete()
+            return Response({'message': 'Task deleted successfully'}, status=status.HTTP_200_OK)
+        except Task.DoesNotExist:
+            return Response({'error': 'Task not found'}, status=status.HTTP_404_NOT_FOUND)
 
 class GetTaskDocumentsView(APIView):
     def get(self, request):

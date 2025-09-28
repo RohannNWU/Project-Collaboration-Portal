@@ -141,6 +141,36 @@ const StudentDashboard = () => {
     }
   };
 
+  // Handle task deletion
+  const handleDelete = async (taskId) => {
+    if (!window.confirm('Are you sure you want to delete this task?')) {
+      return;
+    }
+
+    try {
+      const token = localStorage.getItem('access_token');
+      if (!token) {
+        navigate('/');
+        return;
+      }
+
+      const API_BASE_URL = window.location.hostname === 'localhost'
+        ? 'http://127.0.0.1:8000'
+        : 'https://pcp-backend-f4a2.onrender.com';
+
+      await axios.delete(`${API_BASE_URL}/api/deletetask/${taskId}/`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      // Remove the deleted task from state
+      setTasks((prev) => prev.filter((task) => task.task_id !== taskId));
+      setError('Task deleted successfully.');
+    } catch (err) {
+      console.error(`Error deleting task ${taskId}:`, err);
+      setError('Failed to delete task');
+    }
+  };
+
   // Handle document download
 const handleDownload = async (documentId, documentTitle) => {
   try {
@@ -437,7 +467,7 @@ const handleDownload = async (documentId, documentTitle) => {
                         alignItems: 'center',
                         cursor: 'pointer',
                       }}
-                      onClick={() => toggleTaskDropdown(task.task_id)}
+                      
                     >
                       <div style={{ flex: 1 }}>
                         <p style={{ fontSize: '0.95rem', fontWeight: '500', color: '#1f2937', marginBottom: '0.25rem' }}>
@@ -449,6 +479,8 @@ const handleDownload = async (documentId, documentTitle) => {
                         <p style={{ fontSize: '0.85rem', color: '#6b7280' }}>
                           Due: {task.task_due_date} | Status: {task.task_status} | Priority: {task.task_priority}
                         </p>
+                        <button style={{ width: '150px' }}>Edit Task</button>
+                        <button style={{ width: '150px' }} onClick={() => handleDelete(task.task_id)}>Delete Task</button>
                       </div>
                       <div
                         style={{
@@ -456,6 +488,7 @@ const handleDownload = async (documentId, documentTitle) => {
                           transition: 'transform 0.2s ease',
                           color: '#6b7280',
                         }}
+                        onClick={() => toggleTaskDropdown(task.task_id)}
                       >
                         ▼
                       </div>

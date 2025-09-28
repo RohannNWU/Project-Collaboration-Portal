@@ -61,7 +61,7 @@ class Task(models.Model):
 
 class User_Task(models.Model):
     user_task_id = models.AutoField(primary_key=True)
-    task_id = models.ForeignKey(Task, on_delete=models.DO_NOTHING)
+    task_id = models.ForeignKey(Task, on_delete=models.CASCADE)
     email = models.ForeignKey(User, on_delete=models.DO_NOTHING)
 
     class Meta:
