@@ -177,15 +177,12 @@ const Dashboard = () => {
         </div>
 
         <nav className={styles.nav}>
-          <button className={styles.navBtn}><FontAwesomeIcon icon={faFolder} /> My Projects</button>
           <button className={styles.navBtn} onClick={() => navigate('/mytasks', { state: { email } })}><FontAwesomeIcon icon={faCheckCircle} /> My Tasks</button>
           <button className={styles.navBtn} onClick={() => navigate('/collabdoc')}><FontAwesomeIcon icon={faFile} /> Documents</button>
           <button className={styles.navBtn}><FontAwesomeIcon icon={faInbox} /> Inbox</button>
         </nav>
 
         <div className={styles.quickActions}>
-          <button className={styles.qaBtn}><FontAwesomeIcon icon={faPlus} /> New Project</button>
-          <button className={styles.qaBtn}><FontAwesomeIcon icon={faPlus} /> New Task</button>
           <button className={styles.qaBtn}><FontAwesomeIcon icon={faComment} /> Message Team</button>
           <button className={styles.qaBtn} onClick={() => navigate('/uploadcollabdoc')}><FontAwesomeIcon icon={faUpload} /> Upload File</button>
         </div>
@@ -196,17 +193,12 @@ const Dashboard = () => {
         <header className={styles.topbar}>
           <div className={styles.tbLeft}>
             <h1>Project Collaboration Portal</h1>
-            <span className={styles.badge}>Student</span>
           </div>
           <div className={styles.tbRight}>
-            <div className={styles.search}>
-              <input type="text" placeholder="Search projects, tasks, people…" />
-              <FontAwesomeIcon icon={faSearch} className={styles.searchIcon} />
-            </div>
-            <button className={styles.iconBtn} title="Notifications">
+            <button className={styles.iconBtn} title="Notifications" style={{ backgroundColor: 'red' }}>
               <FontAwesomeIcon icon={faBell} />
             </button>
-            <button className={styles.iconBtn} title="Settings">
+            <button className={styles.iconBtn} title="Settings" style={{ backgroundColor: 'red' }}>
               <FontAwesomeIcon icon={faCog} />
             </button>
             <div className={styles.user}>
@@ -266,7 +258,7 @@ const Dashboard = () => {
             <tbody>
               {projects.map((project, index) => (
                 <tr key={index}>
-                  <td>{project.project_id} - {project.project_name}</td>
+                  <td>{project.project_name}</td>
                   <td>
                     <div className={styles.progressBar}>
                       <div
