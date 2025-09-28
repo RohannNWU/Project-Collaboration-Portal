@@ -141,6 +141,36 @@ const StudentDashboard = () => {
     }
   };
 
+  const handleMemberDelete = async (memberEmail) => {
+    if (!window.confirm('Are you sure you want to delete this member?')) {
+      return;
+    }
+
+    try {
+      const token = localStorage.getItem('access_token');
+      if (!token) {
+        navigate('/');
+        return;
+      }
+
+      const API_BASE_URL = window.location.hostname === 'localhost'
+        ? 'http://127.0.0.1:8000'
+        : 'https://pcp-backend-f4a2.onrender.com';
+
+      await axios.delete(`${API_BASE_URL}/api/deletemember/`, {
+        headers: { Authorization: `Bearer ${token}` },
+        data: { project_id: projectId, email: memberEmail }
+      });
+
+      // Remove the deleted member from state
+      setMembers((prev) => prev.filter((member) => member.email !== memberEmail));
+      setError('Member deleted successfully.');
+    } catch (err) {
+      console.error(`Error deleting member ${memberEmail}:`, err);
+      setError('Failed to delete member');
+    }
+  };
+
   // Handle task deletion
   const handleDelete = async (taskId) => {
     if (!window.confirm('Are you sure you want to delete this task?')) {
@@ -725,9 +755,11 @@ const handleDownload = async (documentId, documentTitle) => {
                         Role: {member.role}
                       </p>
                     </div>
+                    <button style={{ width: '150px' }} onClick={() => handleMemberDelete(member.email)}>Delete Member</button>
                   </div>
                 ))}
               </div>
+              <button onClick={() => navigate('/addmembers', { state: { projectId: projectId } })}>Add Members</button>
             </div>
           )}
         </div>

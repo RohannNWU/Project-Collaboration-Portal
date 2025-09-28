@@ -11,7 +11,6 @@ const MyTasks = () => {
     const navigate = useNavigate();
 
     useEffect(() => {
-        const token = localStorage.getItem('access_token');
         const API_BASE_URL = window.location.hostname === 'localhost'
             ? 'http://127.0.0.1:8000'
             : 'https://pcp-backend-f4a2.onrender.com';

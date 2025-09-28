@@ -155,7 +155,7 @@ class AddProjectView(APIView):
 
             # Add project members using ORM
             for index, member_email in enumerate(project_members):
-                role = 'supervisor' if index == 0 else 'student'
+                role = 'Supervisor' if index == 0 else 'Student'
                 user = User.objects.get(email=member_email)
                 UserProject.objects.create(
                     email=user,
@@ -877,6 +877,31 @@ class DeleteTaskView(APIView):
         except Task.DoesNotExist:
             return Response({'error': 'Task not found'}, status=status.HTTP_404_NOT_FOUND)
 
+class AddUserView(APIView):
+    def post(self, request):
+        try:
+            project_id = request.data.get('project_id')
+            email = request.data.get('email')
+            role = request.data.get('role')
+            
+            if not all([project_id, email, role]):
+                return Response({'error': 'project_id, email, and role are required'}, status=status.HTTP_400_BAD_REQUEST)
+            
+            project = Project.objects.get(project_id=project_id)
+            user = User.objects.get(email=email)
+            project_user = UserProject.objects.create(
+                project_id=project,
+                email=user,
+                role=role
+            )
+            return Response({'message': 'User added to project successfully'}, status=status.HTTP_201_CREATED)
+        except Project.DoesNotExist:
+            return Response({'error': 'Project not found'}, status=status.HTTP_404_NOT_FOUND)
+        except User.DoesNotExist:
+            return Response({'error': 'User not found'}, status=status.HTTP_404_NOT_FOUND)
+        except Exception as e:
+            return Response({'error': f'Failed to add user: {str(e)}'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        
 class GetTaskDocumentsView(APIView):
     def get(self, request):
         try:
@@ -1151,3 +1176,20 @@ class DownloadDocumentView(APIView):
         except Exception as e:
             logger.error(f"Error downloading document: {str(e)}")
             return Response({'error': f'Failed to download document: {str(e)}'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+class DeleteProjectUserView(APIView):
+    def delete(self, request):
+        try:
+            requested_project_id = request.data.get('project_id')
+            requested_email = request.data.get('email')
+
+            project = Project.objects.get(project_id=requested_project_id)
+            user = User.objects.get(email=requested_email)
+            UserProject.objects.filter(project_id=project, email=user).delete()
+            return Response({'message': 'User removed from project successfully'}, status=status.HTTP_200_OK)
+        except Project.DoesNotExist:
+            return Response({'error': 'Project not found'}, status=status.HTTP_404_NOT_FOUND)
+        except User.DoesNotExist:
+            return Response({'error': 'User not found'}, status=status.HTTP_404_NOT_FOUND)
+        except Exception as e:
+            return Response({'error': f'Failed to remove user: {str(e)}'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
