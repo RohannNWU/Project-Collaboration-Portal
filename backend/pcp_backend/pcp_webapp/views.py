@@ -5,7 +5,7 @@ from rest_framework import status
 from rest_framework_simplejwt.tokens import UntypedToken, AccessToken
 from rest_framework_simplejwt.exceptions import InvalidToken
 from datetime import datetime, timedelta
-from .models import User, Project, UserProject, Task, User_Task, Document
+from .models import User, Project, UserProject, Task, User_Task, Document,ChatMessage, ProjectChat
 from django.core.files.storage import default_storage
 from django.core.files.base import ContentFile
 from django.http import HttpResponse
@@ -20,7 +20,7 @@ from rest_framework import status, permissions
 import bcrypt
 import logging
 import mimetypes
-
+from django.utils import timezone
 
 logger = logging.getLogger(__name__)
 
@@ -1252,8 +1252,8 @@ class DeleteDocumentView(APIView):
         
         except Exception as e:
             logger.error(f"Error deleting document: {str(e)}")
-            return Response({'error': f'Failed to delete document: {str(e)}'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-
+            return Response({'error': f'Failed to delete document: {str(e)}'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)   
+        
 class GetCompletedTasksView(APIView):
     def get(self, request):
         try:
@@ -1298,3 +1298,113 @@ class GetCompletedTasksView(APIView):
             return Response({'error': 'Project not found'}, status=status.HTTP_404_NOT_FOUND)
         except Exception as e:
             return Response({'error': f'Failed to fetch tasks: {str(e)}'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+# API endpoint to fetch chat history for a specific project.
+# Requires authentication via JWT token.
+# Query param: project_id (required)
+# Returns: List of messages with sender details, content, and timestamp.
+class GetProjectChatView(APIView):
+
+    def get(self, request):
+        # Extract project_id from query params
+        project_id = request.GET.get('project_id')
+        if not project_id:
+            return Response({'error': 'Project ID is required'}, status=status.HTTP_400_BAD_REQUEST)
+        
+        # Authenticate user from token
+        user = get_user_from_token(request)
+        if not user:
+            return Response({'error': 'Authentication required'}, status=status.HTTP_401_UNAUTHORIZED)
+        
+        try:
+            # Fetch project
+            project = Project.objects.get(project_id=project_id)
+            
+            # Check if user has access to the project
+            if not UserProject.objects.filter(email=user, project_id=project).exists():
+                logger.error(f"User {user.email} does not have access to project {project_id}")
+                return Response({'error': 'Access denied to this project'}, status=status.HTTP_403_FORBIDDEN)
+            
+            # Fetch project chats, ordered by message sent_at
+            project_chats = ProjectChat.objects.filter(project_id=project).order_by('chat_message__sent_at').select_related('chat_message', 'chat_message__email')
+            
+            # Extract messages from project chats
+            messages = [pc.chat_message for pc in project_chats]
+            
+            # Serialize messages with sender name and time
+            serialized_messages = [
+                {
+                    'id': msg.chat_message_id,
+                    'sender_email': msg.email.email,
+                    'sender_name': f"{msg.email.first_name} {msg.email.last_name}",
+                    'content': msg.content,
+                    'sent_at': msg.sent_at.strftime('%Y-%m-%d %H:%M:%S'),  # Human-readable format
+                    'role': msg.Role  # Include the Role field from the updated model
+                }
+                for msg in messages
+            ]
+            
+            return Response({'messages': serialized_messages}, status=status.HTTP_200_OK)
+        
+        except Project.DoesNotExist:
+            logger.error(f"Project not found: project_id={project_id}")
+            return Response({'error': 'Project not found'}, status=status.HTTP_404_NOT_FOUND)
+        
+        except Exception as e:
+            logger.error(f"Error fetching chat history: {str(e)}")
+            return Response({'error': f'Failed to fetch chat history: {str(e)}'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+# API endpoint to send a new chat message to a project chat.
+# Requires authentication via JWT token.
+# POST data: project_id (required), content (required)
+# Creates a ChatMessage and associates it with ProjectChat for consistency with models.
+class SendChatMessageView(APIView):
+
+    def post(self, request):
+        # Extract data from request body
+        project_id = request.data.get('project_id')
+        content = request.data.get('content')
+        
+        if not project_id or not content:
+            return Response({'error': 'project_id and content are required'}, status=status.HTTP_400_BAD_REQUEST)
+        
+        # Authenticate user from token
+        user = get_user_from_token(request)
+        if not user:
+            return Response({'error': 'Authentication required'}, status=status.HTTP_401_UNAUTHORIZED)
+        
+        try:
+            # Fetch project
+            project = Project.objects.get(project_id=project_id)
+            
+            # Check if user has access to the project and get role
+            try:
+                user_project = UserProject.objects.get(email=user, project_id=project)
+            except UserProject.DoesNotExist:
+                logger.error(f"User {user.email} does not have access to project {project_id}")
+                return Response({'error': 'Access denied to this project'}, status=status.HTTP_403_FORBIDDEN)
+            
+            # Create the chat message with Role from UserProject
+            message = ChatMessage.objects.create(
+                email=user,
+                sent_at=timezone.now(),
+                content=content,
+                Role=user_project.role
+            )
+            
+            # Create ProjectChat entry to associate with project
+            ProjectChat.objects.create(
+                project_id=project,
+                chat_message=message
+            )
+            
+            logger.info(f"Message sent by {user.email} to project {project_id}")
+            return Response({'message': 'Chat message sent successfully', 'id': message.chat_message_id}, status=status.HTTP_201_CREATED)
+        
+        except Project.DoesNotExist:
+            logger.error(f"Project not found: project_id={project_id}")
+            return Response({'error': 'Project not found'}, status=status.HTTP_404_NOT_FOUND)
+        
+        except Exception as e:
+            logger.error(f"Error sending chat message: {str(e)}")
+            return Response({'error': f'Failed to send chat message: {str(e)}'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)   

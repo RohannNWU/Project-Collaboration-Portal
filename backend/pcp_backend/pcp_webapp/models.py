@@ -194,3 +194,28 @@ class EditRequest(models.Model):
 
     def __str__(self):
         return f"Edit requested for {self.task.title} by {self.requested_by}"
+
+class ChatMessage(models.Model):
+    chat_message_id = models.AutoField(primary_key=True)
+    email = models.ForeignKey(User, on_delete=models.CASCADE)
+    sent_at = models.DateTimeField(auto_now_add=True)
+    content = models.TextField()
+    Role = models.CharField(default='',max_length=50)
+    
+    class Meta:
+        managed = True
+
+    def __str__(self):
+     return f"Message by {self.email} at {self.sent_at}"
+    
+class ProjectChat(models.Model):
+    project_chat_id = models.AutoField(primary_key=True)
+    project_id = models.ForeignKey(Project, on_delete=models.CASCADE)
+    chat_message = models.ForeignKey(ChatMessage, on_delete=models.CASCADE)
+    
+    class Meta:
+        managed = True
+
+    def __str__(self):
+        return f"Chat in Project {self.project_id} - Message ID {self.chat_message_id}"
+
