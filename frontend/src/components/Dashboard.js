@@ -4,8 +4,8 @@ import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import {
-  faFolder, faCheckCircle, faFile, faInbox,
-  faBell, faCog, faSignOutAlt, faPlus, faSearch, faEnvelope, faProjectDiagram,
+  faCheckCircle, faFile, faInbox,
+  faBell, faCog, faSignOutAlt, faEnvelope, faProjectDiagram,
   faComment, faUpload, faChevronLeft, faChevronRight, faCalendar
 } from '@fortawesome/free-solid-svg-icons';
 import styles from './Dashboard.module.css';
