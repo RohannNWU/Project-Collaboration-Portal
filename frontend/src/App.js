@@ -13,6 +13,8 @@ import CollaborativeDocumentation from './components/CollaborativeDocumentation'
 import DocumentManager from './components/DocumentManager';
 import StudentDashboard from './components/StudentDashboard';
 import AddProjectMembers from './components/AddProjectMembers';
+import SupervisorDashboard from './components/SupervisorDashboard';
+import GroupLeaderDashboard from './components/GroupLeaderDashboard';
 
 // Protected Route component
 const ProtectedRoute = ({ children }) => {
@@ -46,6 +48,8 @@ function App() {
               <Route path="/collabdoc" element={<CollaborativeDocumentation />} />
               <Route path="/documents" element={<DocumentManager />} />
               <Route path="/studentdashboard" element={<StudentDashboard />} />
+              <Route path="/supervisordashboard" element={<SupervisorDashboard />} />
+              <Route path="/groupleaderdashboard" element={<GroupLeaderDashboard />} />
               <Route path="/addprojectmembers" element={<AddProjectMembers />} />
             </Route>
             
