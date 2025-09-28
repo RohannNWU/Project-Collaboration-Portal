@@ -103,3 +103,27 @@ class NotificationSummarySerializer(serializers.ModelSerializer):
         else:
             days = diff.days
             return f"{days} day{'s' if days != 1 else ''} ago"
+        
+
+class DocumentSerializer(serializers.ModelSerializer):
+    task_id = serializers.PrimaryKeyRelatedField(queryset=Task.objects.all(), allow_null=True)
+    last_modified_by = serializers.SlugRelatedField(slug_field='email', queryset=User.objects.all())
+    file = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Document
+        fields = [
+            'document_id',
+            'task_id',
+            'document_title',
+            'document_description',
+            'date_time_uploaded',
+            'doc_type',
+            'date_time_last_modified',
+            'last_modified_by',
+            'file',
+        ]
+
+    def get_file(self, obj):
+        # Return the URL of the file if it exists, otherwise None
+        return obj.file.url if obj.file else None
