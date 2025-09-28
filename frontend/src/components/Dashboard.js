@@ -292,10 +292,7 @@ const Dashboard = () => {
                   </td>
                   <td>{project.dueDate}</td>
                   <td>
-                    <button className={styles.openBtn} onClick={() => handleOpenDashboard(project)}>
-                      Open
-                    </button>
-                    <button className={styles.openBtn} onClick={() => navigate('/editproject', { state: { projectId: project.project_id, projectName: project.project_name } })}>Edit</button>
+                    <button className={styles.openBtn} onClick={() => handleOpenDashboard(project)}>Open</button>
                   </td>
                   <td>
                     {project.role}
