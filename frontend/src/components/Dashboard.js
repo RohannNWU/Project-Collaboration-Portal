@@ -1,4 +1,3 @@
-// Dashboard.js
 import React, { useState, useEffect, useCallback } from 'react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
@@ -6,7 +5,7 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import {
   faCheckCircle, faFile, faInbox,
   faBell, faCog, faSignOutAlt, faEnvelope, faProjectDiagram,
-  faComment, faUpload, faChevronLeft, faChevronRight, faCalendar
+  faComment, faUpload, faChevronLeft, faChevronRight, faCalendar, faTasks
 } from '@fortawesome/free-solid-svg-icons';
 import styles from './Dashboard.module.css';
 
@@ -15,18 +14,16 @@ const Dashboard = () => {
   const [username, setUsername] = useState('');
   const [projects, setProjects] = useState([]);
   const [calendarEvents, setCalendarEvents] = useState([]);
-  const [currentDate, setCurrentDate] = useState(new Date()); // Jacques van Heerden - 35317906 - Calendar state: manages the currently displayed month/year
-  const [selectedDate, setSelectedDate] = useState(null); // Jacques van Heerden - 35317906 - Calendar state: tracks the currently selected date for viewing items
+  const [currentDate, setCurrentDate] = useState(new Date());
+  const [selectedDate, setSelectedDate] = useState(null);
   const [currentTime, setCurrentTime] = useState('');
   const [error, setError] = useState('');
-  const [calendarKey, setCalendarKey] = useState(0); // Jacques van Heerden - 35317906 - Calendar refresh: forces re-render when month changes
+  const [calendarKey, setCalendarKey] = useState(0);
   const navigate = useNavigate();
 
-  // Jacques van Heerden - 35317906 - Calendar configuration: month names and day abbreviations for display
   const months = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
   const days = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
-  // Fixed: Combined fetch function with proper dependency management
   const fetchDashboardData = useCallback(async () => {
     try {
       const token = localStorage.getItem('access_token');
@@ -39,7 +36,6 @@ const Dashboard = () => {
         ? 'http://127.0.0.1:8000'
         : 'https://pcp-backend-f4a2.onrender.com';
 
-      // Fetch dashboard data
       const dashboardResponse = await axios.get(`${API_BASE_URL}/api/dashboard/`, {
         headers: { Authorization: `Bearer ${token}` }
       });
@@ -48,7 +44,6 @@ const Dashboard = () => {
       setUsername(dashboardResponse.data.username);
       setProjects(dashboardResponse.data.projects || []);
 
-      // Jacques van Heerden - 35317906 - Calendar data fetching: retrieves calendar events from backend API
       const calendarResponse = await axios.get(`${API_BASE_URL}/api/calendar/`, {
         headers: { Authorization: `Bearer ${token}` }
       });
@@ -68,20 +63,14 @@ const Dashboard = () => {
     }
   }, [navigate]);
 
-  // FIXED: Include fetchDashboardData in dependency array to resolve ESLint warning
   useEffect(() => {
     fetchDashboardData();
   }, [fetchDashboardData]);
 
-  // Jacques van Heerden - 35317906 - Calendar navigation fix: resets selected date and refreshes calendar when month/year changes
-  // FIXED: Removed unused variables to resolve no-unused-vars warnings
   useEffect(() => {
-    // Clear the selected date when navigating between months/years
     setSelectedDate(null);
-
-    // Jacques van Heerden - 35317906 - Calendar refresh: increment key to force complete re-render of calendar
     setCalendarKey(prevKey => prevKey + 1);
-  }, [currentDate]); // FIXED: Simple dependency - React detects object reference changes when month/year changes
+  }, [currentDate]);
 
   const logout = () => {
     localStorage.removeItem('access_token');
@@ -89,23 +78,18 @@ const Dashboard = () => {
     navigate("/");
   };
 
-  // Jacques van Heerden - 35317906 - Calendar navigation: moves to previous month with full refresh
   const prevMonth = () => {
     const newDate = new Date(currentDate.getFullYear(), currentDate.getMonth() - 1, 1);
     setCurrentDate(newDate);
-    // Jacques van Heerden - 35317906 - Calendar refresh: immediately clear selection on navigation
     setSelectedDate(null);
   };
 
-  // Jacques van Heerden - 35317906 - Calendar navigation: moves to next month with full refresh
   const nextMonth = () => {
     const newDate = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 1);
     setCurrentDate(newDate);
-    // Jacques van Heerden - 35317906 - Calendar refresh: immediately clear selection on navigation
     setSelectedDate(null);
   };
 
-  // Jacques van Heerden - 35317906 - Calendar grid generation: creates the calendar grid with days, projects, and events for the current month
   const getDaysInMonth = () => {
     const year = currentDate.getFullYear();
     const month = currentDate.getMonth();
@@ -116,44 +100,32 @@ const Dashboard = () => {
 
     const daysArray = [];
 
-    // Empty cells for previous month
     for (let i = 0; i < startingDayOfWeek; i++) {
       daysArray.push(null);
     }
 
-    // Days of current month
     for (let day = 1; day <= daysInMonth; day++) {
       const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
       const today = new Date().toISOString().split('T')[0];
 
-      // Jacques van Heerden - 35317906 - Calendar data processing: filters projects due on specific date
-      const dayProjects = projects.filter(p => p.dueDate === dateStr);
-
-      // Jacques van Heerden - 35317906 - Calendar data processing: filters calendar events for specific date
-      const dayEvents = calendarEvents.filter(event => {
-        if (event.start) {
-          const eventDate = event.start.split('T')[0];
-          return eventDate === dateStr;
-        }
-        return false;
-      });
+      const dayProjects = calendarEvents.filter(e => e.type === 'project' && e.start === dateStr);
+      const dayTasks = calendarEvents.filter(e => e.type === 'task' && e.start === dateStr);
 
       daysArray.push({
         day,
         dateStr,
         projects: dayProjects,
-        events: dayEvents,
+        tasks: dayTasks,
         isToday: dateStr === today,
-        isOverdue: dateStr < today && (dayProjects.length > 0 || dayEvents.length > 0),
-        hasFuture: dateStr > today && (dayProjects.length > 0 || dayEvents.length > 0),
-        totalItems: dayProjects.length + dayEvents.length
+        isOverdue: dateStr < today && (dayProjects.length > 0 || dayTasks.length > 0),
+        hasFuture: dateStr > today && (dayProjects.length > 0 || dayTasks.length > 0),
+        totalItems: dayProjects.length + dayTasks.length
       });
     }
 
     return daysArray;
   };
 
-  // Jacques van Heerden - 35317906 - Calendar utility: formats date string for user-friendly display
   const formatDateForDisplay = (dateStr) => {
     const date = new Date(dateStr);
     return date.toLocaleDateString('en-US', {
@@ -166,8 +138,6 @@ const Dashboard = () => {
 
   const handleOpenDashboard = (project) => {
     const { project_id, project_name, role } = project;
-
-    // Determine the dashboard URL based on the role
     let dashboardPath;
     switch (role.toLowerCase()) {
       case 'group leader':
@@ -177,11 +147,9 @@ const Dashboard = () => {
         dashboardPath = '/supervisordashboard';
         break;
       default:
-        dashboardPath = '/studentdashboard'; // Fallback for unrecognized roles
+        dashboardPath = '/studentdashboard';
         break;
     }
-
-    // Navigate to the appropriate dashboard with project details
     navigate(dashboardPath, {
       state: { projectId: project_id, projectName: project_name },
     });
@@ -194,8 +162,8 @@ const Dashboard = () => {
         <div className={styles.brand}>
           <div className={styles.logo}>{username.split(' ').map(word => word.charAt(0).toUpperCase()).join('')}</div>
           <div className={styles.brandText}>
-            <h2>{username}</h2>
-            <small>{email}</small>
+            <h2 className={styles.brandTextH2}>{username}</h2>
+            <small className={styles.brandTextSmall}>{email}</small>
           </div>
         </div>
 
@@ -218,15 +186,15 @@ const Dashboard = () => {
             <h1>Project Collaboration Portal</h1>
           </div>
           <div className={styles.tbRight}>
-            <button className={styles.iconBtn} title="Notifications" style={{ backgroundColor: 'red' }}>
+            <button className={styles.iconBtn} title="Notifications">
               <FontAwesomeIcon icon={faBell} />
             </button>
-            <button className={styles.iconBtn} title="Settings" style={{ backgroundColor: 'red' }}>
+            <button className={styles.iconBtn} title="Settings">
               <FontAwesomeIcon icon={faCog} />
             </button>
             <div className={styles.user}>
               <button className={styles.logoutBtn} onClick={logout} title="Logout">
-                <FontAwesomeIcon icon={faSignOutAlt} />
+                Logout  <FontAwesomeIcon icon={faSignOutAlt} />
               </button>
             </div>
           </div>
@@ -235,29 +203,21 @@ const Dashboard = () => {
         {/* KPIs */}
         <section className={styles.cards}>
           <div className={styles.card}>
-            <p>Active Projects</p>
-            <h2 id="kpi-projects">{projects.length}</h2>
+            <p className={styles.cardP}>Active Projects</p>
+            <h2 className={styles.cardH2} id="kpi-projects">{projects.length}</h2>
           </div>
           <div className={styles.card}>
-            <p>Calendar Events</p>
-            <h2 id="kpi-events">{calendarEvents.length}</h2>
+            <p className={styles.cardP}>Calendar Events</p>
+            <h2 className={styles.cardH2} id="kpi-events">{calendarEvents.length}</h2>
           </div>
           <div className={styles.card}>
-            <p>Total Deadlines</p>
-            <h2 id="kpi-deadlines">{projects.length + calendarEvents.length}</h2>
+            <p className={styles.cardP}>Total Deadlines</p>
+            <h2 className={styles.cardH2} id="kpi-deadlines">{projects.length + calendarEvents.length}</h2>
           </div>
         </section>
 
         {error && (
-          <div style={{
-            backgroundColor: '#f8d7da',
-            color: '#721c24',
-            padding: '10px',
-            borderRadius: '4px',
-            marginBottom: '20px',
-            border: '1px solid #f5c6cb',
-            textAlign: 'center'
-          }}>
+          <div className={styles.errorMessage}>
             {error}
           </div>
         )}
@@ -265,7 +225,7 @@ const Dashboard = () => {
         {/* Projects Table */}
         <section className={styles.panel}>
           <div className={styles.panelHead}>
-            <h2>Projects Overview</h2>
+            <h2 className={styles.panelHeadH2}>Projects Overview</h2>
           </div>
           <button className={styles.addBtn} onClick={() => navigate('/newproject')}>+ Add Project</button>
           <table className={styles.table}>
@@ -286,8 +246,10 @@ const Dashboard = () => {
                     <div className={styles.progressBar}>
                       <div
                         className={styles.progress}
-                        style={{ width: `${project.progress}%` }}
-                      >{project.progress}%</div>
+                        style={{ width: `${project.progress || 0}%` }}
+                      >
+                      </div>
+                      <span className={styles.progressText}>{project.progress || 0}%</span>
                     </div>
                   </td>
                   <td>{project.dueDate}</td>
@@ -305,115 +267,32 @@ const Dashboard = () => {
 
         {/* Calendar and Selected Date Items */}
         <section className={styles.charts}>
-          {/* Jacques van Heerden - 35317906 - Calendar Component: uses key prop for complete refresh on month change */}
           <div className={styles.chartCard} key={`calendar-${calendarKey}`}>
             <div className={styles.panelHead}>
-              <h3>Calendar</h3>
-              {/* Jacques van Heerden - 35317906 - Calendar display: shows server time from calendar API response */}
+              <h3 className={styles.panelHeadH3}>Calendar</h3>
               {currentTime && (
-                <small style={{ color: '#666', marginLeft: '10px' }}>Server Time: {currentTime}</small>
+                <small className={styles.brandTextSmall}>Server Time: {currentTime}</small>
               )}
             </div>
-            <div style={{
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'center',
-              marginBottom: '15px',
-              paddingBottom: '10px',
-              borderBottom: '1px solid #eee'
-            }}>
-              {/* Jacques van Heerden - 35317906 - Calendar navigation: previous month button */}
-              <button
-                onClick={prevMonth}
-                style={{
-                  background: '#6a11cb',
-                  color: 'white',
-                  border: 'none',
-                  width: '40px',
-                  height: '40px',
-                  borderRadius: '50%',
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  transition: 'all 0.2s ease'
-                }}
-                onMouseOver={(e) => {
-                  e.target.style.background = '#5a0eb8';
-                  e.target.style.transform = 'scale(1.1)';
-                }}
-                onMouseOut={(e) => {
-                  e.target.style.background = '#6a11cb';
-                  e.target.style.transform = 'scale(1)';
-                }}
-              >
+            <div className={styles.panelHead}>
+              <button className={styles.calendarNavBtn} onClick={prevMonth}>
                 <FontAwesomeIcon icon={faChevronLeft} />
               </button>
-              {/* Jacques van Heerden - 35317906 - Calendar display: shows current month and year */}
-              <h4 style={{ margin: 0, fontSize: '18px', color: '#333' }}>
+              <h4 className={styles.calendarHeader}>
                 {months[currentDate.getMonth()]} {currentDate.getFullYear()}
               </h4>
-              {/* Jacques van Heerden - 35317906 - Calendar navigation: next month button */}
-              <button
-                onClick={nextMonth}
-                style={{
-                  background: '#6a11cb',
-                  color: 'white',
-                  border: 'none',
-                  width: '40px',
-                  height: '40px',
-                  borderRadius: '50%',
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  transition: 'all 0.2s ease'
-                }}
-                onMouseOver={(e) => {
-                  e.target.style.background = '#5a0eb8';
-                  e.target.style.transform = 'scale(1.1)';
-                }}
-                onMouseOut={(e) => {
-                  e.target.style.background = '#6a11cb';
-                  e.target.style.transform = 'scale(1)';
-                }}
-              >
+              <button className={styles.calendarNavBtn} onClick={nextMonth}>
                 <FontAwesomeIcon icon={faChevronRight} />
               </button>
             </div>
 
-            <div style={{
-              display: 'grid',
-              gridTemplateColumns: 'repeat(7, 1fr)',
-              gap: '1px',
-              background: '#e0e0e0',
-              borderRadius: '8px',
-              overflow: 'hidden',
-              maxHeight: '300px',
-              overflowY: 'auto'
-            }}>
-              {/* Jacques van Heerden - 35317906 - Calendar display: day of week headers */}
+            <div className={styles.calendarGrid}>
               {days.map(day => (
-                <div
-                  key={day}
-                  style={{
-                    background: '#6a11cb',
-                    color: 'white',
-                    padding: '8px',
-                    textAlign: 'center',
-                    fontWeight: '600',
-                    fontSize: '12px',
-                    minHeight: '30px',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center'
-                  }}
-                >
+                <div key={day} className={styles.calendarDayHeader}>
                   {day}
                 </div>
               ))}
 
-              {/* Jacques van Heerden - 35317906 - Calendar grid: renders individual date cells with projects and events */}
               {getDaysInMonth().map((dayData, index) => {
                 const isEmpty = !dayData;
                 const isToday = dayData?.isToday;
@@ -421,155 +300,78 @@ const Dashboard = () => {
                 const hasFuture = dayData?.hasFuture;
                 const totalItems = dayData?.totalItems || 0;
 
-                // Jacques van Heerden - 35317906 - Calendar styling: ensures fresh styling calculation for each cell
-                const getCellStyle = () => {
-                  if (isEmpty) return { background: '#f8f8f8' };
-                  if (isToday) return {
-                    background: '#6a11cb',
-                    color: 'white',
-                    boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
-                  };
-                  if (isOverdue) return {
-                    background: '#ffeaea',
-                    borderLeft: '4px solid #e74c3c'
-                  };
-                  if (hasFuture) return {
-                    background: '#e8f5e8',
-                    borderLeft: '4px solid #27ae60'
-                  };
-                  return { background: 'white' };
+                const getBaseClass = () => {
+                  if (isEmpty) return styles.calendarCellEmpty;
+                  if (isToday) return styles.calendarCellToday;
+                  if (isOverdue) return styles.calendarCellOverdue;
+                  if (hasFuture) return styles.calendarCellFuture;
+                  return styles.calendarCell;
+                };
+
+                const getHoverClass = () => {
+                  if (isToday) return styles.calendarCellTodayHover;
+                  if (isOverdue) return styles.calendarCellOverdueHover;
+                  if (hasFuture) return styles.calendarCellFutureHover;
+                  return styles.calendarCellHover;
                 };
 
                 return (
                   <div
-                    key={`${dayData?.dateStr}-${calendarKey}`} // Jacques van Heerden - 35317906 - Calendar refresh: unique key ensures complete re-render
-                    style={{
-                      ...getCellStyle(),
-                      minHeight: '70px',
-                      padding: '6px',
-                      display: 'flex',
-                      flexDirection: 'column',
-                      cursor: isEmpty ? 'default' : 'pointer',
-                      color: isToday ? 'white' : 'black',
-                      transition: 'all 0.2s ease',
-                      position: 'relative'
-                    }}
-                    // Jacques van Heerden - 35317906 - Calendar interaction: handles date selection for viewing items
+                    key={`${dayData?.dateStr}-${index}-${calendarKey}`}
+                    className={`${getBaseClass()} ${isEmpty ? '' : styles.hoverTarget}`}
                     onClick={() => dayData && setSelectedDate(dayData.dateStr)}
                     onMouseEnter={(e) => {
                       if (!isEmpty) {
-                        const hoverStyle = {
-                          background: isToday ? '#5a0eb8' :
-                            isOverdue ? '#f8d7d7' :
-                              hasFuture ? '#d4f1d4' : '#f5f5f5',
-                          transform: 'scale(1.02)',
-                          boxShadow: '0 2px 8px rgba(0,0,0,0.15)'
-                        };
-                        Object.assign(e.target.style, hoverStyle);
+                        e.currentTarget.classList.add(getHoverClass());
                       }
                     }}
                     onMouseLeave={(e) => {
                       if (!isEmpty) {
-                        const leaveStyle = {
-                          ...getCellStyle(),
-                          transform: 'scale(1)',
-                          boxShadow: isToday ? '0 2px 4px rgba(0,0,0,0.1)' : 'none'
-                        };
-                        Object.assign(e.target.style, leaveStyle);
+                        e.currentTarget.classList.remove(getHoverClass());
                       }
                     }}
                   >
                     {dayData && (
                       <>
-                        <div style={{
-                          display: 'flex',
-                          justifyContent: 'space-between',
-                          alignItems: 'center',
-                          marginBottom: '4px'
-                        }}>
-                          {/* Jacques van Heerden - 35317906 - Calendar display: shows day number */}
-                          <span style={{
-                            fontSize: '14px',
-                            fontWeight: '600'
-                          }}>
-                            {dayData.day}
-                          </span>
-                          {/* Jacques van Heerden - 35317906 - Calendar indicators: shows total count of projects and events */}
+                        <div className={styles.panelHead}>
+                          <span className={styles.calendarCellDay}>{dayData.day}</span>
                           {totalItems > 0 && (
-                            <span style={{
-                              fontSize: '10px',
-                              background: isToday ? 'rgba(255,255,255,0.2)' : '#6a11cb',
-                              color: isToday ? 'white' : '#fff',
-                              padding: '2px 6px',
-                              borderRadius: '10px',
-                              fontWeight: 'bold'
-                            }}>
+                            <span className={`${styles.calendarCellCount} ${isToday ? styles.calendarCellCountToday : ''}`}>
                               {totalItems}
                             </span>
                           )}
                         </div>
 
-                        {/* Jacques van Heerden - 35317906 - Calendar indicators: visual dots for projects due on this date */}
                         {dayData.projects.length > 0 && (
-                          <div style={{
-                            marginBottom: '2px',
-                            display: 'flex',
-                            gap: '2px',
-                            justifyContent: 'flex-start',
-                            flexWrap: 'wrap'
-                          }}>
+                          <div style={{ display: 'flex', gap: '2px', justifyContent: 'flex-start', flexWrap: 'wrap' }}>
                             {dayData.projects.slice(0, 3).map((project, projIndex) => (
                               <div
                                 key={projIndex}
-                                style={{
-                                  width: '4px',
-                                  height: '4px',
-                                  background: isToday ? 'rgba(255,255,255,0.8)' : '#6a11cb',
-                                  borderRadius: '50%',
-                                  cursor: 'help'
-                                }}
-                                title={`Project: ${project.project_name}`}
+                                className={`${styles.calendarCellProject} ${isToday ? styles.calendarCellProjectToday : ''}`}
+                                title={`Project: ${project.name}`}
                               />
                             ))}
-                            {/* Jacques van Heerden - 35317906 - Calendar indicators: shows count for additional projects */}
                             {dayData.projects.length > 3 && (
-                              <span style={{
-                                fontSize: '9px',
-                                color: isToday ? 'rgba(255,255,255,0.8)' : '#666',
-                                fontWeight: 'bold'
-                              }}>+{dayData.projects.length - 3}</span>
+                              <span className={`${styles.calendarCellExtra} ${isToday ? styles.calendarCellExtraToday : ''}`}>
+                                +{dayData.projects.length - 3}
+                              </span>
                             )}
                           </div>
                         )}
 
-                        {/* Jacques van Heerden - 35317906 - Calendar indicators: visual bars for events on this date */}
-                        {dayData.events.length > 0 && (
-                          <div style={{
-                            display: 'flex',
-                            gap: '2px',
-                            justifyContent: 'flex-start',
-                            flexWrap: 'wrap'
-                          }}>
-                            {dayData.events.slice(0, 3).map((event, eventIndex) => (
+                        {dayData.tasks.length > 0 && (
+                          <div style={{ display: 'flex', gap: '2px', justifyContent: 'flex-start', flexWrap: 'wrap' }}>
+                            {dayData.tasks.slice(0, 3).map((task, taskIndex) => (
                               <div
-                                key={eventIndex}
-                                style={{
-                                  width: '6px',
-                                  height: '2px',
-                                  background: isToday ? 'rgba(255,255,255,0.8)' : '#28a745',
-                                  borderRadius: '1px',
-                                  cursor: 'help'
-                                }}
-                                title={`Event: ${event.title}`}
+                                key={taskIndex}
+                                className={`${styles.calendarCellEvent} ${isToday ? styles.calendarCellEventToday : ''}`}
+                                title={`Task: ${task.name}${task.project ? ` (Project: ${task.project.name})` : ''}`}
                               />
                             ))}
-                            {/* Jacques van Heerden - 35317906 - Calendar indicators: shows count for additional events */}
-                            {dayData.events.length > 3 && (
-                              <span style={{
-                                fontSize: '9px',
-                                color: isToday ? 'rgba(255,255,255,0.8)' : '#666',
-                                fontWeight: 'bold'
-                              }}>+{dayData.events.length - 3}</span>
+                            {dayData.tasks.length > 3 && (
+                              <span className={`${styles.calendarCellExtra} ${isToday ? styles.calendarCellExtraToday : ''}`}>
+                                +{dayData.tasks.length - 3}
+                              </span>
                             )}
                           </div>
                         )}
@@ -580,135 +382,62 @@ const Dashboard = () => {
               })}
             </div>
 
-            {/* Jacques van Heerden - 35317906 - Calendar legend: explains visual indicators for projects and events */}
-            <div style={{
-              marginTop: '10px',
-              padding: '8px',
-              background: '#f8f9fa',
-              borderRadius: '6px',
-              fontSize: '12px'
-            }}>
+            <div className={styles.calendarLegend}>
               <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                  <div style={{ width: '4px', height: '4px', background: '#6a11cb', borderRadius: '50%' }}></div>
+                <div className={styles.calendarLegendItem}>
+                  <div className={styles.calendarLegendProject}></div>
                   <span>Project</span>
                 </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                  <div style={{ width: '6px', height: '2px', background: '#28a745', borderRadius: '1px' }}></div>
-                  <span>Event</span>
+                <div className={styles.calendarLegendItem}>
+                  <div className={styles.calendarLegendEvent}></div>
+                  <span>Task</span>
                 </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                  <div style={{ width: '4px', height: '4px', background: '#6a11cb', borderRadius: '50%', opacity: '0.5' }}></div>
+                <div className={styles.calendarLegendItem}>
+                  <div className={styles.calendarLegendToday}></div>
                   <span>Today</span>
                 </div>
-                {/* Jacques van Heerden - 35317906 - Calendar legend: explains overdue styling */}
-                <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                  <div style={{ width: '4px', height: '4px', background: '#e74c3c', borderRadius: '50%' }}></div>
+                <div className={styles.calendarLegendItem}>
+                  <div className={styles.calendarLegendOverdue}></div>
                   <span>Overdue</span>
                 </div>
-                {/* Jacques van Heerden - 35317906 - Calendar legend: explains future styling */}
-                <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                  <div style={{ width: '4px', height: '4px', background: '#27ae60', borderRadius: '50%' }}></div>
+                <div className={styles.calendarLegendItem}>
+                  <div className={styles.calendarLegendFuture}></div>
                   <span>Future</span>
                 </div>
               </div>
             </div>
           </div>
 
-          {/* Jacques van Heerden - 35317906 - Calendar details panel: shows projects and events for selected date */}
           <div className={styles.chartCard}>
             <div className={styles.panelHead}>
-              <h3>Items Due on Selected Date</h3>
+              <h3 className={styles.panelHeadH3}>Items Due on Selected Date</h3>
             </div>
-            <div style={{
-              padding: '15px',
-              background: '#f8f9fa',
-              borderRadius: '6px',
-              border: '1px solid #e9ecef',
-              minHeight: '300px'
-            }}>
+            <div className={styles.calendarLegend}>
               {selectedDate ? (
                 <div>
-                  {/* Jacques van Heerden - 35317906 - Calendar display: shows formatted selected date */}
-                  <div style={{
-                    fontSize: '16px',
-                    fontWeight: '600',
-                    color: '#333',
-                    marginBottom: '15px',
-                    textAlign: 'center',
-                    padding: '8px',
-                    background: 'white',
-                    borderRadius: '4px',
-                    border: '1px solid #dee2e6'
-                  }}>
+                  <div className={styles.selectedDateContainer}>
                     {formatDateForDisplay(selectedDate)}
                   </div>
 
-                  {/* Jacques van Heerden - 35317906 - Calendar details: section for projects due on selected date */}
-                  {projects.filter(p => p.dueDate === selectedDate).length > 0 && (
+                  {calendarEvents.filter(e => e.type === 'project' && e.start === selectedDate).length > 0 && (
                     <div style={{ marginBottom: '20px' }}>
-                      <h4 style={{
-                        color: '#6a11cb',
-                        margin: '0 0 10px 0',
-                        fontSize: '14px',
-                        borderBottom: '2px solid #6a11cb',
-                        paddingBottom: '5px',
-                        display: 'inline-block'
-                      }}>
-                        📁 Projects ({projects.filter(p => p.dueDate === selectedDate).length})
+                      <h4 className={styles.selectedDateProjectsHeader}>
+                        📁 Projects ({calendarEvents.filter(e => e.type === 'project' && e.start === selectedDate).length})
                       </h4>
-                      <ul style={{
-                        listStyle: 'none',
-                        padding: 0,
-                        maxHeight: '150px',
-                        overflowY: 'auto',
-                        margin: 0
-                      }}>
-                        {projects.filter(p => p.dueDate === selectedDate).map((project, index) => (
+                      <ul className={styles.selectedDateList}>
+                        {calendarEvents.filter(e => e.type === 'project' && e.start === selectedDate).map((project, index) => (
                           <li
                             key={`proj-${index}`}
-                            style={{
-                              padding: '12px',
-                              borderBottom: '1px solid #eee',
-                              background: index % 2 === 0 ? '#fff' : '#f8f9fa',
-                              borderRadius: '6px',
-                              marginBottom: '8px',
-                              transition: 'all 0.2s ease'
-                            }}
-                            onMouseEnter={(e) => {
-                              e.currentTarget.style.background = index % 2 === 0 ? '#f8f9fa' : '#fff';
-                              e.currentTarget.style.transform = 'translateX(4px)';
-                            }}
-                            onMouseLeave={(e) => {
-                              e.currentTarget.style.background = index % 2 === 0 ? '#fff' : '#f8f9fa';
-                              e.currentTarget.style.transform = 'translateX(0)';
-                            }}
+                            className={`${styles.selectedDateListItem} ${index % 2 === 0 ? '' : styles.selectedDateListItemAlt}`}
                           >
-                            <div style={{
-                              fontWeight: '600',
-                              color: '#333',
-                              marginBottom: '6px',
-                              display: 'flex',
-                              alignItems: 'center',
-                              gap: '8px'
-                            }}>
-                              <FontAwesomeIcon icon={faProjectDiagram} style={{ color: '#6a11cb' }} />
-                              {project.project_name}
+                            <div className={styles.selectedDateItemTitle}>
+                              <FontAwesomeIcon icon={faProjectDiagram} style={{ color: '#228693' }} />
+                              {project.name}
                             </div>
-                            <div style={{
-                              display: 'flex',
-                              gap: '15px',
-                              fontSize: '12px',
-                              color: '#666',
-                              flexWrap: 'wrap'
-                            }}>
-                              <span>Progress: <span style={{ color: '#28a745', fontWeight: '600' }}>{project.progress}%</span></span>
-                              <span>Role: <span style={{
-                                color: project.role.toLowerCase() === 'supervisor' ? '#dc3545' : '#17a2b8',
-                                fontWeight: '600'
-                              }}>{project.role}</span></span>
+                            <div className={styles.selectedDateItemMeta}>
+                              <span>Role: <span className={project.role.toLowerCase() === 'supervisor' ? styles.selectedDateItemRoleSupervisor : styles.selectedDateItemRoleOther}>{project.role}</span></span>
                               {project.description && (
-                                <span style={{ maxWidth: '200px' }}>
+                                <span className={styles.selectedDateItemDescription}>
                                   {project.description.length > 50
                                     ? `${project.description.substring(0, 50)}...`
                                     : project.description
@@ -722,155 +451,64 @@ const Dashboard = () => {
                     </div>
                   )}
 
-                  {/* Jacques van Heerden - 35317906 - Calendar details: section for events on selected date */}
-                  {calendarEvents.filter(event => {
-                    if (event.start) {
-                      const eventDate = event.start.split('T')[0];
-                      return eventDate === selectedDate;
-                    }
-                    return false;
-                  }).length > 0 && (
-                      <div>
-                        <h4 style={{
-                          color: '#28a745',
-                          margin: '0 0 10px 0',
-                          fontSize: '14px',
-                          borderBottom: '2px solid #28a745',
-                          paddingBottom: '5px',
-                          display: 'inline-block'
-                        }}>
-                          🗓️ Events ({calendarEvents.filter(event => {
-                            if (event.start) {
-                              const eventDate = event.start.split('T')[0];
-                              return eventDate === selectedDate;
-                            }
-                            return false;
-                          }).length})
-                        </h4>
-                        <ul style={{
-                          listStyle: 'none',
-                          padding: 0,
-                          maxHeight: '150px',
-                          overflowY: 'auto',
-                          margin: 0
-                        }}>
-                          {calendarEvents.filter(event => {
-                            if (event.start) {
-                              const eventDate = event.start.split('T')[0];
-                              return eventDate === selectedDate;
-                            }
-                            return false;
-                          }).map((event, index) => (
-                            <li
-                              key={`event-${index}`}
-                              style={{
-                                padding: '12px',
-                                borderBottom: '1px solid #eee',
-                                background: index % 2 === 0 ? '#fff' : '#f8f9fa',
-                                borderRadius: '6px',
-                                marginBottom: '8px',
-                                transition: 'all 0.2s ease'
-                              }}
-                              onMouseEnter={(e) => {
-                                e.currentTarget.style.background = index % 2 === 0 ? '#f8f9fa' : '#fff';
-                                e.currentTarget.style.transform = 'translateX(4px)';
-                              }}
-                              onMouseLeave={(e) => {
-                                e.currentTarget.style.background = index % 2 === 0 ? '#fff' : '#f8f9fa';
-                                e.currentTarget.style.transform = 'translateX(0)';
-                              }}
-                            >
-                              <div style={{
-                                fontWeight: '600',
-                                color: '#333',
-                                marginBottom: '6px',
-                                display: 'flex',
-                                alignItems: 'center',
-                                gap: '8px'
-                              }}>
-                                <FontAwesomeIcon icon={faCalendar} style={{ color: '#28a745' }} />
-                                {event.title}
-                              </div>
-                              <div style={{
-                                fontSize: '12px',
-                                color: '#666',
-                                display: 'flex',
-                                gap: '15px',
-                                flexWrap: 'wrap'
-                              }}>
-                                {event.description && (
-                                  <span style={{ maxWidth: '200px' }}>
-                                    {event.description.length > 50
-                                      ? `${event.description.substring(0, 50)}...`
-                                      : event.description
-                                    }
-                                  </span>
-                                )}
-                              </div>
-                            </li>
-                          ))}
-                        </ul>
-                      </div>
-                    )}
+                  {calendarEvents.filter(e => e.type === 'task' && e.start === selectedDate).length > 0 && (
+                    <div>
+                      <h4 className={styles.selectedDateEventsHeader}>
+                        🗓️ Tasks ({calendarEvents.filter(e => e.type === 'task' && e.start === selectedDate).length})
+                      </h4>
+                      <ul className={styles.selectedDateList}>
+                        {calendarEvents.filter(e => e.type === 'task' && e.start === selectedDate).map((task, index) => (
+                          <li
+                            key={`task-${index}`}
+                            className={`${styles.selectedDateListItem} ${index % 2 === 0 ? '' : styles.selectedDateListItemAlt}`}
+                          >
+                            <div className={styles.selectedDateItemTitle}>
+                              <FontAwesomeIcon icon={faTasks} style={{ color: '#228693' }} />
+                              {task.name}
+                            </div>
+                            <div className={styles.selectedDateItemMeta}>
+                              <span>Project: <span className={styles.selectedDateItemProgress}>{task.project ? task.project.name : 'No associated project'}</span></span>
+                              <span>Status: <span className={styles.selectedDateItemStatus}>{task.status}</span></span>
+                              <span>Priority: <span className={styles.selectedDateItemPriority}>{task.priority}</span></span>
+                              {task.description && (
+                                <span className={styles.selectedDateItemDescription}>
+                                  {task.description.length > 50
+                                    ? `${task.description.substring(0, 50)}...`
+                                    : task.description
+                                  }
+                                </span>
+                              )}
+                            </div>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
 
-                  {/* Jacques van Heerden - 35317906 - Calendar empty state: displays message when no items for selected date */}
-                  {(projects.filter(p => p.dueDate === selectedDate).length === 0 &&
-                    calendarEvents.filter(event => {
-                      if (event.start) {
-                        const eventDate = event.start.split('T')[0];
-                        return eventDate === selectedDate;
-                      }
-                      return false;
-                    }).length === 0) && (
-                      <div style={{
-                        textAlign: 'center',
-                        color: '#666',
-                        padding: '40px 10px',
-                        fontStyle: 'italic'
-                      }}>
-                        <div style={{ marginBottom: '10px', fontSize: '16px' }}>
-                          🎉 Great work!
-                        </div>
-                        <div style={{ fontSize: '14px' }}>
-                          No projects or events scheduled for {formatDateForDisplay(selectedDate)}
-                        </div>
+                  {(calendarEvents.filter(e => e.start === selectedDate).length === 0) && (
+                    <div className={styles.emptyState}>
+                      <div className={styles.emptyStateTitle}>🎉 Great work!</div>
+                      <div className={styles.emptyStateMessage}>
+                        No projects or tasks scheduled for {formatDateForDisplay(selectedDate)}
                       </div>
-                    )}
+                    </div>
+                  )}
                 </div>
               ) : (
-                // Jacques van Heerden - 35317906 - Calendar default state: shows instructions when no date is selected
-                <div style={{
-                  textAlign: 'center',
-                  color: '#666',
-                  padding: '40px 10px',
-                  fontStyle: 'italic'
-                }}>
-                  <div style={{ marginBottom: '15px', fontSize: '18px' }}>
-                    📅 Select a date
+                <div className={styles.emptyState}>
+                  <div className={styles.emptyStateTitle}>📅 Select a date</div>
+                  <div className={styles.emptyStateInstructions}>
+                    Click on any date in the calendar to view projects and tasks scheduled for that day
                   </div>
-                  <div style={{
-                    marginBottom: '20px',
-                    fontSize: '14px',
-                    opacity: 0.8
-                  }}>
-                    Click on any date in the calendar to view projects and events scheduled for that day
-                  </div>
-                  <div style={{
-                    display: 'flex',
-                    gap: '8px',
-                    justifyContent: 'center',
-                    flexWrap: 'wrap',
-                    fontSize: '12px',
-                    maxWidth: '300px',
-                    margin: '0 auto'
-                  }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                      <div style={{ width: '12px', height: '12px', background: '#6a11cb', borderRadius: '50%' }}></div>
+                  <div className={styles.emptyStateLegend}>
+                    <div className={styles.emptyStateLegendItem}>
+                      <div className={styles.emptyStateProject}>
                       <span>Project due date</span>
+                      </div>
                     </div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                      <div style={{ width: '8px', height: '3px', background: '#28a745', borderRadius: '1px' }}></div>
-                      <span>Calendar event</span>
+                    <div className={styles.emptyStateLegendItem}>
+                      <div className={styles.emptyStateEvent}></div>
+                      <span>Task</span>
                     </div>
                   </div>
                 </div>
@@ -884,7 +522,7 @@ const Dashboard = () => {
       <aside className={styles.rightbar}>
         <section className={styles.panel}>
           <div className={styles.panelHead}>
-            <h3>Upcoming Deadlines</h3>
+            <h3 className={styles.panelHeadH3}>Upcoming Deadlines</h3>
             <button className={styles.iconBtn}><FontAwesomeIcon icon={faCalendar} /></button>
           </div>
           <ul className={styles.list}>
@@ -901,14 +539,15 @@ const Dashboard = () => {
 
         <section className={styles.panel}>
           <div className={styles.panelHead}>
-            <h3>Recent Events</h3>
+            <h3 className={styles.panelHeadH3}>Recent Events</h3>
             <span className={styles.live}>Live</span>
           </div>
           <ul className={styles.list}>
-            {/* Jacques van Heerden - 35317906 - Calendar summary: shows most recent calendar events in sidebar */}
             {calendarEvents.slice(-3).reverse().map((event, index) => (
               <li key={index}>
-                <FontAwesomeIcon icon={faCalendar} style={{ color: '#28a745' }} /> {event.title}
+                <FontAwesomeIcon icon={event.type === 'project' ? faProjectDiagram : faTasks} style={{ color: '#228693' }} />
+                {event.name}
+                {event.type === 'task' && event.project ? ` (Project: ${event.project.name})` : ''}
               </li>
             ))}
             {calendarEvents.length === 0 && (
@@ -919,7 +558,7 @@ const Dashboard = () => {
 
         <section className={styles.panel}>
           <div className={styles.panelHead}>
-            <h3>Inbox</h3>
+            <h3 className={styles.panelHeadH3}>Inbox</h3>
             <button className={styles.iconBtn}><FontAwesomeIcon icon={faInbox} /></button>
           </div>
           <ul className={styles.list}>
@@ -930,7 +569,9 @@ const Dashboard = () => {
         </section>
 
         <section className={styles.panel}>
-          <div className={styles.panelHead}><h3>Getting Started</h3></div>
+          <div className={styles.panelHead}>
+            <h3 className={styles.panelHeadH3}>Getting Started</h3>
+          </div>
           <ul className={styles.bullet}>
             <li>Connect your Git repository</li>
             <li>Invite teammates to your workspace</li>

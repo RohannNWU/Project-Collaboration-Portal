@@ -9,6 +9,7 @@ from .models import User, Project, UserProject, Task, User_Task, Document
 from django.core.files.storage import default_storage
 from django.core.files.base import ContentFile
 from django.http import HttpResponse
+from django.utils import timezone
 from rest_framework.permissions import IsAuthenticated
 from .serializers import (
     UserSerializer, ProjectSerializer, MessageSerializer,
@@ -267,17 +268,32 @@ class CalendarView(APIView):
             project_events = [
                 {
                     'title': f"Project: {user_project.project_id.project_name}",
-                    'start': user_project.project_id.due_date.strftime('%Y-%m-%d')
+                    'start': user_project.project_id.due_date.strftime('%Y-%m-%d'),
+                    'type': 'project',
+                    'id': user_project.project_id.project_id,
+                    'name': user_project.project_id.project_name,
+                    'description': user_project.project_id.project_description or '',
+                    'role': user_project.role
                 }
                 for user_project in user_projects
             ]
             
-            # Fetch user tasks
-            user_tasks = User_Task.objects.filter(email=user).select_related('task_id')
+            # Fetch user tasks with project information
+            user_tasks = User_Task.objects.filter(email=user).select_related('task_id', 'task_id__project_id')
             task_events = [
                 {
                     'title': f"Task: {user_task.task_id.task_name}",
-                    'start': user_task.task_id.task_due_date.strftime('%Y-%m-%d')
+                    'start': user_task.task_id.task_due_date.strftime('%Y-%m-%d'),
+                    'type': 'task',
+                    'id': user_task.task_id.task_id,
+                    'name': user_task.task_id.task_name,
+                    'description': user_task.task_id.task_description or '',
+                    'status': user_task.task_id.task_status,
+                    'priority': user_task.task_id.task_priority,
+                    'project': {
+                        'id': user_task.task_id.project_id.project_id,
+                        'name': user_task.task_id.project_id.project_name
+                    } if user_task.task_id.project_id else None
                 }
                 for user_task in user_tasks
             ]
@@ -286,7 +302,7 @@ class CalendarView(APIView):
             events = project_events + task_events
             
             # Get current server time
-            current_time = datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S')
+            current_time = timezone.now().strftime('%Y-%m-%d %H:%M:%S')
             
             return Response({
                 'events': events,

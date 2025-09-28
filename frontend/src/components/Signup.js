@@ -33,17 +33,7 @@ const AddUser = () => {
 
   return (
     <div className={styles.signupContainer}>
-      <h2
-        style={{
-          fontSize: '1.5rem',
-          fontWeight: '600',
-          color: 'white',
-          marginBottom: '1.5rem',
-          textAlign: 'center',
-          contentEditable: false,
-          tabIndex: "-1"
-        }}
-      >
+      <h2 className={styles.signupTitle}>
         Sign Up for the<br />Project Collaboration Portal
       </h2>
       <input
@@ -51,28 +41,36 @@ const AddUser = () => {
         value={email}
         onChange={(e) => setEmail(e.target.value)}
         placeholder="Email Address"
+        className={styles.signupInput}
       />
       <input
         type="text"
         value={fname}
         onChange={(e) => setFname(e.target.value)}
         placeholder="First Name"
+        className={styles.signupInput}
       />
       <input
         type="text"
         value={lname}
         onChange={(e) => setLname(e.target.value)}
         placeholder="Last Name"
+        className={styles.signupInput}
       />
       <input
         type="password"
         value={password}
         onChange={(e) => setPassword(e.target.value)}
         placeholder="Password"
+        className={styles.signupInput}
       />
-      <button onClick={handleAddUser}>Add User</button>
-      <button onClick={() => navigate('/')}>Back to Login</button>
-      {message && <p className={styles.message}>{message}</p>}
+      <button onClick={handleAddUser} className={styles.signupButton}>
+        Add User
+      </button>
+      <button onClick={() => navigate('/')} className={styles.backToLoginButton}>
+        Back to Login
+      </button>
+      {message && <p className={styles.signupMessage}>{message}</p>}
     </div>
   );
 };

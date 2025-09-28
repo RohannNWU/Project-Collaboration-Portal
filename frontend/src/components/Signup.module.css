@@ -1,4 +1,4 @@
-/* Signup.module.css */
+/* Container for the SignUp component */
 .signupContainer {
   display: flex;
   flex-direction: column;
@@ -10,7 +10,17 @@
   box-sizing: border-box;
 }
 
-input, textarea {
+/* Title for the SignUp form */
+.signupTitle {
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: white;
+  margin-bottom: 1.5rem;
+  text-align: center;
+}
+
+/* Input fields for email, first name, last name, and password */
+.signupInput {
   margin: 0.75rem 0;
   padding: 0.75rem 1rem;
   width: 100%;
@@ -23,20 +33,22 @@ input, textarea {
   transition: all 0.3s ease;
 }
 
-input:focus, textarea:focus {
+.signupInput:focus {
   outline: none;
   border-color: #228693;
   box-shadow: 0 0 0 3px rgba(34, 134, 147, 0.2);
 }
 
-.message {
+/* Message for success/error feedback */
+.signupMessage {
   color: #e53e3e;
   font-size: 0.875rem;
   margin-top: 0.5rem;
   text-align: center;
 }
 
-button {
+/* Buttons for submitting form and navigating back */
+.signupButton {
   display: flex;
   align-items: center;
   justify-content: center;
@@ -54,23 +66,60 @@ button {
   transition: all 0.3s ease;
 }
 
-button:hover {
+.signupButton:hover {
   background: linear-gradient(90deg, #83C8D1, #228693);
   transform: translateY(-2px);
   box-shadow: 0 4px 12px rgba(34, 134, 147, 0.3);
 }
 
-button:active {
+.signupButton:active {
   transform: translateY(0);
   box-shadow: 0 2px 6px rgba(34, 134, 147, 0.2);
 }
 
+/* Specific styling for the Back to Login button */
+.backToLoginButton {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 1rem 0;
+  padding: 0.75rem 1.5rem;
+  width: 100%;
+  max-width: 320px;
+  background: linear-gradient(90deg, #228693, #83C8D1);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 1rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.backToLoginButton:hover {
+  background: linear-gradient(90deg, #83C8D1, #228693);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(34, 134, 147, 0.3);
+}
+
+.backToLoginButton:active {
+  transform: translateY(0);
+  box-shadow: 0 2px 6px rgba(34, 134, 147, 0.2);
+}
+
+/* Responsive design */
 @media (max-width: 480px) {
-  input, textarea, button {
+  .signupContainer {
+    padding: 1rem;
+  }
+
+  .signupInput,
+  .signupButton,
+  .backToLoginButton {
     max-width: 100%;
   }
 
-  .signupContainer {
-    padding: 1rem;
+  .signupTitle {
+    font-size: 1.25rem;
   }
 }
