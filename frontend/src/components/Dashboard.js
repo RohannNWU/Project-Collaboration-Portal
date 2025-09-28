@@ -144,7 +144,7 @@ const Dashboard = () => {
         dashboardPath = '/groupleaderdashboard';
         break;
       case 'supervisor':
-        dashboardPath = '/studentdashboard';
+        dashboardPath = '/supervisordashboard';
         break;
       default:
         dashboardPath = '/studentdashboard';

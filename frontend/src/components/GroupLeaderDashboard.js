@@ -632,9 +632,10 @@ const GroupLeaderDashboard = () => {
                                     </div>
                                 ))}
                             </div>
-                            <button style={{ width: '200px' }} onClick={() => handleAddNewTask(projectId)}>Add New Task</button>
+                            
                         </div>
                     )}
+                    <button style={{ width: '200px' }} onClick={() => handleAddNewTask(projectId)}>Add New Task</button>
                 </div>
             ),
         },
