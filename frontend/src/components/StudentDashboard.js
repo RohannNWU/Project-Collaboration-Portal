@@ -157,7 +157,7 @@ const StudentDashboard = () => {
         ? 'http://127.0.0.1:8000'
         : 'https://pcp-backend-f4a2.onrender.com';
 
-      await axios.delete(`${API_BASE_URL}/api/deletemember/`, {
+      await axios.delete(`${API_BASE_URL}/api/deleteprojectmember/`, {
         headers: { Authorization: `Bearer ${token}` },
         data: { project_id: projectId, email: memberEmail }
       });
@@ -759,7 +759,7 @@ const handleDownload = async (documentId, documentTitle) => {
                   </div>
                 ))}
               </div>
-              <button onClick={() => navigate('/addmembers', { state: { projectId: projectId } })}>Add Members</button>
+              <button onClick={() => navigate('/addprojectmembers', { state: { projectId: projectId } })}>Add Members</button>
             </div>
           )}
         </div>

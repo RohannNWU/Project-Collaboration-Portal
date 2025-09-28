@@ -258,7 +258,7 @@ const Dashboard = () => {
             <tbody>
               {projects.map((project, index) => (
                 <tr key={index}>
-                  <td>{project.project_name}</td>
+                  <td>{project.project_id} - {project.project_name}</td>
                   <td>
                     <div className={styles.progressBar}>
                       <div
@@ -270,8 +270,6 @@ const Dashboard = () => {
                   <td>{project.dueDate}</td>
                   <td>
                     <button className={styles.openBtn} onClick={() => navigate('/studentdashboard', { state: { projectId: project.project_id, projectName: project.project_name } })}>Open</button>
-                  </td>
-                  <td>
                     <button className={styles.openBtn} onClick={() => navigate('/editproject', { state: { projectId: project.project_id, projectName: project.project_name } })}>Edit</button>
                   </td>
                   <td>

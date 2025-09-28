@@ -13,14 +13,12 @@ const AddMembers = () => {
     useEffect(() => {
     const project_id = location.state?.projectId;
     if (project_id) {
-        console.log('Project ID:', project_id);
         setProjectId(project_id);
     }
   }, [location.state?.projectId]);
 
     const handleAddMember = async () => {
         const token = localStorage.getItem('access_token');
-        console.log('Token: ', token);
         if (!token) {
             navigate('/login');
             return;
@@ -29,7 +27,7 @@ const AddMembers = () => {
             ? 'http://127.0.0.1:8000'
             : 'https://pcp-backend-f4a2.onrender.com';
         try {
-            const response = await axios.post(`${API_BASE_URL}/api/addmember/`, { project_id, email, role }, {
+            const response = await axios.post(`${API_BASE_URL}/api/addprojectmember/`, { project_id, email, role }, {
                 headers: { Authorization: `Bearer ${token}` },
             });
             setMessage(response.data.message);

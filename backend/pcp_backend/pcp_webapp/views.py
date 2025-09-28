@@ -81,6 +81,19 @@ class DashboardView(APIView):
             user_email = payload.get('user_email')
             user = User.objects.get(email=user_email)
             user_projects = UserProject.objects.filter(email=user).select_related('project_id')
+            project_ids = [up.project_id.project_id for up in user_projects]  # Extract the actual project_id (integer)
+            tasks = Task.objects.filter(project_id__in=project_ids).values('project_id', 'task_status')
+
+            progress_by_project = {}
+            for project_id in project_ids:
+                project_tasks = [t for t in tasks if t['project_id'] == project_id]
+                total_tasks = len(project_tasks)
+                if total_tasks > 0:
+                    completed_tasks = sum(1 for t in project_tasks if t['task_status'] == 'Completed')
+                    progress_by_project[project_id] = int((completed_tasks / total_tasks) * 100)
+                else:
+                    progress_by_project[project_id] = 0
+
             projects = [
                 {
                     'project_id': user_project.project_id.project_id,
@@ -88,13 +101,13 @@ class DashboardView(APIView):
                     'project_description': user_project.project_id.project_description,
                     'feedback': user_project.project_id.feedback,
                     'grade': user_project.project_id.grade,
-                    'progress': 0,
+                    'progress': progress_by_project.get(user_project.project_id.project_id, 0),
                     'dueDate': user_project.project_id.due_date.strftime('%d/%m/%Y'),
                     'role': user_project.role
                 }
                 for user_project in user_projects
             ]
-                
+                        
             return Response({
                 'email': user.email,
                 'username': user.first_name + ' ' + user.last_name,
@@ -877,7 +890,7 @@ class DeleteTaskView(APIView):
         except Task.DoesNotExist:
             return Response({'error': 'Task not found'}, status=status.HTTP_404_NOT_FOUND)
 
-class AddUserView(APIView):
+class AddProjectUserView(APIView):
     def post(self, request):
         try:
             project_id = request.data.get('project_id')
