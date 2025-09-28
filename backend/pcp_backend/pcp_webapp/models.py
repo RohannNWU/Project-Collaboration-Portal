@@ -1,6 +1,5 @@
 from django.utils import timezone
 from django.db import models
-
 from django.contrib.auth.models import User as DjangoUser
 from django.conf import settings
 
@@ -218,4 +217,3 @@ class ProjectChat(models.Model):
 
     def __str__(self):
         return f"Chat in Project {self.project_id} - Message ID {self.chat_message_id}"
-
