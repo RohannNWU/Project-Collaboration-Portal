@@ -11,15 +11,15 @@ from django.core.files.base import ContentFile
 from django.http import HttpResponse
 from rest_framework.permissions import IsAuthenticated
 from .serializers import (
-    UserSerializer, ProjectSerializer, TaskSerializer, MessageSerializer,
-    DocumentSerializer, ActivityLogSerializer, DashboardStatsSerializer, NotificationSummarySerializer
+    UserSerializer, ProjectSerializer, MessageSerializer,
+    DocumentSerializer, NotificationSummarySerializer
 )
-from rest_framework.decorators import api_view, permission_classes
-from rest_framework import status, generics, permissions
+from rest_framework.decorators import api_view
+from rest_framework import status, permissions
 import bcrypt
 import logging
 import mimetypes
-import unicodedata
+
 
 logger = logging.getLogger(__name__)
 
@@ -1206,3 +1206,35 @@ class DeleteProjectUserView(APIView):
             return Response({'error': 'User not found'}, status=status.HTTP_404_NOT_FOUND)
         except Exception as e:
             return Response({'error': f'Failed to remove user: {str(e)}'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+class DeleteDocumentView(APIView):
+    def delete(self, request, document_id):
+        # Use manual JWT authentication
+        user = get_user_from_token(request)
+        if not user:
+            logger.error("Authentication failed: No valid user token")
+            return Response({'error': 'Authentication required'}, status=status.HTTP_401_UNAUTHORIZED)
+
+        try:
+            document = Document.objects.get(document_id=document_id)
+            
+            # Verify user has access if document is associated with a task/project
+            if document.task_id:
+                project = document.task_id.project_id
+                if not UserProject.objects.filter(email=user, project_id=project).exists():
+                    logger.error(f"User {user.email} does not have access to project {project.project_id}")
+                    return Response({'error': 'Access denied to this document'}, status=status.HTTP_403_FORBIDDEN)
+
+            # Delete the document
+            document.delete()
+            
+            logger.info(f"Document deleted: document_id={document_id} by user={user.email}")
+            return Response({'message': 'Document deleted successfully'}, status=status.HTTP_200_OK)
+        
+        except Document.DoesNotExist:
+            logger.error(f"Document not found: document_id={document_id}")
+            return Response({'error': 'Document not found'}, status=status.HTTP_404_NOT_FOUND)
+        
+        except Exception as e:
+            logger.error(f"Error deleting document: {str(e)}")
+            return Response({'error': f'Failed to delete document: {str(e)}'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)        
