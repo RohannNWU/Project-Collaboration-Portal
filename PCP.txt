@@ -1,0 +1,37 @@
+PCP 
+
+"""
+ASGI setup for the PCP project.
+
+This is what powers both HTTP *and* WebSocket communication.
+
+Why ASGI? Mainly for realtime features like notifications.
+If you’re only doing standard HTTP, WSGI would’ve been fine — but Channels needs this.
+
+Heads up: don’t forget to route your websocket paths correctly in `websocket_urlpatterns`.
+"""
+
+import os
+import django
+from channels.routing import ProtocolTypeRouter, URLRouter
+from channels.auth import AuthMiddlewareStack
+from django.core.asgi import get_asgi_application
+from PCP.realtime.routing import websocket_urlpatterns  # NOTE: this has to exist or app will crash
+
+# Set up Django env — must be done before using ORM or loading settings
+os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'PCP.settings')
+django.setup()
+
+# Base HTTP application — handles all non-websocket traffic
+django_asgi_app = get_asgi_application()
+
+# Main ASGI router
+application = ProtocolTypeRouter({
+    "http": django_asgi_app,
+
+    # WebSockets need authentication — stack includes session/user middleware
+    "websocket": AuthMiddlewareStack(
+        URLRouter(websocket_urlpatterns)
+    ),
+    # Later: maybe add "lifespan" or "custom" protocols here
+})

@@ -1,0 +1,44 @@
+Realtime/consumers
+
+import json
+from channels.generic.websocket import AsyncWebsocketConsumer
+
+from .services import _group_name  # Yep, reusing this instead of redefining
+
+class NotificationConsumer(AsyncWebsocketConsumer):
+    async def connect(self):
+        user = self.scope.get("user")
+
+        if not user or user.is_anonymous:
+            # No session or user — close the connection silently
+            await self.close()
+            return
+
+        # Assign group based on user ID
+        self.group_name = _group_name(str(user.id))
+
+        # Join the user-specific channel group
+        await self.channel_layer.group_add(
+            self.group_name,
+            self.channel_name
+        )
+
+        await self.accept()  # handshake complete
+
+    async def disconnect(self, close_code):
+        # Graceful disconnect — clean up group subscription
+        if hasattr(self, "group_name"):
+            await self.channel_layer.group_discard(
+                self.group_name,
+                self.channel_name
+            )
+
+    # Channel handler — called when group sends "notification.new"
+    async def notification_new(self, event):
+        # Forward notification to client as JSON
+        payload = event.get("payload", {})
+
+        await self.send(text_data=json.dumps({
+            "type": "new_notification",  # could use enums later
+            "payload": payload
+        }))

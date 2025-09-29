@@ -1,0 +1,195 @@
+Services
+
+from dataclasses import dataclass
+from typing import Iterable, List, Set
+from django.conf import settings
+from django.contrib.auth import get_user_model
+from django.db import transaction
+from django.utils import timezone
+from asgiref.sync import async_to_sync
+from channels.layers import get_channel_layer
+from django.core.mail import send_mail
+from .models import Notification, NotificationPriority, NotificationType
+from . import selectors
+
+User = get_user_model()
+channel_layer = get_channel_layer()  # Using default, should be fine for now
+
+
+@dataclass
+class NotificationEvent:
+    type: str
+    project_id: str
+    actor_user_id: str | None
+    title: str
+    message: str
+    task_id: str | None = None
+    document_id: str | None = None
+    action_url: str | None = None
+    idempotency_key: str | None = None
+    explicit_recipient_user_ids: Iterable[str] | None = None
+    force_priority: int | None = None  # override system guess
+
+
+def classify_priority(event: NotificationEvent, now):
+    """
+    Quick-and-dirty priority logic.
+    Mostly hardcoded based on event type.
+    """
+    if event.force_priority is not None:
+        return event.force_priority
+
+    match event.type:
+        case NotificationType.GRADE_RELEASED:
+            return NotificationPriority.HIGH
+        case NotificationType.DEADLINE_UPDATED:
+            return NotificationPriority.HIGH
+        case NotificationType.OVERDUE_REMINDER:
+            return NotificationPriority.CRITICAL
+        case NotificationType.DUE_SOON_REMINDER:
+            return NotificationPriority.NORMAL
+        case _:
+            return NotificationPriority.NORMAL  # default — not low, just not urgent
+
+
+def resolve_recipients(event: NotificationEvent) -> Set[str]:
+    """
+    Figures out who should actually receive this event.
+    Mix of explicit recipients + dynamic logic.
+    """
+    if event.explicit_recipient_user_ids:
+        return set(event.explicit_recipient_user_ids)
+
+    all_members = selectors.get_project_members(event.project_id)
+    result_set = set()
+
+    is_task_thing = event.task_id and event.type in {
+        NotificationType.TASK_ASSIGNED, NotificationType.TASK_UPDATED,
+        NotificationType.TASK_COMPLETED, NotificationType.DUE_SOON_REMINDER,
+        NotificationType.OVERDUE_REMINDER,
+    }
+
+    is_grading_event = event.type == NotificationType.GRADE_RELEASED
+
+    for uid, role in all_members:
+        if is_task_thing and selectors.is_assignee(event.task_id, uid):
+            result_set.add(uid)
+
+        # Hmm — GroupLeaders always get notified? That might be overkill.
+        if role == "GroupLeader":
+            result_set.add(uid)
+
+        if role == "Supervisor" and (
+            is_task_thing or is_grading_event or event.type in {
+                NotificationType.DOCUMENT_UPLOADED,
+                NotificationType.DOCUMENT_EDITED,
+            }
+        ):
+            result_set.add(uid)
+
+    if event.type in {
+        NotificationType.MEETING_SCHEDULED,
+        NotificationType.DEADLINE_UPDATED,
+        NotificationType.SYSTEM_ANNOUNCEMENT,
+    }:
+        for uid, _ in all_members:
+            result_set.add(uid)
+
+    # Don’t bother notifying actor unless it’s a passive event
+    if event.type not in {
+        NotificationType.DUE_SOON_REMINDER,
+        NotificationType.OVERDUE_REMINDER,
+        NotificationType.GRADE_RELEASED,
+    } and event.actor_user_id:
+        result_set.discard(event.actor_user_id)
+
+    return result_set
+
+
+def _get_ws_group(user_id: str) -> str:
+    # convention we're using — same as used in consumers
+    return f"user:{user_id}"
+
+
+@transaction.atomic
+def send_notification(event: NotificationEvent) -> None:
+    """
+    Notification dispatcher.
+
+    Classifies, filters, stores, emits, emails... a little busy, but it works.
+    """
+    now = timezone.now()
+    priority = classify_priority(event, now)
+    recipients = resolve_recipients(event)
+
+    if not recipients:
+        return  # no one to notify (we might log this?)
+
+    new_notes: List[Notification] = []
+
+    for uid in recipients:
+        if event.idempotency_key:
+            # Don't duplicate if we've already inserted one for this combo
+            existing = Notification.objects.filter(
+                recipient_id=uid,
+                idempotency_key=event.idempotency_key
+            ).exists()
+
+            if existing:
+                continue  # skip — already notified
+
+        note = Notification.objects.create(
+            project_id=event.project_id,
+            task_id=event.task_id,
+            document_id=event.document_id,
+            type=event.type,
+            priority=priority,
+            title=event.title,
+            message=event.message,
+            recipient_id=uid,
+            actor_id=event.actor_user_id,
+            action_url=event.action_url,
+            idempotency_key=event.idempotency_key
+        )
+        new_notes.append(note)
+
+    # Real-time update (websocket via Channels)
+    for note in new_notes:
+        async_to_sync(channel_layer.group_send)(
+            _get_ws_group(str(note.recipient_id)),
+            {
+                "type": "notification.new",  # handler type in consumer
+                "payload": {
+                    "id": note.id,
+                    "title": note.title,
+                    "message": note.message,
+                    "type": note.type,
+                    "priority": note.priority,
+                    "actionUrl": note.action_url,
+                    "createdAt": note.created_at.isoformat(),
+                    "readAt": note.read_at.isoformat() if note.read_at else None,
+                }
+            }
+        )
+
+    # Email escalation — only for high priority stuff
+    if getattr(settings, "NOTIFICATIONS_EMAIL_ENABLED", True) and priority >= NotificationPriority.HIGH:
+        for note in new_notes:
+            email = selectors.get_user_email(str(note.recipient_id))
+            if not email:
+                continue  # weird — might want to log this
+
+            subject = f"[{NotificationPriority(note.priority).name}] {note.title}"
+            plain_text = f"{note.message}\n\n{note.action_url or ''}"
+            html = f"<p>{note.message}</p>"
+
+            if note.action_url:
+                html += f"<p><a href=\"{note.action_url}\">Open</a></p>"
+
+            send_mail(
+                subject,
+                plain_text,
+                settings.DEFAULT_FROM_EMAIL,
+                [email],
+                html_message=html
+            )
