@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import axios from 'axios';
+import styles from './RoleDashboards.module.css';
 
 const StudentDashboard = () => {
   const [activeTab, setActiveTab] = useState('project-description');
@@ -24,25 +25,25 @@ const StudentDashboard = () => {
   const chatContainerRef = useRef(null);
 
   // Helper function for CHAT
- function getGradientColors(senderName) {
-  const colors = [
-    '#3b82f6, #1d4ed8', // Blue
-    '#10b981, #059669', // Green
-    '#f59e0b, #d97706', // Amber
-    '#ef4444, #dc2626', // Red
-    '#8b5cf6, #7c3aed', // Purple
-    '#06b6d4, #0891b2', // Cyan
-    '#f97316, #ea580c', // Orange
-    '#ec4899, #db2777', // Pink
-  ];
+  function getGradientColors(senderName) {
+    const colors = [
+      '#3b82f6, #1d4ed8', // Blue
+      '#10b981, #059669', // Green
+      '#f59e0b, #d97706', // Amber
+      '#ef4444, #dc2626', // Red
+      '#8b5cf6, #7c3aed', // Purple
+      '#06b6d4, #0891b2', // Cyan
+      '#f97316, #ea580c', // Orange
+      '#ec4899, #db2777', // Pink
+    ];
 
-  // Generate a consistent index based on the sender name
-  let hash = 0;
-  for (let i = 0; i < senderName.length; i++) {
-    hash = senderName.charCodeAt(i) + ((hash << 5) - hash);
-  }
-  const index = Math.abs(hash) % colors.length;
-  return colors[index];
+    // Generate a consistent index based on the sender name
+    let hash = 0;
+    for (let i = 0; i < senderName.length; i++) {
+      hash = senderName.charCodeAt(i) + ((hash << 5) - hash);
+    }
+    const index = Math.abs(hash) % colors.length;
+    return colors[index];
   }
 
   // Effect to scroll to the latest message when chatMessages update
@@ -58,7 +59,7 @@ const StudentDashboard = () => {
       fetchChat();
     }
   }, [activeTab, projectId, navigate]);
- 
+
   // Fetch chat messages function
   const fetchChat = async () => {
     setLoadingChat(true);
@@ -78,20 +79,16 @@ const StudentDashboard = () => {
         headers: { Authorization: `Bearer ${token}` },
       });
 
-
       const serverMessages = response.data.messages || [];
       setChatMessages(prev => {
-      // Filter out temporary messages and replace with server messages
-      const nonTempMessages = prev.filter(msg => {
-      // Safe check: ensure id exists and is a string before calling startsWith
-      return !(msg.id && typeof msg.id === 'string' && msg.id.startsWith('temp-'));
-    });
-      if (JSON.stringify(nonTempMessages) !== JSON.stringify(serverMessages)) {
-      return serverMessages;
-     }
-      return prev;
-   });
-      //setChatMessages(response.data.messages || []);
+        const nonTempMessages = prev.filter(msg => {
+          return !(msg.id && typeof msg.id === 'string' && msg.id.startsWith('temp-'));
+        });
+        if (JSON.stringify(nonTempMessages) !== JSON.stringify(serverMessages)) {
+          return serverMessages;
+        }
+        return prev;
+      });
     } catch (err) {
       console.error('Error fetching chat messages:', err);
       if (err.response?.status === 400) {
@@ -111,73 +108,68 @@ const StudentDashboard = () => {
     }
   };
 
-// Handle sending chat message
- const handleSendMessage = async () => {
-  if (!messageInput.trim()) return;
+  // Handle sending chat message
+  const handleSendMessage = async () => {
+    if (!messageInput.trim()) return;
 
-  const messageContent = messageInput.trim();
-  const tempMessage = {
-    id: `temp-${Date.now()}`,
-    content: messageContent,
-    sender_name: 'You',
-    role: 'Student', // You might want to get the actual user role from your auth system
-    sent_at: new Date().toLocaleString('en-GB', {
-      year: 'numeric',
-      month: '2-digit',
-      day: '2-digit',
-      hour: '2-digit',
-      minute: '2-digit',
-      second: '2-digit',
-      hour12: false
-    }).replace(/(\d{2})\/(\d{2})\/(\d{4}), (\d{2}:\d{2}:\d{2})/, '$3-$2-$1 $4')
+    const messageContent = messageInput.trim();
+    const tempMessage = {
+      id: `temp-${Date.now()}`,
+      content: messageContent,
+      sender_name: 'You',
+      role: 'Student',
+      sent_at: new Date().toLocaleString('en-GB', {
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit',
+        hour12: false
+      }).replace(/(\d{2})\/(\d{2})\/(\d{4}), (\d{2}:\d{2}:\d{2})/, '$3-$2-$1 $4')
+    };
+
+    setChatMessages(prev => [...prev, tempMessage]);
+    setMessageInput('');
+
+    try {
+      const token = localStorage.getItem('access_token');
+      if (!token) {
+        navigate('/');
+        return;
+      }
+
+      const API_BASE_URL = window.location.hostname === 'localhost'
+        ? 'http://127.0.0.1:8000'
+        : 'https://pcp-backend-f4a2.onrender.com';
+
+      await axios.post(`${API_BASE_URL}/api/sendchatmessage/`, {
+        project_id: projectId,
+        content: messageContent
+      }, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      fetchChat();
+    } catch (err) {
+      console.error('Error sending chat message:', err);
+      setChatMessages(prev => prev.filter(msg => msg.id !== tempMessage.id));
+      setMessageInput(messageContent);
+
+      if (err.response?.status === 400) {
+        setError('Invalid input');
+      } else if (err.response?.status === 404) {
+        setError('Project not found');
+      } else if (err.response?.status === 403) {
+        setError('Access denied to this project');
+      } else if (err.response?.status === 401) {
+        localStorage.removeItem('access_token');
+        navigate('/');
+      } else {
+        setError('Failed to send message');
+      }
+    }
   };
-
-  // Optimistically add the message to UI
-  setChatMessages(prev => [...prev, tempMessage]);
-  setMessageInput('');
-
-  try {
-    const token = localStorage.getItem('access_token');
-    if (!token) {
-      navigate('/');
-      return;
-    }
-
-    const API_BASE_URL = window.location.hostname === 'localhost'
-      ? 'http://127.0.0.1:8000'
-      : 'https://pcp-backend-f4a2.onrender.com';
-
-    await axios.post(`${API_BASE_URL}/api/sendchatmessage/`, {
-      project_id: projectId,
-      content: messageContent
-    }, {
-      headers: { Authorization: `Bearer ${token}` },
-    });
-
-    // Refresh chat messages to get the server's version
-    fetchChat();
-  } catch (err) {
-    console.error('Error sending chat message:', err);
-    
-    // Remove the optimistic message on error
-    setChatMessages(prev => prev.filter(msg => msg.id !== tempMessage.id));
-    setMessageInput(messageContent); // Restore the message input
-    
-    if (err.response?.status === 400) {
-      setError('Invalid input');
-    } else if (err.response?.status === 404) {
-      setError('Project not found');
-    } else if (err.response?.status === 403) {
-      setError('Access denied to this project');
-    } else if (err.response?.status === 401) {
-      localStorage.removeItem('access_token');
-      navigate('/');
-    } else {
-      setError('Failed to send message');
-    }
-  }
- };
-
 
   // Redirect if no projectId
   useEffect(() => {
@@ -185,7 +177,7 @@ const StudentDashboard = () => {
       navigate('/dashboard');
     }
   }, [projectId, navigate]);
-   
+
   // Fetch project data when Project Description tab is clicked
   useEffect(() => {
     if (activeTab === 'project-description' && projectId) {
@@ -251,10 +243,8 @@ const StudentDashboard = () => {
           });
 
           setTasks(response.data.tasks || []);
-          
-          // Also fetch user task assignments
+
           await fetchUserTaskAssignments();
-          
         } catch (err) {
           console.error('Error fetching tasks:', err);
           if (err.response?.status === 400) {
@@ -348,85 +338,84 @@ const StudentDashboard = () => {
       setLoadingDocuments((prev) => ({ ...prev, [taskId]: false }));
     }
   };
+
   // Fetch user task assignments
   const fetchUserTaskAssignments = async () => {
-   try {
-     const token = localStorage.getItem('access_token');
-     if (!token) {
-       navigate('/');
-       return;
-     }
+    try {
+      const token = localStorage.getItem('access_token');
+      if (!token) {
+        navigate('/');
+        return;
+      }
 
-    const API_BASE_URL = window.location.hostname === 'localhost'
-      ? 'http://127.0.0.1:8000'
-      : 'https://pcp-backend-f4a2.onrender.com';
+      const API_BASE_URL = window.location.hostname === 'localhost'
+        ? 'http://127.0.0.1:8000'
+        : 'https://pcp-backend-f4a2.onrender.com';
 
-    const response = await axios.get(`${API_BASE_URL}/api/getusertasks/`, {
-      headers: { Authorization: `Bearer ${token}` },
-    });
+      const response = await axios.get(`${API_BASE_URL}/api/getusertasks/`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
 
-    // Create a lookup object for quick task assignment checking
-    const assignmentLookup = {};
-    response.data.tasks.forEach(task => {
-      assignmentLookup[task.task_id] = true;
-    });
-    
-     setUserTaskAssignments(assignmentLookup);
-   } catch (err) {
-    console.error('Error fetching user task assignments:', err);
-   }
+      const assignmentLookup = {};
+      response.data.tasks.forEach(task => {
+        assignmentLookup[task.task_id] = true;
+      });
+
+      setUserTaskAssignments(assignmentLookup);
+    } catch (err) {
+      console.error('Error fetching user task assignments:', err);
+    }
   };
 
   // Handle file upload
-const handleFileUpload = async (taskId, file) => {
-  try {
-    const token = localStorage.getItem('access_token');
-    if (!token) {
-      navigate('/');
-      return;
+  const handleFileUpload = async (taskId, file) => {
+    try {
+      const token = localStorage.getItem('access_token');
+      if (!token) {
+        navigate('/');
+        return;
+      }
+
+      const API_BASE_URL = window.location.hostname === 'localhost'
+        ? 'http://127.0.0.1:8000'
+        : 'https://pcp-backend-f4a2.onrender.com';
+
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('title', file.name);
+      formData.append('description', `Uploaded for task: ${tasks.find(t => t.task_id === taskId)?.task_name || 'Unknown Task'}`);
+      formData.append('task_id', taskId);
+
+      const response = await axios.post(`${API_BASE_URL}/api/document-upload/`, formData, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'multipart/form-data'
+        },
+      });
+
+      console.log('File uploaded successfully:', response.data);
+      setError('File uploaded successfully!');
+
+      fetchDocuments(taskId);
+    } catch (err) {
+      console.error('Error uploading file:', err);
+      if (err.response?.status === 401) {
+        localStorage.removeItem('access_token');
+        navigate('/');
+      } else {
+        setError('Failed to upload file');
+      }
     }
+  };
 
-    const API_BASE_URL = window.location.hostname === 'localhost'
-      ? 'http://127.0.0.1:8000'
-      : 'https://pcp-backend-f4a2.onrender.com';
-
-    const formData = new FormData();
-    formData.append('file', file);
-    formData.append('title', file.name);
-    formData.append('description', `Uploaded for task: ${tasks.find(t => t.task_id === taskId)?.task_name || 'Unknown Task'}`);
-    formData.append('task_id', taskId);
-
-    const response = await axios.post(`${API_BASE_URL}/api/document-upload/`, formData, {
-      headers: { 
-        Authorization: `Bearer ${token}`,
-        'Content-Type': 'multipart/form-data'
-      },
-    });
-
-    console.log('File uploaded successfully:', response.data);
-    setError('File uploaded successfully!');
-    
-    // Refresh documents for this task
-    fetchDocuments(taskId);
-    
-  } catch (err) {
-    console.error('Error uploading file:', err);
-    if (err.response?.status === 401) {
-      localStorage.removeItem('access_token');
-      navigate('/');
-    } else {
-      setError('Failed to upload file');
+  // Handle file selection
+  const handleFileSelect = (taskId, event) => {
+    const file = event.target.files[0];
+    if (file) {
+      handleFileUpload(taskId, file);
     }
-  }
-};
+  };
 
-// Handle file selection
-const handleFileSelect = (taskId, event) => {
-  const file = event.target.files[0];
-  if (file) {
-    handleFileUpload(taskId, file);
-  }
-};
   const handleMemberDelete = async (memberEmail) => {
     if (!window.confirm('Are you sure you want to delete this member?')) {
       return;
@@ -448,7 +437,6 @@ const handleFileSelect = (taskId, event) => {
         data: { project_id: projectId, email: memberEmail }
       });
 
-      // Remove the deleted member from state
       setMembers((prev) => prev.filter((member) => member.email !== memberEmail));
       setError('Member deleted successfully.');
     } catch (err) {
@@ -478,7 +466,6 @@ const handleFileSelect = (taskId, event) => {
         headers: { Authorization: `Bearer ${token}` },
       });
 
-      // Remove the deleted task from state
       setTasks((prev) => prev.filter((task) => task.task_id !== taskId));
       setError('Task deleted successfully.');
     } catch (err) {
@@ -486,8 +473,8 @@ const handleFileSelect = (taskId, event) => {
       setError('Failed to delete task');
     }
   };
-  
-// Handle document deletion
+
+  // Handle document deletion
   const handleDeleteDocument = async (documentId, taskId) => {
     if (!window.confirm('Are you sure you want to delete this document?')) {
       return;
@@ -508,7 +495,6 @@ const handleFileSelect = (taskId, event) => {
         headers: { Authorization: `Bearer ${token}` },
       });
 
-      // Refresh documents for this task
       fetchDocuments(taskId);
       setError('Document deleted successfully.');
     } catch (err) {
@@ -525,94 +511,83 @@ const handleFileSelect = (taskId, event) => {
       }
     }
   };
+
   // Handle document download
-const handleDownload = async (documentId, documentTitle) => {
-  try {
-    const token = localStorage.getItem('access_token');
-    if (!token) {
-      navigate('/');
-      return;
-    }
-
-    const API_BASE_URL = window.location.hostname === 'localhost'
-      ? 'http://127.0.0.1:8000'
-      : 'https://pcp-backend-f4a2.onrender.com';
-
-    // Show loading state
-    console.log(`Downloading document: ${documentTitle}`);
-
-    const response = await axios.get(`${API_BASE_URL}/api/document-download/?document_id=${documentId}`, {
-      headers: { Authorization: `Bearer ${token}` },
-      responseType: 'blob', // Important: ensure we get blob data
-    });
-
-    // Extract filename from Content-Disposition header
-    let filename = documentTitle;
-    const contentDisposition = response.headers['content-disposition'];
-    if (contentDisposition) {
-      // Handle both quoted and unquoted filenames
-      const filenameMatch = contentDisposition.match(/filename\*?=['"]?([^'";\r\n]*)['"]?/i);
-      if (filenameMatch && filenameMatch[1]) {
-        filename = decodeURIComponent(filenameMatch[1]);
-      }
-    }
-
-    // Get content type - this is crucial for proper file association
-    const contentType = response.headers['content-type'] || 'application/octet-stream';
-    
-    // Debug logging
-    console.log('Download details:', {
-      filename,
-      contentType,
-      size: response.data.size,
-      headers: response.headers
-    });
-
-    // Create blob with explicit MIME type
-    const blob = new Blob([response.data], { 
-      type: contentType 
-    });
-
-    // Create download URL
-    const url = window.URL.createObjectURL(blob);
-    
-    // Create and trigger download link
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = filename; // This attribute forces download
-    link.style.display = 'none'; // Hide the link
-    
-    // Add to DOM, click, then remove
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    
-    // Clean up the blob URL
-    window.URL.revokeObjectURL(url);
-    
-    console.log(`Successfully downloaded: ${filename}`);
-    
-  } catch (err) {
-    console.error('Download error:', err);
-    
-    // More specific error handling
-    if (err.response) {
-      const status = err.response.status;
-      if (status === 404) {
-        setError('Document not found');
-      } else if (status === 403) {
-        setError('Access denied to this document');
-      } else if (status === 401) {
-        localStorage.removeItem('access_token');
+  const handleDownload = async (documentId, documentTitle) => {
+    try {
+      const token = localStorage.getItem('access_token');
+      if (!token) {
         navigate('/');
-      } else {
-        setError('Failed to download document');
+        return;
       }
-    } else {
-      setError('Network error during download');
+
+      const API_BASE_URL = window.location.hostname === 'localhost'
+        ? 'http://127.0.0.1:8000'
+        : 'https://pcp-backend-f4a2.onrender.com';
+
+      console.log(`Downloading document: ${documentTitle}`);
+
+      const response = await axios.get(`${API_BASE_URL}/api/document-download/?document_id=${documentId}`, {
+        headers: { Authorization: `Bearer ${token}` },
+        responseType: 'blob',
+      });
+
+      let filename = documentTitle;
+      const contentDisposition = response.headers['content-disposition'];
+      if (contentDisposition) {
+        const filenameMatch = contentDisposition.match(/filename\*?=['"]?([^'";\r\n]*)['"]?/i);
+        if (filenameMatch && filenameMatch[1]) {
+          filename = decodeURIComponent(filenameMatch[1]);
+        }
+      }
+
+      const contentType = response.headers['content-type'] || 'application/octet-stream';
+
+      console.log('Download details:', {
+        filename,
+        contentType,
+        size: response.data.size,
+        headers: response.headers
+      });
+
+      const blob = new Blob([response.data], {
+        type: contentType
+      });
+
+      const url = window.URL.createObjectURL(blob);
+
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = filename;
+      link.style.display = 'none';
+
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+
+      window.URL.revokeObjectURL(url);
+
+      console.log(`Successfully downloaded: ${filename}`);
+    } catch (err) {
+      console.error('Download error:', err);
+
+      if (err.response) {
+        const status = err.response.status;
+        if (status === 404) {
+          setError('Document not found');
+        } else if (status === 403) {
+          setError('Access denied to this document');
+        } else if (status === 401) {
+          localStorage.removeItem('access_token');
+          navigate('/');
+        } else {
+          setError('Failed to download document');
+        }
+      } else {
+        setError('Network error during download');
+      }
     }
-  }
-};
+  };
 
   // Toggle task expansion
   const toggleTaskExpansion = (taskId) => {
@@ -630,54 +605,38 @@ const handleDownload = async (documentId, documentTitle) => {
       id: 'project-description',
       label: 'Project Description',
       content: (
-        <div style={{ padding: '1.5rem' }}>
-          <h2 style={{ fontSize: '1.25rem', fontWeight: '600', marginBottom: '1.5rem', color: '#1f2937' }}>
-            Project Description
-          </h2>
+        <div className={styles.tabContent}>
+          <h2 className={styles.tabHeading}>Project Description</h2>
           {error && (
-            <div
-              style={{
-                backgroundColor: '#f8d7da',
-                color: '#721c24',
-                padding: '0.75rem',
-                borderRadius: '0.25rem',
-                marginBottom: '1rem',
-                border: '1px solid #f5c6cb',
-                textAlign: 'center',
-              }}
-            >
+            <div className={styles.errorMessage}>
               {error}
             </div>
           )}
           {loadingProject ? (
-            <div style={{ textAlign: 'center', color: '#4b5563', padding: '1rem' }}>
+            <div className={styles.loadingMessage}>
               Loading project data...
             </div>
           ) : projectData ? (
-            <div style={{ backgroundColor: 'white', borderRadius: '0.25rem', border: '1px solid #d1d5db', padding: '1rem' }}>
-              <h3 style={{ fontSize: '1.1rem', fontWeight: '500', marginBottom: '0.5rem', color: '#1f2937' }}>
-                {projectData.project_name}
-              </h3>
-              <p style={{ fontSize: '0.95rem', color: '#4b5563', marginBottom: '1rem' }}>
-                {projectData.project_description}
-              </p>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                <p style={{ fontSize: '0.875rem', color: '#6b7280' }}>
+            <div className={styles.projectDetails}>
+              <h3 className={styles.detailHeading}>{projectData.project_name}</h3>
+              <p className={styles.detailDescription}>{projectData.project_description}</p>
+              <div className={styles.projectInfo}>
+                <p className={styles.infoItem}>
                   <strong>Due Date:</strong> {projectData.due_date}
                 </p>
-                <p style={{ fontSize: '0.875rem', color: '#6b7280' }}>
+                <p className={styles.infoItem}>
                   <strong>Created On:</strong> {projectData.created_on}
                 </p>
-                <p style={{ fontSize: '0.875rem', color: '#6b7280' }}>
+                <p className={styles.infoItem}>
                   <strong>Feedback:</strong> {projectData.feedback || 'No feedback yet'}
                 </p>
-                <p style={{ fontSize: '0.875rem', color: '#6b7280' }}>
+                <p className={styles.infoItem}>
                   <strong>Grade:</strong> {projectData.grade || 'Not graded yet'}
                 </p>
               </div>
             </div>
           ) : (
-            <div style={{ textAlign: 'center', color: '#4b5563', padding: '1rem' }}>
+            <div className={styles.noDataMessage}>
               No project data available.
             </div>
           )}
@@ -688,187 +647,102 @@ const handleDownload = async (documentId, documentTitle) => {
       id: 'tasks',
       label: 'Tasks',
       content: (
-        <div style={{ padding: '1.5rem' }}>
-          <h2 style={{ fontSize: '1.25rem', fontWeight: '600', marginBottom: '1.5rem', color: '#1f2937' }}>
-            Project Tasks
-          </h2>
+        <div className={styles.tabContent}>
+          <h2 className={styles.tabHeading}>Project Tasks</h2>
           {error && (
-            <div
-              style={{
-                backgroundColor: '#f8d7da',
-                color: '#721c24',
-                padding: '0.75rem',
-                borderRadius: '0.25rem',
-                marginBottom: '1rem',
-                border: '1px solid #f5c6cb',
-                textAlign: 'center',
-              }}
-            >
+            <div className={styles.errorMessage}>
               {error}
             </div>
           )}
           {loadingTasks ? (
-            <div style={{ textAlign: 'center', color: '#4b5563', padding: '1rem' }}>
+            <div className={styles.loadingMessage}>
               Loading tasks...
             </div>
           ) : tasks.length === 0 ? (
-            <div style={{ textAlign: 'center', color: '#4b5563', padding: '1rem' }}>
+            <div className={styles.noDataMessage}>
               No tasks available for this project.
             </div>
           ) : (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+            <div className={styles.taskList}>
               {tasks.map((task) => (
                 <div
                   key={task.task_id}
-                  style={{
-                    backgroundColor: 'white',
-                    borderRadius: '0.25rem',
-                    border: '1px solid #d1d5db',
-                    overflow: 'hidden',
-                    transition: 'all 0.2s ease',
-                  }}
+                  className={styles.taskItem}
                   onMouseEnter={(e) => {
-                    e.currentTarget.style.boxShadow = '0 2px 8px rgba(0,0,0,0.1)';
+                    e.currentTarget.classList.add(styles.taskItemHover);
                   }}
                   onMouseLeave={(e) => {
-                    e.currentTarget.style.boxShadow = 'none';
+                    e.currentTarget.classList.remove(styles.taskItemHover);
                   }}
                 >
                   <div
-                    style={{
-                      display: 'flex',
-                      justifyContent: 'space-between',
-                      alignItems: 'center',
-                      padding: '0.75rem 1rem',
-                      backgroundColor: '#f9fafb',
-                      cursor: 'pointer',
-                      borderBottom: expandedTasks[task.task_id] ? '1px solid #e5e7eb' : 'none',
-                    }}
+                    className={`${styles.taskHeader} ${expandedTasks[task.task_id] ? styles.taskHeaderExpanded : ''}`}
                     onClick={() => toggleTaskExpansion(task.task_id)}
                   >
-                    <div style={{ flex: 1 }}>
-                      <h4 style={{ fontSize: '0.95rem', fontWeight: '500', color: '#1f2937' }}>
-                        {task.task_name}
-                      </h4>
-                      <p style={{ fontSize: '0.85rem', color: '#6b7280', marginTop: '0.25rem' }}>
+                    <div className={styles.taskInfo}>
+                      <h4 className={styles.taskName}>{task.task_name}</h4>
+                      <p className={styles.taskMeta}>
                         Due: {task.task_due_date} | Status: {task.task_status} | Priority: {task.task_priority}
                       </p>
                     </div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                    <div className={styles.taskActions}>
                       {userTaskAssignments[task.task_id] && (
                         <button
                           onClick={(e) => {
                             e.stopPropagation();
                             handleDelete(task.task_id);
                           }}
-                          style={{
-                            padding: '0.25rem 0.75rem',
-                            backgroundColor: '#ef4444',
-                            color: 'white',
-                            borderRadius: '0.25rem',
-                            border: 'none',
-                            cursor: 'pointer',
-                            fontSize: '0.75rem',
-                            transition: 'background-color 0.2s',
-                          }}
-                          onMouseEnter={(e) => {
-                            e.target.style.backgroundColor = '#dc2626';
-                          }}
-                          onMouseLeave={(e) => {
-                            e.target.style.backgroundColor = '#ef4444';
-                          }}
+                          className={styles.deleteButton}
                         >
                           Delete
                         </button>
                       )}
-                      <span style={{ fontSize: '1.25rem', color: '#6b7280' }}>
+                      <span className={`${styles.dropdownToggle} ${expandedTasks[task.task_id] ? styles.dropdownToggleActive : ''}`}>
                         {expandedTasks[task.task_id] ? '▲' : '▼'}
                       </span>
                     </div>
                   </div>
                   {expandedTasks[task.task_id] && (
-                    <div style={{ padding: '1rem' }}>
-                      <p style={{ fontSize: '0.875rem', color: '#4b5563', marginBottom: '1rem' }}>
-                        {task.task_description || 'No description available.'}
-                      </p>
+                    <div className={styles.taskDetails}>
+                      <p className={styles.taskDescription}>{task.task_description || 'No description available.'}</p>
                       {userTaskAssignments[task.task_id] && (
-                        <div style={{ marginBottom: '1rem' }}>
+                        <div className={styles.uploadContainer}>
                           <label
                             htmlFor={`file-upload-${task.task_id}`}
-                            style={{
-                              padding: '0.5rem 1rem',
-                              backgroundColor: '#3b82f6',
-                              color: 'white',
-                              borderRadius: '0.25rem',
-                              cursor: 'pointer',
-                              fontSize: '0.875rem',
-                              display: 'inline-block',
-                              transition: 'background-color 0.2s',
-                            }}
-                            onMouseEnter={(e) => {
-                              e.target.style.backgroundColor = '#2563eb';
-                            }}
-                            onMouseLeave={(e) => {
-                              e.target.style.backgroundColor = '#3b82f6';
-                            }}
+                            className={styles.uploadButton}
                           >
                             Upload Document
                           </label>
                           <input
                             id={`file-upload-${task.task_id}`}
                             type="file"
-                            style={{ display: 'none' }}
+                            className={styles.fileInput}
                             onChange={(e) => handleFileSelect(task.task_id, e)}
                           />
                         </div>
                       )}
-                      <h4 style={{ fontSize: '0.875rem', fontWeight: '500', marginBottom: '0.5rem', color: '#1f2937' }}>
-                        Documents
-                      </h4>
+                      <h4 className={styles.documentsHeading}>Documents</h4>
                       {loadingDocuments[task.task_id] ? (
-                        <p style={{ fontSize: '0.85rem', color: '#4b5563', textAlign: 'center' }}>Loading documents...</p>
+                        <p className={styles.documentsLoading}>Loading documents...</p>
                       ) : documentsByTask[task.task_id]?.length > 0 ? (
-                        <ul style={{ listStyleType: 'none', padding: 0, display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                        <ul className={styles.documentList}>
                           {documentsByTask[task.task_id].map((doc) => (
                             <li
                               key={doc.document_id}
-                              style={{
-                                display: 'flex',
-                                justifyContent: 'space-between',
-                                alignItems: 'center',
-                                padding: '0.5rem',
-                                backgroundColor: '#f9fafb',
-                                borderRadius: '0.25rem',
-                                border: '1px solid #e5e7eb',
-                                transition: 'all 0.2s ease',
-                              }}
+                              className={styles.documentItem}
                               onMouseEnter={(e) => {
-                                e.currentTarget.style.backgroundColor = '#f3f4f6';
+                                e.currentTarget.classList.add(styles.documentItemHover);
                               }}
                               onMouseLeave={(e) => {
-                                e.currentTarget.style.backgroundColor = '#f9fafb';
+                                e.currentTarget.classList.remove(styles.documentItemHover);
                               }}
                             >
-                              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                                <span style={{ fontSize: '0.85rem', color: '#1f2937' }}>
-                                  {doc.document_title}
-                                </span>
+                              <div className={styles.documentInfo}>
+                                <span className={styles.documentTitle}>{doc.document_title}</span>
                                 {userTaskAssignments[task.task_id] && (
                                   <span
                                     onClick={() => handleDeleteDocument(doc.document_id, task.task_id)}
-                                    style={{
-                                      fontSize: '0.75rem',
-                                      color: '#dc2626',
-                                      cursor: 'pointer',
-                                      textDecoration: 'underline',
-                                      transition: 'color 0.2s',
-                                    }}
-                                    onMouseEnter={(e) => {
-                                      e.target.style.color = '#991b1b';
-                                    }}
-                                    onMouseLeave={(e) => {
-                                      e.target.style.color = '#dc2626';
-                                    }}
+                                    className={styles.removeDocument}
                                   >
                                     (remove)
                                   </span>
@@ -876,22 +750,7 @@ const handleDownload = async (documentId, documentTitle) => {
                               </div>
                               <button
                                 onClick={() => handleDownload(doc.document_id, doc.document_title)}
-                                style={{
-                                  padding: '0.25rem 0.75rem',
-                                  backgroundColor: '#3b82f6',
-                                  color: 'white',
-                                  borderRadius: '0.25rem',
-                                  border: 'none',
-                                  cursor: 'pointer',
-                                  fontSize: '0.75rem',
-                                  transition: 'background-color 0.2s',
-                                }}
-                                onMouseEnter={(e) => {
-                                  e.target.style.backgroundColor = '#2563eb';
-                                }}
-                                onMouseLeave={(e) => {
-                                  e.target.style.backgroundColor = '#3b82f6';
-                                }}
+                                className={styles.downloadButton}
                               >
                                 Download
                               </button>
@@ -899,7 +758,7 @@ const handleDownload = async (documentId, documentTitle) => {
                           ))}
                         </ul>
                       ) : (
-                        <p style={{ fontSize: '0.85rem', color: '#4b5563', textAlign: 'center' }}>No documents available.</p>
+                        <p className={styles.noDocuments}>No documents available.</p>
                       )}
                     </div>
                   )}
@@ -910,433 +769,192 @@ const handleDownload = async (documentId, documentTitle) => {
         </div>
       ),
     },
-{
-  id: 'chat',
-  label: 'Chat',
-  content: (
-    <div key="chat-stable" style={{ 
-      padding: '1.5rem', 
-      display: 'flex', 
-      flexDirection: 'column', 
-      height: '600px',
-      background: 'linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%)',
-      overflow: 'hidden',
-    }}>
-      <h2 style={{ 
-        fontSize: '1.5rem', 
-        fontWeight: '700', 
-        marginBottom: '1.5rem', 
-        color: '#1e293b',
-        textAlign: 'center',
-        textShadow: '0 1px 3px rgba(0,0,0,0.1)'
-      }}>
-        Project Chat
-      </h2>
-      
-      {error && (
-        <div
-          style={{
-            backgroundColor: '#fef2f2',
-            color: '#dc2626',
-            padding: '1rem',
-            borderRadius: '0.75rem',
-            marginBottom: '1rem',
-            border: '1px solid #fecaca',
-            textAlign: 'center',
-            boxShadow: '0 2px 4px rgba(220, 38, 38, 0.1)',
-            fontSize: '0.9rem',
-            fontWeight: '500'
-          }}
-        >
-          {error}
-        </div>
-      )}
-      
-      {loadingChat ? (
-        <div style={{ 
-          textAlign: 'center', 
-          color: '#64748b', 
-          padding: '2rem',
-          fontSize: '1rem',
-          fontWeight: '500'
-        }}>
-          <div style={{
-            display: 'inline-block',
-            width: '2rem',
-            height: '2rem',
-            border: '3px solid #e2e8f0',
-            borderTop: '3px solid #3b82f6',
-            borderRadius: '50%',
-            animation: 'spin 1s linear infinite',
-            marginBottom: '1rem'
-          }}></div>
-          <div>Loading chat...</div>
-        </div>
-      ) : chatMessages.length === 0 ? (
-        <div style={{ 
-          textAlign: 'center', 
-          color: '#64748b', 
-          padding: '3rem',
-          backgroundColor: '#ffffff',
-          borderRadius: '1rem',
-          boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
-          border: '2px dashed #cbd5e1'
-        }}>
-          <div style={{
-            fontSize: '3rem',
-            marginBottom: '1rem',
-            opacity: '0.6'
-          }}>💬</div>
-          <div style={{ fontSize: '1.1rem', fontWeight: '600', marginBottom: '0.5rem' }}>
-            No messages yet
-          </div>
-          <div style={{ fontSize: '0.9rem' }}>
-            Start the conversation with your team!
-          </div>
-        </div>
-      ) : (
-        <div 
-          ref={chatContainerRef}
-          style={{ 
-            flex: '1 1 0', 
-            overflowY: 'auto', 
-            paddingRight: '0.5rem', 
-            display: 'flex', 
-            flexDirection: 'column',
-            backgroundColor: '#ffffff',
-            borderRadius: '1rem',
-            padding: '1rem',
-            boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)',
-            border: '1px solid #e2e8f0',
-            scrollBehavior: 'smooth',
-            minHeight: '0', // Important: allows flex item to shrink
-            position: 'relative' // Create stacking context
-          }}
-        >
-          {(() => {
-            const messagesWithDates = [];
-            let prevDate = null;
-            chatMessages.forEach((msg, index) => {
-              const [dateStr, timeStr] = msg.sent_at.split(' ');
-              const msgDate = new Date(dateStr);
-              const today = new Date();
-              const diffTime = today - msgDate;
-              const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+    {
+      id: 'chat',
+      label: 'Chat',
+      content: (
+        <div key="chat-stable" className={styles.chatContainer}>
+          <h2 className={styles.chatHeading}>Project Chat</h2>
+          {error && (
+            <div className={styles.chatError}>
+              {error}
+            </div>
+          )}
+          {loadingChat ? (
+            <div className={styles.chatLoading}>
+              <div className={styles.spinner}></div>
+              <div>Loading chat...</div>
+            </div>
+          ) : chatMessages.length === 0 ? (
+            <div className={styles.noMessages}>
+              <div className={styles.chatIcon}>💬</div>
+              <div className={styles.noMessagesTitle}>No messages yet</div>
+              <div className={styles.noMessagesText}>Start the conversation with your team!</div>
+            </div>
+          ) : (
+            <div
+              ref={chatContainerRef}
+              className={styles.chatMessages}
+            >
+              {(() => {
+                const messagesWithDates = [];
+                let prevDate = null;
+                chatMessages.forEach((msg, index) => {
+                  const [dateStr, timeStr] = msg.sent_at.split(' ');
+                  const msgDate = new Date(dateStr);
+                  const today = new Date();
+                  const diffTime = today - msgDate;
+                  const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
 
-              let displayDate;
-              if (diffDays === 0) {
-                displayDate = 'Today';
-              } else if (diffDays === 1) {
-                displayDate = 'Yesterday';
-              } else if (diffDays < 7) {
-                displayDate = msgDate.toLocaleDateString('en-US', { weekday: 'long' });
-              } else {
-                displayDate = msgDate.toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' });
-              }
+                  let displayDate;
+                  if (diffDays === 0) {
+                    displayDate = 'Today';
+                  } else if (diffDays === 1) {
+                    displayDate = 'Yesterday';
+                  } else if (diffDays < 7) {
+                    displayDate = msgDate.toLocaleDateString('en-US', { weekday: 'long' });
+                  } else {
+                    displayDate = msgDate.toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' });
+                  }
 
-              if (dateStr !== prevDate) {
-                messagesWithDates.push(
-                  <div
-                    key={`date-${index}`}
-                    style={{
-                      textAlign: 'center',
-                      margin: '1.5rem 0',
-                      position: 'relative'
-                    }}
-                  >
-                    <div style={{
-                      display: 'inline-block',
-                      backgroundColor: '#f1f5f9',
-                      color: '#64748b',
-                      fontSize: '0.875rem',
-                      fontWeight: '600',
-                      padding: '0.5rem 1.5rem',
-                      borderRadius: '2rem',
-                      boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
-                      border: '1px solid #e2e8f0',
-                      flexShrink: 0, // Prevent input area from shrinking
-                      position: 'relative',
-                      zIndex: 1
-                    }}>
-                      {displayDate}
-                    </div>
-                    <div style={{
-                      position: 'absolute',
-                      top: '50%',
-                      left: '0',
-                      right: '0',
-                      height: '1px',
-                      backgroundColor: '#e2e8f0',
-                      zIndex: 0
-                    }}></div>
-                  </div>
-                );
-                prevDate = dateStr;
-              }
+                  if (dateStr !== prevDate) {
+                    messagesWithDates.push(
+                      <div
+                        key={`date-${index}`}
+                        className={styles.dateSeparator}
+                      >
+                        <div className={styles.dateLabel}>{displayDate}</div>
+                        <div className={styles.dateLine}></div>
+                      </div>
+                    );
+                    prevDate = dateStr;
+                  }
 
-              const shortTime = timeStr.slice(0, 5);
-              const isCurrentUser = msg.sender_name === 'You'; // You'll need to determine this based on your user data
+                  const shortTime = timeStr.slice(0, 5);
 
-              messagesWithDates.push(
-                <div 
-                  key={msg.id} 
-                  style={{ 
-                    display: 'flex', 
-                    alignItems: 'flex-start', 
-                    gap: '0.75rem', 
-                    marginBottom: '1rem',
-                    padding: '0.5rem',
-                    borderRadius: '0.75rem',
-                    transition: 'all 0.2s ease',
-                    cursor: 'pointer'
-                  }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.backgroundColor = '#f8fafc';
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.backgroundColor = 'transparent';
-                  }}
-                >
-                  <div
-                    style={{
-                      width: '2.5rem',
-                      height: '2.5rem',
-                      background: `linear-gradient(135deg, ${getGradientColors(msg.sender_name)})`,
-                      borderRadius: '50%',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      color: 'white',
-                      fontSize: '1rem',
-                      fontWeight: '600',
-                      flexShrink: 0,
-                      boxShadow: '0 2px 8px rgba(59, 130, 246, 0.3)',
-                      border: '2px solid #ffffff'
-                    }}
-                  >
-                    {msg.sender_name.split(' ')[0].charAt(0).toUpperCase()}
-                  </div>
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ 
-                      display: 'flex', 
-                      alignItems: 'center', 
-                      gap: '0.5rem',
-                      marginBottom: '0.25rem'
-                    }}>
-                      <p style={{ 
-                        fontSize: '0.9rem', 
-                        fontWeight: '600', 
-                        color: '#1e293b',
-                        margin: 0
-                      }}>
-                        {msg.sender_name} <span style={{
-                          color: msg.role === 'Supervisor' ? '#dc2626' : msg.role === 'Group Leader' ? '#10b981' : '#94a3b8'
-                        }}>({msg.role})</span>
-                      </p>
-                      <span style={{ 
-                        fontSize: '0.75rem', 
-                        color: '#94a3b8',
-                        fontWeight: '500'
-                      }}>
-                        {shortTime}
-                      </span>
-                    </div>
+                  messagesWithDates.push(
                     <div
-                      style={{
-                        display: 'inline-block',
-                        backgroundColor: '#ffffff',
-                        padding: '0.75rem 1rem',
-                        borderRadius: '1rem 1rem 1rem 0.25rem',
-                        maxWidth: '85%',
-                        boxShadow: '0 2px 8px rgba(0,0,0,0.08)',
-                        border: '1px solid #f1f5f9',
-                        position: 'relative',
-                        wordBreak: 'break-word'
+                      key={msg.id}
+                      className={styles.message}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.classList.add(styles.messageHover);
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.classList.remove(styles.messageHover);
                       }}
                     >
-                      <p style={{ 
-                        fontSize: '0.9rem', 
-                        color: '#334155', 
-                        margin: 0,
-                        lineHeight: '1.5'
-                      }}>
-                        {msg.content}
-                      </p>
+                      <div
+                        className={styles.avatar}
+                        style={{ background: `linear-gradient(135deg, ${getGradientColors(msg.sender_name)})` }}
+                      >
+                        {msg.sender_name.split(' ')[0].charAt(0).toUpperCase()}
+                      </div>
+                      <div className={styles.messageContent}>
+                        <div className={styles.messageHeader}>
+                          <p className={styles.senderName}>
+                            {msg.sender_name} <span className={
+                              msg.role === 'Supervisor' ? styles.roleSupervisor :
+                              msg.role === 'Group Leader' ? styles.roleGroupLeader :
+                              styles.roleDefault
+                            }>({msg.role})</span>
+                          </p>
+                          <span className={styles.messageTime}>{shortTime}</span>
+                        </div>
+                        <div className={styles.messageBubble}>
+                          <p className={styles.messageText}>{msg.content}</p>
+                        </div>
+                      </div>
                     </div>
-                  </div>
-                </div>
-              );
-            });
-            return messagesWithDates;
-          })()}
+                  );
+                });
+                return messagesWithDates;
+              })()}
+            </div>
+          )}
+          <div className={styles.chatInputContainer}>
+            <input
+              type="text"
+              placeholder="Type your message..."
+              value={messageInput}
+              onChange={(e) => setMessageInput(e.target.value)}
+              onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
+              className={styles.chatInput}
+              onFocus={(e) => {
+                e.target.classList.add(styles.chatInputFocus);
+              }}
+              onBlur={(e) => {
+                e.target.classList.remove(styles.chatInputFocus);
+              }}
+            />
+            <button
+              onClick={handleSendMessage}
+              disabled={!messageInput.trim()}
+              className={`${styles.sendButton} ${!messageInput.trim() ? styles.sendButtonDisabled : ''}`}
+              onMouseEnter={(e) => {
+                if (messageInput.trim()) {
+                  e.target.classList.add(styles.sendButtonHover);
+                }
+              }}
+              onMouseLeave={(e) => {
+                if (messageInput.trim()) {
+                  e.target.classList.remove(styles.sendButtonHover);
+                }
+              }}
+            >
+              Send
+            </button>
+          </div>
         </div>
-      )}
-      
-      <div style={{ 
-        display: 'flex', 
-        gap: '0.75rem', 
-        marginTop: '1rem',
-        padding: '1rem',
-        backgroundColor: '#ffffff',
-        borderRadius: '1rem',
-        boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
-        border: '1px solid #e2e8f0'
-      }}>
-        <input
-          type="text"
-          placeholder="Type your message..."
-          value={messageInput}
-          onChange={(e) => setMessageInput(e.target.value)}
-          onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
-          style={{
-            flex: 1,
-            padding: '0.75rem 1rem',
-            border: '2px solid #e2e8f0',
-            borderRadius: '0.75rem',
-            outline: 'none',
-            fontSize: '0.9rem',
-            transition: 'all 0.2s ease',
-            backgroundColor: '#f8fafc'
-          }}
-          onFocus={(e) => {
-            e.target.style.borderColor = '#3b82f6';
-            e.target.style.backgroundColor = '#ffffff';
-            e.target.style.boxShadow = '0 0 0 3px rgba(59, 130, 246, 0.1)';
-          }}
-          onBlur={(e) => {
-            e.target.style.borderColor = '#e2e8f0';
-            e.target.style.backgroundColor = '#f8fafc';
-            e.target.style.boxShadow = 'none';
-          }}
-        />
-        <button
-          onClick={handleSendMessage}
-          disabled={!messageInput.trim()}
-          style={{
-            padding: '0.75rem 1.5rem',
-            background: messageInput.trim() 
-              ? 'linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%)' 
-              : '#e2e8f0',
-            color: messageInput.trim() ? 'white' : '#94a3b8',
-            borderRadius: '0.75rem',
-            border: 'none',
-            cursor: messageInput.trim() ? 'pointer' : 'not-allowed',
-            fontSize: '0.9rem',
-            fontWeight: '600',
-            transition: 'all 0.2s ease',
-            boxShadow: messageInput.trim() 
-              ? '0 4px 12px rgba(59, 130, 246, 0.4)' 
-              : 'none',
-            transform: 'translateY(0)'
-          }}
-          onMouseEnter={(e) => {
-            if (messageInput.trim()) {
-              e.target.style.transform = 'translateY(-1px)';
-              e.target.style.boxShadow = '0 6px 16px rgba(59, 130, 246, 0.5)';
-            }
-          }}
-          onMouseLeave={(e) => {
-            if (messageInput.trim()) {
-              e.target.style.transform = 'translateY(0)';
-              e.target.style.boxShadow = '0 4px 12px rgba(59, 130, 246, 0.4)';
-            }
-          }}
-        >
-          Send
-        </button>
-      </div>
-    </div>
-  ),
-},
+      ),
+    },
     {
       id: 'members',
       label: 'Members',
       content: (
-        <div style={{ padding: '1.5rem' }}>
-          <h2 style={{ fontSize: '1.25rem', fontWeight: '600', marginBottom: '1.5rem', color: '#1f2937' }}>
-            Team Members
-          </h2>
+        <div className={styles.tabContent}>
+          <h2 className={styles.tabHeading}>Team Members</h2>
           {error && (
-            <div
-              style={{
-                backgroundColor: '#f8d7da',
-                color: '#721c24',
-                padding: '0.75rem',
-                borderRadius: '0.25rem',
-                marginBottom: '1rem',
-                border: '1px solid #f5c6cb',
-                textAlign: 'center',
-              }}
-            >
+            <div className={styles.errorMessage}>
               {error}
             </div>
           )}
           {loadingMembers ? (
-            <div style={{ textAlign: 'center', color: '#4b5563', padding: '1rem' }}>
+            <div className={styles.loadingMessage}>
               Loading members...
             </div>
           ) : members.length === 0 ? (
-            <div style={{ textAlign: 'center', color: '#4b5563', padding: '1rem' }}>
+            <div className={styles.noDataMessage}>
               No members found for this project.
             </div>
           ) : (
-            <div style={{ maxHeight: '400px', overflowY: 'auto', paddingRight: '0.5rem' }}>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-                {members.map((member, index) => (
+            <div className={styles.memberContainer}>
+              <div className={styles.memberList}>
+                {members.map((member) => (
                   <div
                     key={member.email}
-                    style={{
-                      padding: '0.75rem',
-                      backgroundColor: 'white',
-                      borderRadius: '0.25rem',
-                      border: '1px solid #d1d5db',
-                      transition: 'all 0.2s ease',
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '1rem',
-                    }}
+                    className={styles.memberItem}
                     onMouseEnter={(e) => {
-                      e.currentTarget.style.transform = 'translateX(4px)';
-                      e.currentTarget.style.boxShadow = '0 2px 8px rgba(0,0,0,0.1)';
+                      e.currentTarget.classList.add(styles.memberItemHover);
                     }}
                     onMouseLeave={(e) => {
-                      e.currentTarget.style.transform = 'translateX(0)';
-                      e.currentTarget.style.boxShadow = 'none';
+                      e.currentTarget.classList.remove(styles.memberItemHover);
                     }}
                   >
-                    <div
-                      style={{
-                        width: '2.5rem',
-                        height: '2.5rem',
-                        backgroundColor: '#3b82f6',
-                        borderRadius: '50%',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        color: 'white',
-                        fontSize: '1rem',
-                        fontWeight: '500',
-                        flexShrink: 0,
-                      }}
-                    >
+                    <div className={styles.memberAvatar}>
                       {member.first_name.charAt(0).toUpperCase()}
                     </div>
-                    <div style={{ flex: 1 }}>
-                      <p style={{ fontSize: '0.95rem', fontWeight: '500', color: '#1f2937', marginBottom: '0.25rem' }}>
-                        {member.first_name} {member.last_name}
-                      </p>
-                      <p style={{ fontSize: '0.85rem', color: '#4b5563', marginBottom: '0.25rem' }}>
-                        {member.email}
-                      </p>
-                      <p style={{ fontSize: '0.85rem', color: '#6b7280' }}>
-                        Role: {member.role}
-                      </p>
+                    <div className={styles.memberInfo}>
+                      <p className={styles.memberName}>{member.first_name} {member.last_name}</p>
+                      <p className={styles.memberEmail}>{member.email}</p>
+                      <p className={styles.memberRole}>Role: {member.role}</p>
                     </div>
-                    <button style={{ width: '150px' }} onClick={() => handleMemberDelete(member.email)}>Delete Member</button>
+                    <button className={styles.deleteMemberButton} onClick={() => handleMemberDelete(member.email)}>Delete Member</button>
                   </div>
                 ))}
               </div>
-              <button onClick={() => navigate('/addprojectmembers', { state: { projectId: projectId } })}>Add Members</button>
+              <button className={styles.addMemberButton} onClick={() => navigate('/addprojectmembers', { state: { projectId: projectId } })}>
+                Add Members
+              </button>
             </div>
           )}
         </div>
@@ -1345,45 +963,24 @@ const handleDownload = async (documentId, documentTitle) => {
   ];
 
   return (
-    <div style={{ minHeight: '100vh', backgroundColor: '#f3f4f6', padding: '2rem 1rem' }}>
-      <div style={{ width: '80%', margin: '0 auto' }}>
-        <div
-          style={{
-            backgroundColor: '#1f2937',
-            borderRadius: '0.5rem',
-            boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)',
-            overflow: 'hidden',
-            border: '2px solid #374151',
-          }}
-        >
-          <div style={{ display: 'flex' }}>
+    <div className={styles.container}>
+      <div className={styles.innerContainer}>
+        <div className={styles.tabWrapper}>
+          <div className={styles.tabButtons}>
             {tabs.map((tab, index) => (
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
-                style={{
-                  flex: 1,
-                  padding: '1rem 1.5rem',
-                  fontSize: '0.875rem',
-                  fontWeight: '500',
-                  borderRight: index < tabs.length - 1 ? '1px solid #4b5563' : 'none',
-                  outline: 'none',
-                  transition: 'all 0.2s',
-                  backgroundColor: activeTab === tab.id ? '#374151' : '#1f2937',
-                  color: activeTab === tab.id ? 'white' : '#d1d5db',
-                  cursor: 'pointer',
-                  border: 'none',
-                }}
+                className={`${styles.tabButton} ${activeTab === tab.id ? styles.tabButtonActive : ''}`}
+                style={{ borderRight: index < tabs.length - 1 ? '1px solid #4b5563' : 'none' }}
                 onMouseEnter={(e) => {
                   if (activeTab !== tab.id) {
-                    e.target.style.backgroundColor = '#374151';
-                    e.target.style.color = 'white';
+                    e.target.classList.add(styles.tabButtonHover);
                   }
                 }}
                 onMouseLeave={(e) => {
                   if (activeTab !== tab.id) {
-                    e.target.style.backgroundColor = '#1f2937';
-                    e.target.style.color = '#d1d5db';
+                    e.target.classList.remove(styles.tabButtonHover);
                   }
                 }}
               >
@@ -1391,7 +988,7 @@ const handleDownload = async (documentId, documentTitle) => {
               </button>
             ))}
           </div>
-          <div style={{ backgroundColor: '#9ca3af', minHeight: '600px', color: '#1f2937' }}>
+          <div className={styles.tabContentWrapper}>
             {tabs.map((tab) => (
               activeTab === tab.id && (
                 <div key={tab.id}>
@@ -1404,25 +1001,12 @@ const handleDownload = async (documentId, documentTitle) => {
       </div>
       <button
         onClick={() => navigate('/dashboard')}
-        style={{
-          position: 'fixed',
-          bottom: '1rem',
-          left: '1rem',
-          padding: '0.5rem 1rem',
-          backgroundColor: '#3b82f6',
-          color: 'white',
-          borderRadius: '0.25rem',
-          border: 'none',
-          cursor: 'pointer',
-          fontSize: '0.875rem',
-          fontWeight: '500',
-          transition: 'background-color 0.2s',
-        }}
+        className={styles.backButton}
         onMouseEnter={(e) => {
-          e.target.style.backgroundColor = '#2563eb';
+          e.target.classList.add(styles.backButtonHover);
         }}
         onMouseLeave={(e) => {
-          e.target.style.backgroundColor = '#3b82f6';
+          e.target.classList.remove(styles.backButtonHover);
         }}
       >
         Back to Dashboard

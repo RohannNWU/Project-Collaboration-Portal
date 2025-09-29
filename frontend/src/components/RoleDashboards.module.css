@@ -1,0 +1,712 @@
+.container {
+    min-height: 100vh;
+    background-color: #f3f4f6;
+    padding: 2rem 1rem;
+}
+
+.innerContainer {
+    width: 80%;
+    margin: 0 auto;
+}
+
+.tabWrapper {
+    background-color: #1f2937;
+    border-radius: 0.5rem;
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+    overflow: hidden;
+    border: 2px solid #374151;
+}
+
+.tabButtons {
+    display: flex;
+}
+
+.tabButton {
+    flex: 1;
+    padding: 1rem 1.5rem;
+    font-size: 0.875rem;
+    font-weight: 500;
+    outline: none;
+    transition: all 0.2s;
+    background-color: #1f2937;
+    color: #d1d5db;
+    cursor: pointer;
+    border: none;
+}
+
+.tabButtonActive {
+    background-color: #374151;
+    color: white;
+}
+
+.tabButtonHover {
+    background-color: #374151;
+    color: white;
+}
+
+.tabContentWrapper {
+    background-color: #9ca3af;
+    min-height: 600px;
+    color: #1f2937;
+}
+
+.tabContent {
+    padding: 1.5rem;
+}
+
+.tabHeading {
+    font-size: 1.25rem;
+    font-weight: 600;
+    margin-bottom: 1.5rem;
+    color: #1f2937;
+}
+
+.errorMessage {
+    background-color: #f8d7da;
+    color: #721c24;
+    padding: 0.75rem;
+    border-radius: 0.25rem;
+    margin-bottom: 1rem;
+    border: 1px solid #f5c6cb;
+    text-align: center;
+}
+
+.loadingMessage {
+    text-align: center;
+    color: #4b5563;
+    padding: 1rem;
+}
+
+.noDataMessage {
+    text-align: center;
+    color: #4b5563;
+    padding: 1rem;
+}
+
+.projectDetails {
+    background-color: white;
+    border-radius: 0.25rem;
+    border: 1px solid #d1d5db;
+    padding: 1rem;
+}
+
+.detailHeading {
+    font-size: 1.1rem;
+    font-weight: 500;
+    margin-bottom: 0.5rem;
+    color: #1f2937;
+}
+
+.detailSection {
+    margin-bottom: 1rem;
+}
+
+.detailRow {
+    display: flex;
+    gap: 2rem;
+    margin-bottom: 1rem;
+    flex-wrap: wrap;
+}
+
+.detailText {
+    color: #4b5563;
+    font-size: 0.95rem;
+}
+
+.detailDescription {
+    font-size: 0.95rem;
+    color: #4b5563;
+    margin-bottom: 1rem;
+}
+
+.projectInfo {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.infoItem {
+    font-size: 0.875rem;
+    color: #6b7280;
+}
+
+.taskContainer {
+    max-height: 400px;
+    overflow-y: auto;
+    padding-right: 0.5rem;
+}
+
+.taskList {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.taskItem {
+    background-color: white;
+    border-radius: 0.25rem;
+    border: 1px solid #d1d5db;
+    overflow: hidden;
+    transition: all 0.2s ease;
+}
+
+.taskItemHover {
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+
+.taskHeader {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.75rem 1rem;
+    background-color: #f9fafb;
+    cursor: pointer;
+}
+
+.taskHeaderExpanded {
+    border-bottom: 1px solid #e5e7eb;
+}
+
+.taskInfo {
+    flex: 1;
+}
+
+.taskName {
+    font-size: 0.95rem;
+    font-weight: 500;
+    color: #1f2937;
+}
+
+.taskDescription {
+    font-size: 0.875rem;
+    color: #4b5563;
+    margin-bottom: 1rem;
+}
+
+.taskMeta {
+    font-size: 0.85rem;
+    color: #6b7280;
+    margin-top: 0.25rem;
+}
+
+.submittedBy {
+    font-size: 0.85rem;
+    color: #6b7280;
+}
+
+.taskActions {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.dropdownToggle {
+    font-size: 1.25rem;
+    color: #6b7280;
+    transition: transform 0.2s ease;
+}
+
+.dropdownToggleActive {
+    transform: rotate(180deg);
+}
+
+.taskDetails {
+    padding: 1rem;
+}
+
+.taskDocuments {
+    margin-top: 0.75rem;
+    padding-top: 0.75rem;
+    border-top: 1px solid #e5e7eb;
+}
+
+.documentsHeading {
+    font-size: 0.875rem;
+    font-weight: 500;
+    margin-bottom: 0.5rem;
+    color: #1f2937;
+}
+
+.documentsLoading {
+    font-size: 0.85rem;
+    color: #4b5563;
+    text-align: center;
+}
+
+.documentList {
+    list-style-type: none;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.documentItem {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.5rem;
+    background-color: #f9fafb;
+    border-radius: 0.25rem;
+    border: 1px solid #e5e7eb;
+    transition: all 0.2s ease;
+}
+
+.documentItemHover {
+    background-color: #f3f4f6;
+}
+
+.documentInfo {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.documentTitle {
+    font-size: 0.85rem;
+    color: #1f2937;
+}
+
+.removeDocument {
+    font-size: 0.75rem;
+    color: #dc2626;
+    cursor: pointer;
+    text-decoration: underline;
+    transition: color 0.2s;
+}
+
+.removeDocument:hover {
+    color: #991b1b;
+}
+
+.downloadButton {
+    padding: 0.25rem 0.75rem;
+    background-color: #3b82f6;
+    color: white;
+    border-radius: 0.25rem;
+    border: none;
+    cursor: pointer;
+    font-size: 0.75rem;
+    transition: background-color 0.2s;
+}
+
+.downloadButton:hover {
+    background-color: #2563eb;
+}
+
+.uploadContainer {
+    margin-bottom: 1rem;
+}
+
+.uploadButton {
+    padding: 0.5rem 1rem;
+    background-color: #3b82f6;
+    color: white;
+    border-radius: 0.25rem;
+    cursor: pointer;
+    font-size: 0.875rem;
+    display: inline-block;
+    transition: background-color 0.2s;
+}
+
+.uploadButton:hover {
+    background-color: #2563eb;
+}
+
+.fileInput {
+    display: none;
+}
+
+.deleteButton {
+    padding: 0.25rem 0.75rem;
+    background-color: #ef4444;
+    color: white;
+    border-radius: 0.25rem;
+    border: none;
+    cursor: pointer;
+    font-size: 0.75rem;
+    transition: background-color 0.2s;
+}
+
+.deleteButton:hover {
+    background-color: #dc2626;
+}
+
+.addTaskButton {
+    width: 200px;
+}
+
+.chatContainer {
+    padding: 1.5rem;
+    display: flex;
+    flex-direction: column;
+    height: 600px;
+    background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+    overflow: hidden;
+}
+
+.chatHeading {
+    font-size: 1.5rem;
+    font-weight: 700;
+    margin-bottom: 1.5rem;
+    color: #1e293b;
+    text-align: center;
+    text-shadow: 0 1px 3px rgba(0,0,0,0.1);
+}
+
+.chatError {
+    background-color: #fef2f2;
+    color: #dc2626;
+    padding: 1rem;
+    border-radius: 0.75rem;
+    margin-bottom: 1rem;
+    border: 1px solid #fecaca;
+    text-align: center;
+    box-shadow: 0 2px 4px rgba(220, 38, 38, 0.1);
+    font-size: 0.9rem;
+    font-weight: 500;
+}
+
+.chatLoading {
+    text-align: center;
+    color: #64748b;
+    padding: 2rem;
+    font-size: 1rem;
+    font-weight: 500;
+}
+
+.spinner {
+    display: inline-block;
+    width: 2rem;
+    height: 2rem;
+    border: 3px solid #e2e8f0;
+    border-top: 3px solid #3b82f6;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+    margin-bottom: 1rem;
+}
+
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+
+.noMessages {
+    text-align: center;
+    color: #64748b;
+    padding: 3rem;
+    background-color: #ffffff;
+    border-radius: 1rem;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+    border: 2px dashed #cbd5e1;
+}
+
+.chatIcon {
+    font-size: 3rem;
+    margin-bottom: 1rem;
+    opacity: 0.6;
+}
+
+.noMessagesTitle {
+    font-size: 1.1rem;
+    font-weight: 600;
+    margin-bottom: 0.5rem;
+}
+
+.noMessagesText {
+    font-size: 0.9rem;
+}
+
+.chatMessages {
+    flex: 1 1 0;
+    overflow-y: auto;
+    padding-right: 0.5rem;
+    display: flex;
+    flex-direction: column;
+    background-color: #ffffff;
+    border-radius: 1rem;
+    padding: 1rem;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+    border: 1px solid #e2e8f0;
+    scroll-behavior: smooth;
+    min-height: 0;
+    position: relative;
+}
+
+.dateSeparator {
+    text-align: center;
+    margin: 1.5rem 0;
+    position: relative;
+}
+
+.dateLabel {
+    display: inline-block;
+    background-color: #f1f5f9;
+    color: #64748b;
+    font-size: 0.875rem;
+    font-weight: 600;
+    padding: 0.5rem 1.5rem;
+    border-radius: 2rem;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    border: 1px solid #e2e8f0;
+    position: relative;
+    z-index: 1;
+}
+
+.dateLine {
+    position: absolute;
+    top: 50%;
+    left: 0;
+    right: 0;
+    height: 1px;
+    background-color: #e2e8f0;
+    z-index: 0;
+}
+
+.message {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.75rem;
+    margin-bottom: 1rem;
+    padding: 0.5rem;
+    border-radius: 0.75rem;
+    transition: all 0.2s ease;
+    cursor: pointer;
+}
+
+.messageHover {
+    background-color: #f8fafc;
+}
+
+.avatar {
+    width: 2.5rem;
+    height: 2.5rem;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 1rem;
+    font-weight: 600;
+    flex-shrink: 0;
+    box-shadow: 0 2px 8px rgba(59, 130, 246, 0.3);
+    border: 2px solid #ffffff;
+}
+
+.messageContent {
+    flex: 1;
+    min-width: 0;
+}
+
+.messageHeader {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-bottom: 0.25rem;
+}
+
+.senderName {
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: #1e293b;
+    margin: 0;
+}
+
+.roleSupervisor {
+    color: #dc2626;
+}
+
+.roleGroupLeader {
+    color: #10b981;
+}
+
+.roleDefault {
+    color: #94a3b8;
+}
+
+.messageTime {
+    font-size: 0.75rem;
+    color: #94a3b8;
+    font-weight: 500;
+}
+
+.messageBubble {
+    display: inline-block;
+    background-color: #ffffff;
+    padding: 0.75rem 1rem;
+    border-radius: 1rem 1rem 1rem 0.25rem;
+    max-width: 85%;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+    border: 1px solid #f1f5f9;
+    position: relative;
+    word-break: break-word;
+}
+
+.messageText {
+    font-size: 0.9rem;
+    color: #334155;
+    margin: 0;
+    line-height: 1.5;
+}
+
+.chatInputContainer {
+    display: flex;
+    gap: 0.75rem;
+    margin-top: 1rem;
+    padding: 1rem;
+    background-color: #ffffff;
+    border-radius: 1rem;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+    border: 1px solid #e2e8f0;
+}
+
+.chatInput {
+    flex: 1;
+    padding: 0.75rem 1rem;
+    border: 2px solid #e2e8f0;
+    border-radius: 0.75rem;
+    outline: none;
+    font-size: 0.9rem;
+    transition: all 0.2s ease;
+    background-color: #f8fafc;
+}
+
+.chatInputFocus {
+    border-color: #3b82f6;
+    background-color: #ffffff;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.sendButton {
+    padding: 0.75rem 1.5rem;
+    background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
+    color: white;
+    border-radius: 0.75rem;
+    border: none;
+    cursor: pointer;
+    font-size: 0.9rem;
+    font-weight: 600;
+    transition: all 0.2s ease;
+    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.4);
+    transform: translateY(0);
+}
+
+.sendButtonHover {
+    transform: translateY(-1px);
+    box-shadow: 0 6px 16px rgba(59, 130, 246, 0.5);
+}
+
+.sendButtonDisabled {
+    background: #e2e8f0;
+    color: #94a3b8;
+    cursor: not-allowed;
+    box-shadow: none;
+}
+
+.memberContainer {
+    max-height: 400px;
+    overflow-y: auto;
+    padding-right: 0.5rem;
+}
+
+.memberList {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.memberItem {
+    padding: 0.75rem;
+    background-color: white;
+    border-radius: 0.25rem;
+    border: 1px solid #d1d5db;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+.memberItemHover {
+    transform: translateX(4px);
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+
+.memberAvatar {
+    width: 2.5rem;
+    height: 2.5rem;
+    background-color: #3b82f6;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 1rem;
+    font-weight: 500;
+    flex-shrink: 0;
+}
+
+.memberInfo {
+    flex: 1;
+}
+
+.memberName {
+    font-size: 0.95rem;
+    font-weight: 500;
+    color: #1f2937;
+    margin-bottom: 0.25rem;
+}
+
+.memberEmail {
+    font-size: 0.85rem;
+    color: #4b5563;
+    margin-bottom: 0.25rem;
+}
+
+.memberRole {
+    font-size: 0.85rem;
+    color: #6b7280;
+}
+
+.deleteMemberButton {
+    width: 150px;
+}
+
+.addMemberButton {
+    margin-top: 0.75rem;
+    padding: 0.5rem 1rem;
+    background-color: #3b82f6;
+    color: white;
+    border-radius: 0.25rem;
+    border: none;
+    cursor: pointer;
+    font-size: 0.875rem;
+    transition: background-color 0.2s;
+}
+
+.addMemberButton:hover {
+    background-color: #2563eb;
+}
+
+.backButton {
+    position: fixed;
+    bottom: 1rem;
+    left: 1rem;
+    padding: 0.5rem 1rem;
+    background-color: #3b82f6;
+    color: white;
+    border-radius: 0.25rem;
+    border: none;
+    cursor: pointer;
+    font-size: 0.875rem;
+    font-weight: 500;
+    transition: background-color 0.2s;
+}
+
+.backButtonHover {
+    background-color: #2563eb;
+}
+
+.noDocuments {
+    font-size: 0.85rem;
+    color: #4b5563;
+    text-align: center;
+}
