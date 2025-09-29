@@ -4,13 +4,13 @@
   justify-content: center;
   align-items: center;
   min-height: 100vh;
-  background: linear-gradient(135deg, #075061 0%, #042454 100%);
+  background: linear-gradient(270deg, #228693 0%,  #83C8D1 50%, #228693 100%);
 }
 .loginContainer {
   background: #BFDdde;
+  border: 2px solid black;
   padding: 20px;
   border-radius: 8px;
-  border: 1px solid rgba(0, 0, 0, 0.1);
 }
 .loginContent {
   max-width: 400px;
@@ -78,13 +78,13 @@
 .forgotPassword {
   background: none;
   border: none;
-  color: #83C8D1;
+  color: black;
   cursor: pointer;
 }
 .loginButton {
   width: 100%;
   padding: 10px;
-  background: linear-gradient(90deg, #228693, #83C8D1);
+  background: linear-gradient(90deg, #228693 0%, #83C8D1 50%, #228693 100%);
   color: white;
   border: none;
   border-radius: 4px;
@@ -104,7 +104,7 @@
 .signupButton {
   background: none;
   border: none;
-  color: #83C8D1;
+  color: #297b85;
   cursor: pointer;
 }
 .toast {

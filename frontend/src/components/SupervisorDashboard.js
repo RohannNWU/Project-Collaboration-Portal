@@ -1,6 +1,6 @@
-import React from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import styles from './RoleDashboards.module.css';
 
 const SupervisorDashboard = () => {
@@ -782,7 +782,7 @@ const SupervisorDashboard = () => {
       label: 'Chat',
       content: (
         <div key="chat-stable" className={styles.chatContainer}>
-          <h2 className={styles.chatHeading}>Project Chat</h2>
+          <h2 className={styles.tabHeading}>Project Chat</h2>
           {error && (
             <div className={styles.chatError}>
               {error}
@@ -938,11 +938,11 @@ const SupervisorDashboard = () => {
                   </div>
                 ))}
               </div>
-              <button className={styles.addMemberButton} onClick={() => navigate('/addprojectmembers', { state: { projectId: projectId } })}>
-                Add Members
-              </button>
             </div>
           )}
+          <button className={styles.addMemberButton} onClick={() => navigate('/addprojectmembers', { state: { projectId: projectId } })}>
+            Add Members
+          </button>
         </div>
       ),
     },

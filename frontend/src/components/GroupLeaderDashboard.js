@@ -672,9 +672,9 @@ const GroupLeaderDashboard = () => {
                                     </div>
                                 ))}
                             </div>
-                            <button className={styles.addTaskButton} onClick={() => handleAddNewTask(projectId)}>Add New Task</button>
                         </div>
                     )}
+                    <button className={styles.addTaskButton} onClick={() => handleAddNewTask(projectId)}>Add New Task</button>
                 </div>
             ),
         },
@@ -782,7 +782,7 @@ const GroupLeaderDashboard = () => {
             label: 'Chat',
             content: (
                 <div key="chat-stable" className={styles.chatContainer}>
-                    <h2 className={styles.chatHeading}>Project Chat</h2>
+                    <h2 className={styles.tabHeading}>Project Chat</h2>
                     {error && (
                         <div className={styles.chatError}>
                             {error}
@@ -938,11 +938,11 @@ const GroupLeaderDashboard = () => {
                                     </div>
                                 ))}
                             </div>
+                        </div>
+                    )}
                             <button className={styles.addMemberButton} onClick={() => navigate('/addprojectmembers', { state: { projectId: projectId } })}>
                                 Add Members
                             </button>
-                        </div>
-                    )}
                 </div>
             ),
         },
