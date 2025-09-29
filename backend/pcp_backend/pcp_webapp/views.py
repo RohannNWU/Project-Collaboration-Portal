@@ -24,6 +24,7 @@ from django.utils import timezone
 
 logger = logging.getLogger(__name__)
 
+# Helper function to extract user from JWT token
 def get_user_from_token(request):
     """Helper function to extract user from JWT token"""
     auth_header = request.headers.get('Authorization')
@@ -68,6 +69,7 @@ class LoginView(APIView):
         except Exception as e:
             return Response({'error': f'Login error: {str(e)}'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
+#View that returns dashboard data
 class DashboardView(APIView):
     def get(self, request):
         auth_header = request.headers.get('Authorization')
@@ -122,6 +124,7 @@ class DashboardView(APIView):
         except Exception as e:
             return Response({'error': f'Database error: {str(e)}'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
+#View that adds users to database
 class AddUserView(APIView):
     def post(self, request):
         try:
@@ -151,6 +154,7 @@ class AddUserView(APIView):
         except Exception as e:
             return Response({'error': f'Failed to add user: {str(e)}'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
+#View that adds projects
 class AddProjectView(APIView):
     def post(self, request):
         try:
@@ -182,6 +186,7 @@ class AddProjectView(APIView):
         except Exception as e:
             return Response({'error': f'Failed to add project: {str(e)}'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
+#View that returns members of a project
 class GetMembersView(APIView):
     def post(self, request):
             try:
@@ -214,6 +219,7 @@ class GetMembersView(APIView):
                     status=status.HTTP_500_INTERNAL_SERVER_ERROR
                 )
 
+#View that adds tasks
 class AddTaskView(APIView):
     def post(self, request):
         try:
@@ -247,7 +253,8 @@ class AddTaskView(APIView):
             return Response({'error': f'Failed to add task: {str(e)}'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
         except Project.DoesNotExist:
            return Response({'error': 'Project not found'}, status=status.HTTP_404_NOT_FOUND)
-        
+
+#View for calendar data        
 class CalendarView(APIView):
     def get(self, request):
         auth_header = request.headers.get('Authorization')
@@ -316,6 +323,7 @@ class CalendarView(APIView):
         except Exception as e:
             return Response({'error': f'Database error: {str(e)}'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
+#View that returns tasks for a user
 class GetUserTasksView(APIView):
     def get(self, request):
         try:
@@ -359,7 +367,8 @@ class GetUserTasksView(APIView):
         except Exception as e:
             print(f"Error: {str(e)}")  # Log error for debugging
             return Response({'error': f'Failed to fetch tasks: {str(e)}'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-        
+
+#View that updates tasks
 class UpdateTaskView(APIView):
     def post(self, request):
         try:
@@ -519,100 +528,6 @@ class DocumentListView(APIView):
             print(f"DOCUMENT UPLOAD ERROR: {error_details}")  # Debug print
             return Response({'error': str(e), 'details': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
         
-class DocumentDetailView(APIView):
-    """API endpoint to retrieve, update, or delete a specific document"""
-    permission_classes = [IsAuthenticated]
-    
-    def get(self, request, document_id):
-        try:
-            document = Document.objects.get(id=document_id)
-            return Response({
-                'doc_id': document.id,  # DOC_ID (PK)
-                'id': document.id,  # Also include 'id' for frontend compatibility
-                'task_id': document.task.id if document.task else None,  # TASK_ID (FK)
-                'title': document.title,  # Title
-                'name': document.title,  # Also include 'name' for frontend compatibility
-                'description': document.description,  # Description
-                'datetime_uploaded': document.datetime_uploaded.isoformat(),  # DateTime_Uploaded
-                'upload_date': document.datetime_uploaded.isoformat(),  # Also include 'upload_date' for frontend compatibility
-                'doc_type': document.doc_type,  # Doc_Type (MIME type)
-                'file_type': document.doc_type,  # Also include 'file_type' for frontend compatibility
-                'date_last_modified': document.date_last_modified.isoformat(),  # Date_Last_Modified
-                'last_modified_by': document.last_modified_by.username,  # Last_Modified_By(User)
-                'file_path': document.file_path,
-                'file_size': document.file_size,
-                'size': document.file_size,  # Also include 'size' for frontend compatibility
-                'uploaded_by': document.uploaded_by.username
-            }, status=status.HTTP_200_OK)
-        except Document.DoesNotExist:
-            return Response({'error': 'Document not found'}, status=status.HTTP_404_NOT_FOUND)
-        except Exception as e:
-            return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-    
-    def put(self, request, document_id):
-        try:
-            document = Document.objects.get(id=document_id)
-            
-            # Update document metadata
-            document.title = request.data.get('title', document.title)
-            document.description = request.data.get('description', document.description)
-            document.last_modified_by = request.user  # Update last modified by
-            
-            # Update task association if provided
-            task_id = request.data.get('task_id')
-            if task_id is not None:
-                if task_id == '':
-                    document.task = None
-                else:
-                    try:
-                        task = Task.objects.get(id=task_id)
-                        document.task = task
-                    except Task.DoesNotExist:
-                        return Response({'error': 'Task not found'}, status=status.HTTP_404_NOT_FOUND)
-            
-            document.save()
-            
-            return Response({
-                'message': 'Document updated successfully',
-                'document': {
-                    'doc_id': document.id,
-                    'id': document.id,
-                    'task_id': document.task.id if document.task else None,
-                    'title': document.title,
-                    'name': document.title,
-                    'description': document.description,
-                    'datetime_uploaded': document.datetime_uploaded.isoformat(),
-                    'upload_date': document.datetime_uploaded.isoformat(),
-                    'doc_type': document.doc_type,
-                    'file_type': document.doc_type,
-                    'date_last_modified': document.date_last_modified.isoformat(),
-                    'last_modified_by': document.last_modified_by.username,
-                    'file_size': document.file_size,
-                    'size': document.file_size,
-                    'uploaded_by': document.uploaded_by.username
-                }
-            }, status=status.HTTP_200_OK)
-        except Document.DoesNotExist:
-            return Response({'error': 'Document not found'}, status=status.HTTP_404_NOT_FOUND)
-        except Exception as e:
-            return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-    
-    def delete(self, request, document_id):
-        try:
-            document = Document.objects.get(id=document_id)
-            
-            # Delete file from storage
-            if document.file_path and default_storage.exists(document.file_path):
-                default_storage.delete(document.file_path)
-            
-            # Delete document record
-            document.delete()
-            
-            return Response({'message': 'Document deleted successfully'}, status=status.HTTP_200_OK)
-        except Document.DoesNotExist:
-            return Response({'error': 'Document not found'}, status=status.HTTP_404_NOT_FOUND)
-        except Exception as e:
-            return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 class MessageListCreateView(APIView):
     def get_user_from_token(self, request):
@@ -851,7 +766,7 @@ class NotificationListView(APIView):
         
         return queryset
     
-
+#View that displays sends related to a project
 class GetProjectTasksView(APIView):
     def get(self, request):
         try:
@@ -897,6 +812,7 @@ class GetProjectTasksView(APIView):
         except Exception as e:
             return Response({'error': f'Failed to fetch tasks: {str(e)}'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
+#View that deletes tasks
 class DeleteTaskView(APIView):
     def delete(self, request, task_id):
         try:
@@ -906,6 +822,7 @@ class DeleteTaskView(APIView):
         except Task.DoesNotExist:
             return Response({'error': 'Task not found'}, status=status.HTTP_404_NOT_FOUND)
 
+#View that adds user to project
 class AddProjectUserView(APIView):
     def post(self, request):
         try:
@@ -930,7 +847,8 @@ class AddProjectUserView(APIView):
             return Response({'error': 'User not found'}, status=status.HTTP_404_NOT_FOUND)
         except Exception as e:
             return Response({'error': f'Failed to add user: {str(e)}'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-        
+
+#View that sends documents related to a task
 class GetTaskDocumentsView(APIView):
     def get(self, request):
         try:
@@ -946,6 +864,7 @@ class GetTaskDocumentsView(APIView):
             logger.error(f"Error in GetTaskDocumentsView: {str(e)}")
             return Response({'error': f'Failed to fetch documents: {str(e)}'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
+#View that provides project data
 class GetProjectDataView(APIView):
     def get(self, request):
         try:
@@ -968,6 +887,7 @@ class GetProjectDataView(APIView):
         except Project.DoesNotExist:
             return Response({'error': 'Project not found'}, status=status.HTTP_404_NOT_FOUND)
 
+#View that uploads documents
 class DocumentUploadView(APIView):
     def get_mime_type_and_extension(self, file):
 
@@ -1074,6 +994,7 @@ class DocumentUploadView(APIView):
             logger.error(f"Error saving document: {str(e)}")
             return Response({'error': f'Failed to save document: {str(e)}'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
+#View that downloads documents
 class DownloadDocumentView(APIView):
     def get_proper_mime_type(self, filename, stored_mime_type=None):
         """
@@ -1205,6 +1126,7 @@ class DownloadDocumentView(APIView):
             logger.error(f"Error downloading document: {str(e)}")
             return Response({'error': f'Failed to download document: {str(e)}'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
+#View that removes user from project
 class DeleteProjectUserView(APIView):
     def delete(self, request):
         try:
@@ -1222,6 +1144,7 @@ class DeleteProjectUserView(APIView):
         except Exception as e:
             return Response({'error': f'Failed to remove user: {str(e)}'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
+#View that deletes documents
 class DeleteDocumentView(APIView):
     def delete(self, request, document_id):
         # Use manual JWT authentication
@@ -1253,7 +1176,8 @@ class DeleteDocumentView(APIView):
         except Exception as e:
             logger.error(f"Error deleting document: {str(e)}")
             return Response({'error': f'Failed to delete document: {str(e)}'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)   
-        
+
+
 class GetCompletedTasksView(APIView):
     def get(self, request):
         try:
@@ -1298,6 +1222,7 @@ class GetCompletedTasksView(APIView):
             return Response({'error': 'Project not found'}, status=status.HTTP_404_NOT_FOUND)
         except Exception as e:
             return Response({'error': f'Failed to fetch tasks: {str(e)}'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        
 # API endpoint to fetch chat history for a specific project.
 # Requires authentication via JWT token.
 # Query param: project_id (required)
@@ -1408,3 +1333,234 @@ class SendChatMessageView(APIView):
         except Exception as e:
             logger.error(f"Error sending chat message: {str(e)}")
             return Response({'error': f'Failed to send chat message: {str(e)}'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)   
+        
+
+#View that update project name,description and due date
+class UpdateProjectDetailsView(APIView):
+    def post(self, request):
+        user = get_user_from_token(request)
+        if not user:
+            logger.error("Authentication failed: No valid user token")
+            return Response({'error': 'Authentication required'}, status=status.HTTP_401_UNAUTHORIZED)
+
+        project_id = request.data.get('project_id')
+        name = request.data.get('name')
+        description = request.data.get('description')
+        due_date = request.data.get('due_date')
+
+        if not project_id:
+            return Response({'error': 'project_id is required'}, status=status.HTTP_400_BAD_REQUEST)
+
+        if not any([name, description, due_date]):
+            return Response({'error': 'At least one field to update (name, description, due_date) is required'}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            project = Project.objects.get(project_id=project_id)
+            
+            # Check if user has access and is Supervisor
+            try:
+                user_project = UserProject.objects.get(email=user, project_id=project)
+                if user_project.role != 'Supervisor':
+                    logger.error(f"User {user.email} is not a supervisor for project {project_id}")
+                    return Response({'error': 'Only supervisors can update project details'}, status=status.HTTP_403_FORBIDDEN)
+            except UserProject.DoesNotExist:
+                logger.error(f"User {user.email} does not have access to project {project_id}")
+                return Response({'error': 'Access denied to this project'}, status=status.HTTP_403_FORBIDDEN)
+
+            if name:
+                project.project_name = name
+            if description:
+                project.project_description = description
+            if due_date:
+                project.due_date = due_date  # Assumes due_date is in 'YYYY-MM-DD' format
+
+            project.save()
+            
+            logger.info(f"Project {project_id} details updated by {user.email}")
+            return Response({'message': 'Project details updated successfully'}, status=status.HTTP_200_OK)
+        
+        except Project.DoesNotExist:
+            logger.error(f"Project not found: project_id={project_id}")
+            return Response({'error': 'Project not found'}, status=status.HTTP_404_NOT_FOUND)
+        
+        except Exception as e:
+            logger.error(f"Error updating project details: {str(e)}")
+            return Response({'error': f'Failed to update project details: {str(e)}'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+#View that update project grade and feedback
+class UpdateProjectFeedbackView(APIView):
+    def post(self, request):
+        user = get_user_from_token(request)
+        if not user:
+            logger.error("Authentication failed: No valid user token")
+            return Response({'error': 'Authentication required'}, status=status.HTTP_401_UNAUTHORIZED)
+
+        project_id = request.data.get('project_id')
+        grade = request.data.get('grade')
+        feedback = request.data.get('feedback')
+
+        if not project_id:
+            return Response({'error': 'project_id is required'}, status=status.HTTP_400_BAD_REQUEST)
+
+        if not any([grade, feedback]):
+            return Response({'error': 'At least one field to update (grade, feedback) is required'}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            project = Project.objects.get(project_id=project_id)
+            
+            # Check if user has access and is Supervisor
+            try:
+                user_project = UserProject.objects.get(email=user, project_id=project)
+                if user_project.role != 'Supervisor':
+                    logger.error(f"User {user.email} is not a supervisor for project {project_id}")
+                    return Response({'error': 'Only supervisors can update grade and feedback'}, status=status.HTTP_403_FORBIDDEN)
+            except UserProject.DoesNotExist:
+                logger.error(f"User {user.email} does not have access to project {project_id}")
+                return Response({'error': 'Access denied to this project'}, status=status.HTTP_403_FORBIDDEN)
+
+            if grade is not None:
+                try:
+                    project.grade = int(grade)
+                except ValueError:
+                    return Response({'error': 'Grade must be an integer'}, status=status.HTTP_400_BAD_REQUEST)
+            if feedback:
+                project.feedback = feedback
+
+            project.save()
+            
+            logger.info(f"Project {project_id} feedback/grade updated by {user.email}")
+            return Response({'message': 'Project feedback and grade updated successfully'}, status=status.HTTP_200_OK)
+        
+        except Project.DoesNotExist:
+            logger.error(f"Project not found: project_id={project_id}")
+            return Response({'error': 'Project not found'}, status=status.HTTP_404_NOT_FOUND)
+        
+        except Exception as e:
+            logger.error(f"Error updating project feedback: {str(e)}")
+            return Response({'error': f'Failed to update project feedback: {str(e)}'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)      
+
+#View that updates user profile
+class UpdateProfileView(APIView):
+    def post(self, request):
+        # Authenticate user from token
+        user = get_user_from_token(request)
+        if not user:
+            logger.error("Authentication failed: No valid user token")
+            return Response({'error': 'Authentication required'}, status=status.HTTP_401_UNAUTHORIZED)
+        
+        # Extract fields from request data
+        first_name = request.data.get('fname')
+        last_name = request.data.get('lname')
+        password = request.data.get('password')
+        
+        # Ensure at least one field is provided
+        if not any([first_name, last_name, password]):
+            return Response({'error': 'At least one field to update (fname, lname, password) is required'}, status=status.HTTP_400_BAD_REQUEST)
+        
+        try:
+            # Update fields if provided
+            if first_name:
+                user.first_name = first_name
+            if last_name:
+                user.last_name = last_name
+            if password:
+                hashed_password = bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
+                user.password = hashed_password
+            
+            user.save()
+            
+            logger.info(f"Profile updated for user {user.email}")
+            return Response({'message': 'Profile updated successfully'}, status=status.HTTP_200_OK)
+        
+        except Exception as e:
+            logger.error(f"Error updating profile: {str(e)}")
+            return Response({'error': f'Failed to update profile: {str(e)}'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+#Create notification for multiple users
+#Frontend must send token and in the body a list of emails, title and message
+class CreateNotificationView(APIView):
+    def post(self, request):
+        # Authenticate user from token 
+        user = get_user_from_token(request)
+        if not user:
+            logger.error("Authentication failed: No valid user token")
+            return Response({'error': 'Authentication required'}, status=status.HTTP_401_UNAUTHORIZED)
+        
+        # Extract data from request body
+        emails = request.data.get('emails', [])  # Expecting a list of email strings
+        title = request.data.get('title')
+        message = request.data.get('message')
+        
+        if not isinstance(emails, list) or not emails or not title or not message:
+            return Response({'error': 'emails (as a list), title, and message are required'}, status=status.HTTP_400_BAD_REQUEST)
+        
+        try:
+            # Create the notification
+            notification = Notification.objects.create(title=title, message=message)
+            
+            # Link to each user via UserNotification
+            created_links = []
+            for email_str in emails:
+                try:
+                    recipient = User.objects.get(email=email_str)
+                    user_notif = UserNotification.objects.create(email=recipient, notif=notification)
+                    created_links.append(user_notif.user_notification_id)
+                except User.DoesNotExist:
+                    # Skip invalid emails or collect errors; here we skip silently
+                    logger.warning(f"User with email {email_str} not found; skipping")
+                    pass
+            
+            if not created_links:
+                notification.delete()  # Clean up if no valid links were created
+                return Response({'error': 'No valid users found for notification'}, status=status.HTTP_400_BAD_REQUEST)
+            
+            logger.info(f"Notification {notification.notif_id} created by {user.email} for {len(created_links)} users")
+            return Response({
+                'message': 'Notification created successfully',
+                'notif_id': notification.notif_id
+            }, status=status.HTTP_201_CREATED)
+        
+        except Exception as e:
+            logger.error(f"Error creating notification: {str(e)}")
+            return Response({'error': f'Failed to create notification: {str(e)}'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+#View that deletes notification for a specific user
+#Frontend must send token (for email) and notif_id in the URL
+class DeleteNotificationView(APIView):
+    def delete(self, request, notif_id):
+        # Authenticate user from token to get the user's email
+        user = get_user_from_token(request)
+        if not user:
+            logger.error("Authentication failed: No valid user token")
+            return Response({'error': 'Authentication required'}, status=status.HTTP_401_UNAUTHORIZED)
+        
+        try:
+            # Fetch the notification
+            notification = Notification.objects.get(notif_id=notif_id)
+            
+            # Find and delete the UserNotification link for this user
+            user_notifs = UserNotification.objects.filter(email=user, notif=notification)
+            if not user_notifs.exists():
+                logger.warning(f"No notification link found for user {user.email} and notif_id {notif_id}")
+                return Response({'error': 'Notification not found for this user'}, status=status.HTTP_404_NOT_FOUND)
+            
+            user_notifs.delete()
+            
+            # Check if the notification has no more links to user(s) and deletes it
+            remaining_links = UserNotification.objects.filter(notif=notification).exists()
+            if not remaining_links:
+                notification.delete()
+                logger.info(f"Notification {notif_id} deleted as it had no remaining user links")
+            else:
+                logger.info(f"Notification link deleted for user {user.email} and notif_id {notif_id}")
+            
+            return Response({'message': 'Notification deleted successfully for this user'}, status=status.HTTP_200_OK)
+        
+        except Notification.DoesNotExist:
+            logger.error(f"Notification not found: notif_id={notif_id}")
+            return Response({'error': 'Notification not found'}, status=status.HTTP_404_NOT_FOUND)
+        
+        except Exception as e:
+            logger.error(f"Error deleting notification: {str(e)}")
+            return Response({'error': f'Failed to delete notification: {str(e)}'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)          

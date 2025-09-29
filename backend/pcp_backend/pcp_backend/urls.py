@@ -7,8 +7,11 @@ from pcp_webapp.views import (
     LoginView, DashboardView, AddUserView, AddProjectView, 
     GetMembersView, AddTaskView, CalendarView, GetUserTasksView, 
     UpdateTaskView, DocumentUploadView, GetProjectTasksView, GetTaskDocumentsView,
-    DeleteTaskView, GetProjectDataView, DownloadDocumentView, AddProjectUserView, DeleteProjectUserView, DeleteDocumentView,
-    GetProjectChatView, SendChatMessageView, GetCompletedTasksView
+    DeleteTaskView, GetProjectDataView, DownloadDocumentView, AddProjectUserView, 
+    DeleteProjectUserView, DeleteDocumentView,
+    GetProjectChatView, SendChatMessageView, GetCompletedTasksView, 
+    UpdateProjectDetailsView, UpdateProjectFeedbackView,UpdateProfileView,
+    CreateNotificationView, DeleteNotificationView
 )
 
 urlpatterns = [
@@ -35,7 +38,12 @@ urlpatterns = [
     path('api/deletedocument/<int:document_id>/', DeleteDocumentView.as_view(), name='deletedocument'),
     path('api/getcompletedtasks/', GetCompletedTasksView.as_view(), name='getcompletedtasks'),
     path('api/getprojectchat/', GetProjectChatView.as_view(), name='getprojectchat'),
-    path('api/sendchatmessage/', SendChatMessageView.as_view(), name='sendchatmessage'),   
+    path('api/sendchatmessage/', SendChatMessageView.as_view(), name='sendchatmessage'),
+    path('api/updateprojectdetails/', UpdateProjectDetailsView.as_view(), name='updateprojectdetails'),
+    path('api/updateprojectfeedback/', UpdateProjectFeedbackView.as_view(), name='updateprojectfeedback'),
+    path('api/updateprofile/', UpdateProfileView.as_view(), name='updateprofile'),
+    path('api/createnotification/', CreateNotificationView.as_view(), name='createnotification'),
+    path('api/deletenotification/<int:notif_id>/', DeleteNotificationView.as_view(), name='deletenotification')   
 ]
 
 # Serve media files during development

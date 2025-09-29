@@ -217,3 +217,28 @@ class ProjectChat(models.Model):
 
     def __str__(self):
         return f"Chat in Project {self.project_id} - Message ID {self.chat_message_id}"
+
+#Notification model
+class Notification(models.Model):
+    notif_id = models.AutoField(primary_key=True)
+    time_sent = models.DateTimeField(auto_now_add=True)
+    title = models.CharField(max_length=100)
+    message = models.TextField()
+
+    class Meta:
+        managed = True
+ 
+    def __str__(self):
+        return f"{self.title} - {self.time_sent} - {self.message}"
+
+#UserNotification model to link notifications to users as bridge table
+class UserNotification(models.Model):
+    user_notification_id = models.AutoField(primary_key=True)
+    email = models.ForeignKey(User, on_delete=models.CASCADE)
+    notif = models.ForeignKey(Notification, on_delete=models.CASCADE)
+
+    class Meta:
+        managed = True
+
+    def __str__(self):
+        return f"Notification {self.notif_id} for {self.email} - Read: {self.is_read}"
