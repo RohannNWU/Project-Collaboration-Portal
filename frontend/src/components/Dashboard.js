@@ -3,9 +3,9 @@ import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import {
-  faCheckCircle, faFile, faInbox,
-  faBell, faCog, faSignOutAlt, faEnvelope, faProjectDiagram,
-  faComment, faUpload, faChevronLeft, faChevronRight, faCalendar, faTasks
+  faCheckCircle, faUser, faSignOutAlt, faProjectDiagram,
+  faChevronLeft, faChevronRight, faCalendar, faTasks,
+  faPlus
 } from '@fortawesome/free-solid-svg-icons';
 import styles from './Dashboard.module.css';
 
@@ -169,48 +169,13 @@ const Dashboard = () => {
 
         <nav className={styles.nav}>
           <button className={styles.navBtn} onClick={() => navigate('/mytasks', { state: { email } })}><FontAwesomeIcon icon={faCheckCircle} /> My Tasks</button>
-          <button className={styles.navBtn} onClick={() => navigate('/collabdoc')}><FontAwesomeIcon icon={faFile} /> Documents</button>
-          <button className={styles.navBtn}><FontAwesomeIcon icon={faInbox} /> Inbox</button>
+          <button className={styles.navBtn}><FontAwesomeIcon icon={faUser} /> Profile</button>
+          <button className={styles.navBtn} onClick={logout}><FontAwesomeIcon icon={faSignOutAlt} /> Logout</button>
         </nav>
       </aside>
 
       {/* Main Content */}
       <main className={styles.main}>
-        <header className={styles.topbar}>
-          <div className={styles.tbLeft}>
-            <h1>Project Collaboration Portal</h1>
-          </div>
-          <div className={styles.tbRight}>
-            <button className={styles.iconBtn} title="Notifications">
-              <FontAwesomeIcon icon={faBell} />
-            </button>
-            <button className={styles.iconBtn} title="Settings">
-              <FontAwesomeIcon icon={faCog} />
-            </button>
-            <div className={styles.user}>
-              <button className={styles.logoutBtn} onClick={logout} title="Logout">
-                Logout  <FontAwesomeIcon icon={faSignOutAlt} />
-              </button>
-            </div>
-          </div>
-        </header>
-
-        {/* KPIs */}
-        <section className={styles.cards}>
-          <div className={styles.card}>
-            <p className={styles.cardP}>Active Projects</p>
-            <h2 className={styles.cardH2} id="kpi-projects">{projects.length}</h2>
-          </div>
-          <div className={styles.card}>
-            <p className={styles.cardP}>Calendar Events</p>
-            <h2 className={styles.cardH2} id="kpi-events">{calendarEvents.length}</h2>
-          </div>
-          <div className={styles.card}>
-            <p className={styles.cardP}>Total Deadlines</p>
-            <h2 className={styles.cardH2} id="kpi-deadlines">{projects.length + calendarEvents.length}</h2>
-          </div>
-        </section>
-
         {error && (
           <div className={styles.errorMessage}>
             {error}
@@ -219,10 +184,10 @@ const Dashboard = () => {
 
         {/* Projects Table */}
         <section className={styles.panel}>
-          <div className={styles.panelHead}>
+          <div className={styles.panelHead}  style={{ justifyContent: 'center' }}>
             <h2 className={styles.panelHeadH2}>Projects Overview</h2>
           </div>
-          <button className={styles.addBtn} onClick={() => navigate('/newproject')}>+ Add Project</button>
+          <button className={styles.addBtn} onClick={() => navigate('/newproject')}><FontAwesomeIcon icon={faPlus} /> Create New Project</button>
           <table className={styles.table}>
             <thead>
               <tr>
@@ -265,9 +230,6 @@ const Dashboard = () => {
           <div className={styles.chartCard} key={`calendar-${calendarKey}`}>
             <div className={styles.panelHead}>
               <h3 className={styles.panelHeadH3}>Calendar</h3>
-              {currentTime && (
-                <small className={styles.brandTextSmall}>Server Time: {currentTime}</small>
-              )}
             </div>
             <div className={styles.panelHead}>
               <button className={styles.calendarNavBtn} onClick={prevMonth}>
@@ -485,21 +447,14 @@ const Dashboard = () => {
                   <div className={styles.emptyStateInstructions}>
                     Click on any date in the calendar to view projects and tasks scheduled for that day
                   </div>
-                  <div className={styles.emptyStateLegend}>
-                    <div className={styles.emptyStateLegendItem}>
-                      <div className={styles.emptyStateProject}></div>
-                      <span>Project due date</span>
-                    </div>
-                    <div className={styles.emptyStateLegendItem}>
-                      <div className={styles.emptyStateEvent}></div>
-                      <span>Task</span>
-                    </div>
-                  </div>
                 </div>
               )}
             </div>
           </div>
         </section>
+        <footer className={styles.footer}>
+          © {new Date().getFullYear()} Project Collaboration Portal
+        </footer>
       </main>
 
       {/* Right Sidebar */}
@@ -524,7 +479,6 @@ const Dashboard = () => {
         <section className={styles.panel}>
           <div className={styles.panelHead}>
             <h3 className={styles.panelHeadH3}>Recent Events</h3>
-            <span className={styles.live}>Live</span>
           </div>
           <ul className={styles.list}>
             {calendarEvents.slice(-3).reverse().map((event, index) => (
@@ -539,34 +493,6 @@ const Dashboard = () => {
             )}
           </ul>
         </section>
-
-        <section className={styles.panel}>
-          <div className={styles.panelHead}>
-            <h3 className={styles.panelHeadH3}>Inbox</h3>
-            <button className={styles.iconBtn}><FontAwesomeIcon icon={faInbox} /></button>
-          </div>
-          <ul className={styles.list}>
-            <li><FontAwesomeIcon icon={faEnvelope} /> Dr. Smith - Project feedback</li>
-            <li><FontAwesomeIcon icon={faEnvelope} /> Team - Meeting reminder</li>
-            <li><FontAwesomeIcon icon={faEnvelope} /> System - Weekly digest</li>
-          </ul>
-        </section>
-
-        <section className={styles.panel}>
-          <div className={styles.panelHead}>
-            <h3 className={styles.panelHeadH3}>Getting Started</h3>
-          </div>
-          <ul className={styles.bullet}>
-            <li>Connect your Git repository</li>
-            <li>Invite teammates to your workspace</li>
-            <li>Create your first sprint board</li>
-            <li>Enable calendar sync</li>
-          </ul>
-        </section>
-
-        <footer className={styles.footer}>
-          © {new Date().getFullYear()} Project Collaboration Portal · Student Dashboard
-        </footer>
       </aside>
     </div>
   );

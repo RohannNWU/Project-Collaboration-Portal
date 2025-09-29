@@ -445,12 +445,7 @@ const StudentDashboard = () => {
     }
   };
 
-  // Handle task deletion
-  const handleDelete = async (taskId) => {
-    if (!window.confirm('Are you sure you want to delete this task?')) {
-      return;
-    }
-
+  const handleCompleteTask = async (taskId) => {
     try {
       const token = localStorage.getItem('access_token');
       if (!token) {
@@ -462,15 +457,23 @@ const StudentDashboard = () => {
         ? 'http://127.0.0.1:8000'
         : 'https://pcp-backend-f4a2.onrender.com';
 
-      await axios.delete(`${API_BASE_URL}/api/deletetask/${taskId}/`, {
+      await axios.post(`${API_BASE_URL}/api/completetask/`, { task_id: taskId }, {
         headers: { Authorization: `Bearer ${token}` },
       });
 
-      setTasks((prev) => prev.filter((task) => task.task_id !== taskId));
-      setError('Task deleted successfully.');
+      fetchUserTaskAssignments();
     } catch (err) {
-      console.error(`Error deleting task ${taskId}:`, err);
-      setError('Failed to delete task');
+      console.error(`Error marking task ${taskId} as complete:`, err);
+      if (err.response?.status === 401) {
+        localStorage.removeItem('access_token');
+        navigate('/');
+      } else if (err.response?.status === 404) {
+        setError('Task not found');
+      } else if (err.response?.status === 403) {
+        setError('Access denied to this task');
+      } else {
+        setError('Failed to mark task as complete');
+      }
     }
   };
 
@@ -690,15 +693,15 @@ const StudentDashboard = () => {
                         <button
                           onClick={(e) => {
                             e.stopPropagation();
-                            handleDelete(task.task_id);
+                            handleCompleteTask(task.task_id);
                           }}
                           className={styles.deleteButton}
                         >
-                          Delete
+                          Mark as Complete
                         </button>
                       )}
                       <span className={`${styles.dropdownToggle} ${expandedTasks[task.task_id] ? styles.dropdownToggleActive : ''}`}>
-                        {expandedTasks[task.task_id] ? '▲' : '▼'}
+                        ▼
                       </span>
                     </div>
                   </div>
@@ -774,7 +777,7 @@ const StudentDashboard = () => {
       label: 'Chat',
       content: (
         <div key="chat-stable" className={styles.chatContainer}>
-          <h2 className={styles.chatHeading}>Project Chat</h2>
+          <h2 className={styles.tabHeading}>Project Chat</h2>
           {error && (
             <div className={styles.chatError}>
               {error}
@@ -854,8 +857,8 @@ const StudentDashboard = () => {
                           <p className={styles.senderName}>
                             {msg.sender_name} <span className={
                               msg.role === 'Supervisor' ? styles.roleSupervisor :
-                              msg.role === 'Group Leader' ? styles.roleGroupLeader :
-                              styles.roleDefault
+                                msg.role === 'Group Leader' ? styles.roleGroupLeader :
+                                  styles.roleDefault
                             }>({msg.role})</span>
                           </p>
                           <span className={styles.messageTime}>{shortTime}</span>
@@ -948,13 +951,9 @@ const StudentDashboard = () => {
                       <p className={styles.memberEmail}>{member.email}</p>
                       <p className={styles.memberRole}>Role: {member.role}</p>
                     </div>
-                    <button className={styles.deleteMemberButton} onClick={() => handleMemberDelete(member.email)}>Delete Member</button>
                   </div>
                 ))}
               </div>
-              <button className={styles.addMemberButton} onClick={() => navigate('/addprojectmembers', { state: { projectId: projectId } })}>
-                Add Members
-              </button>
             </div>
           )}
         </div>
