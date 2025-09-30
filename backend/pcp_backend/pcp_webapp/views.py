@@ -1408,16 +1408,6 @@ class UpdateProjectFeedbackView(APIView):
         try:
             project = Project.objects.get(project_id=project_id)
             
-            # Check if user has access and is Supervisor
-            try:
-                user_project = UserProject.objects.get(email=user, project_id=project)
-                if user_project.role != 'Supervisor':
-                    logger.error(f"User {user.email} is not a supervisor for project {project_id}")
-                    return Response({'error': 'Only supervisors can update grade and feedback'}, status=status.HTTP_403_FORBIDDEN)
-            except UserProject.DoesNotExist:
-                logger.error(f"User {user.email} does not have access to project {project_id}")
-                return Response({'error': 'Access denied to this project'}, status=status.HTTP_403_FORBIDDEN)
-
             if grade is not None:
                 try:
                     project.grade = int(grade)
