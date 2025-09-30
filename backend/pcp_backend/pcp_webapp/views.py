@@ -1553,4 +1553,34 @@ class DeleteNotificationView(APIView):
         
         except Exception as e:
             logger.error(f"Error deleting notification: {str(e)}")
-            return Response({'error': f'Failed to delete notification: {str(e)}'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)          
+            return Response({'error': f'Failed to delete notification: {str(e)}'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)   
+
+# View for resetting/forgot password
+# This view allows updating the password for a user by providing email and new password.
+# No authentication token is required, as it's intended for use on the login page.
+class ResetPasswordView(APIView):
+    def post(self, request):
+        email = request.data.get('email')
+        new_password = request.data.get('password')
+        
+        if not email or not new_password:
+            return Response({'error': 'Email and new password are required'}, status=status.HTTP_400_BAD_REQUEST)
+        
+        try:
+            user = User.objects.get(email=email)
+            
+            # Hash the new password
+            hashed_password = bcrypt.hashpw(new_password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
+            user.password = hashed_password
+            user.save()
+            
+            logger.info(f"Password reset successfully for user {email}")
+            return Response({'message': 'Password reset successfully'}, status=status.HTTP_200_OK)
+        
+        except User.DoesNotExist:
+            logger.warning(f"Password reset attempted for non-existent email: {email}")
+            return Response({'error': 'User not found'}, status=status.HTTP_404_NOT_FOUND)
+        
+        except Exception as e:
+            logger.error(f"Error resetting password: {str(e)}")
+            return Response({'error': f'Failed to reset password: {str(e)}'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)               
