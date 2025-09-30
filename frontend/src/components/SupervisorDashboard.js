@@ -2,6 +2,8 @@ import React, { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
 import { useNavigate, useLocation } from 'react-router-dom';
 import styles from './RoleDashboards.module.css';
+import GradeFeedbackModal from './GradeFeedbackModal';
+import ProjectDetailsModal from './ProjectDetailsModal';
 
 const SupervisorDashboard = () => {
   const [activeTab, setActiveTab] = useState('project-description');
@@ -22,6 +24,8 @@ const SupervisorDashboard = () => {
   const navigate = useNavigate();
   const { projectId } = location.state || {};
   const chatContainerRef = useRef(null);
+  const [showGradeModal, setShowGradeModal] = useState(false);
+  const [showProjectDetailsModal, setShowProjectDetailsModal] = useState(false);
 
   // Helper function for CHAT
   function getGradientColors(senderName) {
@@ -169,7 +173,106 @@ const SupervisorDashboard = () => {
       }
     }
   };
+  
+  // Fetch project data function
+  const fetchProjectData = async () => {
+    setLoadingProject(true);
+    setError('');
+    try {
+      const token = localStorage.getItem('access_token');
+      if (!token) {
+        navigate('/');
+        return;
+      }
 
+      const API_BASE_URL = window.location.hostname === 'localhost'
+        ? 'http://127.0.0.1:8000'
+        : 'https://pcp-backend-f4a2.onrender.com';
+
+      const response = await axios.get(`${API_BASE_URL}/api/getprojectdata/?project_id=${projectId}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      setProjectData(response.data.project_data || {});
+    } catch (err) {
+      console.error('Error fetching project data:', err);
+      if (err.response?.status === 400) {
+        setError('Project ID is required');
+      } else if (err.response?.status === 404) {
+        setError('Project not found');
+      } else if (err.response?.status === 401) {
+        localStorage.removeItem('access_token');
+        navigate('/');
+      } else {
+        setError('Failed to fetch project data');
+      }
+    } finally {
+      setLoadingProject(false);
+    }
+   };
+
+  //For Grade and Feedback Modal
+  const handleGradeFeedbackSubmit = async ({ grade, feedback }) => {
+  try {
+    const token = localStorage.getItem('access_token');
+    if (!token) {
+      navigate('/');
+      return;
+    }
+
+    const API_BASE_URL = window.location.hostname === 'localhost'
+      ? 'http://127.0.0.1:8000'
+      : 'https://pcp-backend-f4a2.onrender.com';
+
+    await axios.post(`${API_BASE_URL}/api/updateprojectfeedback/`, {
+      project_id: projectId,
+      grade: grade,
+      feedback: feedback
+    }, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+
+    // Refresh project data to show updated grade/feedback
+    await fetchProjectData();
+    setActiveTab('project-description');
+    setError('Grade and feedback submitted successfully!');
+  } catch (err) {
+    console.error('Error submitting grade and feedback:', err);
+    setError('Failed to submit grade and feedback');
+  }
+ };
+
+   // Handle Project Details Modal Submit
+  const handleProjectDetailsSubmit = async ({ name, description, due_date }) => {
+    try {
+      const token = localStorage.getItem('access_token');
+      if (!token) {
+        navigate('/');
+        return;
+      }
+
+      const API_BASE_URL = window.location.hostname === 'localhost'
+        ? 'http://127.0.0.1:8000'
+        : 'https://pcp-backend-f4a2.onrender.com';
+
+      await axios.post(`${API_BASE_URL}/api/updateprojectdetails/`, {
+        project_id: projectId,
+        name: name,
+        description: description,
+        due_date: due_date
+      }, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      // Refresh project data to show updated details
+      await fetchProjectData();
+      setActiveTab('project-description');
+      setError('Project details updated successfully!');
+    } catch (err) {
+      console.error('Error updating project details:', err);
+      setError('Failed to update project details');
+    }
+  };
   // Redirect if no projectId
   useEffect(() => {
     if (!projectId) {
@@ -580,6 +683,10 @@ const SupervisorDashboard = () => {
                 <h3 className={styles.detailHeading}>Grade</h3>
                 <p className={styles.detailText}>{projectData.grade !== '' ? projectData.grade : 'Not graded'}</p>
               </div>
+              <div className={styles.buttonContainer}>
+                <button className={styles.actionButton} onClick={() => setShowGradeModal(true)}>Grade & Feedback</button>
+                <button className={styles.actionButton} onClick={() => setShowProjectDetailsModal(true)}>Update Project Details</button>
+              </div>
             </div>
           )}
         </div>
@@ -948,51 +1055,68 @@ const SupervisorDashboard = () => {
     },
   ];
 
-  return (
-    <div className={styles.container}>
-      <div className={styles.innerContainer}>
-        <div className={styles.tabWrapper}>
-          <div className={styles.tabButtons}>
-            {tabs.map((tab, index) => (
-              <button
-                key={tab.id}
-                onClick={() => setActiveTab(tab.id)}
-                className={`${styles.tabButton} ${activeTab === tab.id ? styles.tabButtonActive : ''}`}
-                style={{ borderRight: index < tabs.length - 1 ? '1px solid #4b5563' : 'none' }}
-                onMouseEnter={(e) => {
-                  if (activeTab !== tab.id) {
-                    e.target.classList.add(styles.tabButtonHover);
-                  }
-                }}
-                onMouseLeave={(e) => {
-                  if (activeTab !== tab.id) {
-                    e.target.classList.remove(styles.tabButtonHover);
-                  }
-                }}
-              >
-                {tab.label}
-              </button>
-            ))}
-          </div>
-          <div className={styles.tabContentWrapper}>
-            {tabs.map((tab) => (
-              activeTab === tab.id && (
-                <div key={tab.id}>
-                  {tab.content}
-                </div>
-              )
-            ))}
-          </div>
+return (
+  <div className={styles.container}>
+    <div className={styles.innerContainer}>
+      <div className={styles.tabWrapper}>
+        <div className={styles.tabButtons}>
+          {tabs.map((tab, index) => (
+            <button
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id)}
+              className={`${styles.tabButton} ${activeTab === tab.id ? styles.tabButtonActive : ''}`}
+              style={{ borderRight: index < tabs.length - 1 ? '1px solid #4b5563' : 'none' }}
+              onMouseEnter={(e) => {
+                if (activeTab !== tab.id) {
+                  e.target.classList.add(styles.tabButtonHover);
+                }
+              }}
+              onMouseLeave={(e) => {
+                if (activeTab !== tab.id) {
+                  e.target.classList.remove(styles.tabButtonHover);
+                }
+              }}
+            >
+              {tab.label}
+            </button>
+          ))}
         </div>
-        <button
-          onClick={() => navigate('/dashboard')}
-          className={styles.backButton}
-        >
-          Back to Dashboard
-        </button>
+        <div className={styles.tabContentWrapper}>
+          {tabs.map((tab) => (
+            activeTab === tab.id && (
+              <div key={tab.id}>
+                {tab.content}
+              </div>
+            )
+          ))}
+        </div>
       </div>
+      <button
+        onClick={() => navigate('/dashboard')}
+        className={styles.backButton}
+      >
+        Back to Dashboard
+      </button>
     </div>
-  );
+    <GradeFeedbackModal
+      isOpen={showGradeModal}
+      onClose={() => setShowGradeModal(false)}
+      projectId={projectId}
+      onSubmit={handleGradeFeedbackSubmit}
+      initialGrade={projectData?.grade ?? ''}
+      initialFeedback={projectData?.feedback ?? ''}
+    />
+    <ProjectDetailsModal
+      isOpen={showProjectDetailsModal}
+      onClose={() => setShowProjectDetailsModal(false)}
+      projectId={projectId}
+      onSubmit={handleProjectDetailsSubmit}
+      initialName={projectData?.project_name ?? ''}
+      initialDescription={projectData?.project_description ?? ''}
+      initialDueDate={projectData?.due_date ?? ''}
+    />
+  </div>
+ );
 };
 
 export default SupervisorDashboard;
