@@ -34,7 +34,7 @@ class Project(models.Model):
 class UserProject(models.Model):
     user_project_id = models.BigAutoField(primary_key=True)
     email = models.ForeignKey(User, on_delete=models.DO_NOTHING)
-    project_id = models.ForeignKey(Project, on_delete=models.DO_NOTHING)
+    project_id = models.ForeignKey(Project, on_delete=models.CASCADE)
     role = models.CharField(max_length=50)
 
     class Meta:

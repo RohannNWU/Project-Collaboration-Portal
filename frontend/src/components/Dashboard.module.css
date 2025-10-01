@@ -454,6 +454,14 @@
   transition: all 0.2s ease;
 }
 
+.wrappableCell {
+  word-wrap: break-word; /* or use overflow-wrap: break-word; for modern browsers */
+  white-space: normal;
+  max-width: 0; /* Helps with table layout */
+  overflow: hidden;
+  vertical-align: top; /* Ensures alignment if rows have varying heights */
+}
+
 .calendarNavBtn:hover {
   background: #83C8D1;
   transform: scale(1.1);

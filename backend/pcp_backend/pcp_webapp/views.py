@@ -1759,4 +1759,10 @@ class ResetPasswordView(APIView):
         
         except Exception as e:
             logger.error(f"Error resetting password: {str(e)}")
-            return Response({'error': f'Failed to reset password: {str(e)}'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)               
+            return Response({'error': f'Failed to reset password: {str(e)}'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+          
+class DeleteProjectView(APIView):
+    def delete(self, request, project_id):
+        project = Project.objects.get(project_id=project_id)
+        project.delete();
+        return Response({'message': "Project deleted successfully"}, status=status.HTTP_200_OK)

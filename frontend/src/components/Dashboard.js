@@ -5,8 +5,10 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import {
   faCheckCircle, faUser, faSignOutAlt, faProjectDiagram,
   faChevronLeft, faChevronRight, faCalendar, faTasks,
-  faPlus
+  faPlus, faTrash
 } from '@fortawesome/free-solid-svg-icons';
+import NewProjectModal from './NewProjectModal';
+import DeleteProjectModal from './DeleteProjectModal';
 import styles from './Dashboard.module.css';
 
 const Dashboard = () => {
@@ -18,6 +20,9 @@ const Dashboard = () => {
   const [selectedDate, setSelectedDate] = useState(null);
   const [error, setError] = useState('');
   const [calendarKey, setCalendarKey] = useState(0);
+  const [showNewProjectModal, setShowNewProjectModal] = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [selectedProject, setSelectedProject] = useState(null);
   const navigate = useNavigate();
 
   const months = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
@@ -182,10 +187,19 @@ const Dashboard = () => {
 
         {/* Projects Table */}
         <section className={styles.panel}>
-          <div className={styles.panelHead}  style={{ justifyContent: 'center' }}>
+          <div className={styles.panelHead} style={{ justifyContent: 'center' }}>
             <h2 className={styles.panelHeadH2}>Projects Overview</h2>
           </div>
-          <button className={styles.addBtn} onClick={() => navigate('/newproject')}><FontAwesomeIcon icon={faPlus} /> Create New Project</button>
+          <button className={styles.addBtn} onClick={() => setShowNewProjectModal(true)}><FontAwesomeIcon icon={faPlus} /> Create New Project</button>
+          {showNewProjectModal && (
+            <NewProjectModal
+              onClose={() => setShowNewProjectModal(false)}
+              onSuccess={() => {
+                fetchDashboardData(); // Refresh projects list
+                setShowNewProjectModal(false); // Close modal
+              }}
+            />
+          )}
           <table className={styles.table}>
             <thead>
               <tr>
@@ -195,32 +209,59 @@ const Dashboard = () => {
                 <th>Action</th>
                 <th>Role</th>
                 <th>Project Grade</th>
+                <th>Remove Project</th>
               </tr>
             </thead>
             <tbody>
               {projects.map((project, index) => (
                 <tr key={index}>
-                  <td>{project.project_name}</td>
+                  <td className={styles.wrappableCell}>{project.project_name}</td> {/* Apply to Name cell */}
                   <td>
                     <div className={styles.progressBar}>
                       <div
                         className={styles.progress}
                         style={{ width: `${project.progress || 0}%` }}
-                      >
-                      </div>
+                      />
                       <span className={styles.progressText}>{project.progress || 0}%</span>
                     </div>
                   </td>
-                  <td>{project.dueDate}</td>
+                  <td className={styles.wrappableCell}>{project.dueDate}</td> {/* If dates can be long */}
                   <td>
-                    <button className={styles.openBtn} onClick={() => handleOpenDashboard(project)}>Open</button>
+                    <button className={styles.openBtn} onClick={() => handleOpenDashboard(project)}>
+                      Open
+                    </button>
                   </td>
+                  <td className={styles.wrappableCell}>{project.role}</td> {/* Apply to Role if needed */}
+                  <td className={styles.wrappableCell}>{project.grade || '-'}</td>
                   <td>
-                    {project.role}
+                    {project.role === "Supervisor" && (
+                      <button
+                        onClick={() => {
+                          setSelectedProject(project);
+                          setShowDeleteModal(true);
+                        }}
+                        style={{ background: 'none', border: 'none', cursor: 'pointer', marginLeft: '8px' }}
+                        title="Delete Project"
+                      >
+                        <FontAwesomeIcon
+                          icon={faTrash}
+                          style={{ color: 'red', fontSize: '16px' }}
+                        />
+                      </button>
+                    )}
                   </td>
-                  <td>
-                    {project.grade || '-'}
-                  </td>
+                  {showDeleteModal && selectedProject && (
+                    <DeleteProjectModal
+                      project={selectedProject}
+                      onClose={() => {
+                        setShowDeleteModal(false);
+                        setSelectedProject(null);
+                      }}
+                      onSuccess={() => {
+                        fetchDashboardData(); // Refresh projects list
+                      }}
+                    />
+                  )}
                 </tr>
               ))}
             </tbody>

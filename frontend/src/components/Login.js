@@ -117,8 +117,7 @@ const Login = () => {
 
             <div className={styles.formOptions}>
               <label className={styles.rememberMe}>
-                <input type="checkbox" id="rememberMe" />
-                <span>Remember me</span>
+                
               </label>
               <button
                 type="button"
