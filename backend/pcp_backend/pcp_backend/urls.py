@@ -12,7 +12,7 @@ from pcp_webapp.views import (
     GetProjectChatView, SendChatMessageView, GetCompletedTasksView, 
     UpdateProjectDetailsView, UpdateProjectFeedbackView,UpdateProfileView,
     CreateNotificationView, DeleteNotificationView, CompleteTaskView, GetFinalizedTasksView,
-    GetTaskDetailsView, RemoveTaskMemberView, AddTaskMemberView,
+    GetTaskDetailsView, RemoveTaskMemberView, AddTaskMemberView, UploadDocumentView,
     CreateNotificationView, DeleteNotificationView, ResetPasswordView, DeleteProjectView, ChangeRoleView
 )
 
@@ -26,7 +26,8 @@ urlpatterns = [
     path('api/addtask/', AddTaskView.as_view(), name='addtask'),
     path('api/calendar/', CalendarView.as_view(), name='calendar'),
     path('api/getusertasks/', GetUserTasksView.as_view(), name='getusertasks'),
-    path('api/getprojecttasks/', GetProjectTasksView.as_view(), name='getprojecttasks'),
+    path('api/uploaddocument/', UploadDocumentView.as_view(), name='upload-document'),
+path('api/getprojecttasks/', GetProjectTasksView.as_view(), name='get-project-tasks'),
     path('api/gettaskdocuments/', GetTaskDocumentsView.as_view(), name='gettaskdocuments'),
     path('api/updatetaskdetails/', UpdateTaskView.as_view(), name='updatetask'),
     path('api/messages/', MessageListCreateView.as_view(), name='messages'),

@@ -7,6 +7,7 @@ from rest_framework_simplejwt.exceptions import InvalidToken
 from datetime import datetime, timedelta
 from .models import User, Project, UserProject, Task, User_Task, Document,ChatMessage, ProjectChat
 from django.core.files.storage import default_storage
+from django.core.files.uploadedfile import UploadedFile
 from django.core.files.base import ContentFile
 from django.http import HttpResponse
 from django.utils import timezone
@@ -165,6 +166,10 @@ class AddProjectView(APIView):
             project_due_date = request.data.get('project_due_date')
             project_members = request.data.get('project_members', [])
 
+            # Validate
+            if not all([project_name, project_description, project_due_date]):
+                return Response({'error': 'Project name, description, and due date are required'}, status=status.HTTP_400_BAD_REQUEST)
+
             # Create new project using ORM
             project = Project.objects.create(
                 due_date=project_due_date,
@@ -173,20 +178,79 @@ class AddProjectView(APIView):
                 created_on=datetime.today().date()
             )
 
-            # Add project members using ORM
+            group_leader_email = None
+            # Add project members using ORM with updated role logic
             for index, member_email in enumerate(project_members):
-                role = 'Supervisor' if index == 0 else 'Student'
+                if not member_email:
+                    continue
+                role = 'Supervisor' if index == 0 else 'Group Leader' if index == 1 else 'Student'
+                if index == 1:
+                    group_leader_email = member_email
                 user = User.objects.get(email=member_email)
                 UserProject.objects.create(
                     email=user,
                     project_id=project,
                     role=role
                 )
+
+            # Auto-create "Final Submission" task if there's a Group Leader
+            if group_leader_email:
+                task = Task.objects.create(
+                    task_name='Final Submission',
+                    task_description='Upload the final project documents here for supervisor review.',
+                    task_due_date=project.due_date,
+                    task_status='Pending',
+                    task_priority='High',
+                    project_id=project
+                )
+                group_leader = User.objects.get(email=group_leader_email)
+                User_Task.objects.create(
+                    task_id=task,
+                    email=group_leader
+                )
+
             return Response({'message': 'Project added successfully'}, status=status.HTTP_201_CREATED)
         except User.DoesNotExist:
             return Response({'error': 'One or more users not found'}, status=status.HTTP_400_BAD_REQUEST)
         except Exception as e:
             return Response({'error': f'Failed to add project: {str(e)}'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+class UploadDocumentView(APIView):
+    def post(self, request):
+        user = get_user_from_token(request)
+        if not user:
+            return Response({'error': 'Authentication required'}, status=status.HTTP_401_UNAUTHORIZED)
+
+        task_id = request.data.get('task_id')
+        title = request.data.get('title', '')
+        file = request.FILES.get('file')
+
+        if not task_id or not file:
+            return Response({'error': 'task_id and file are required'}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            task = Task.objects.get(task_id=task_id)
+            # Check if user is assigned to the task
+            if not User_Task.objects.filter(email=user, task_id=task).exists():
+                return Response({'error': 'You are not assigned to this task'}, status=status.HTTP_403_FORBIDDEN)
+
+            document = Document.objects.create(
+                task_id=task,
+                document_title=title or file.name,
+                last_modified_by=user,
+                file=file,
+                doc_type=file.content_type or 'application/octet-stream'
+            )
+
+            return Response({
+                'message': 'Document uploaded successfully',
+                'document_id': document.document_id
+            }, status=status.HTTP_201_CREATED)
+        except Task.DoesNotExist:
+            return Response({'error': 'Task not found'}, status=status.HTTP_404_NOT_FOUND)
+        except Exception as e:
+            logger.error(f'Error uploading document: {str(e)}')
+            return Response({'error': f'Failed to upload document: {str(e)}'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 #View that returns members of a project
 class GetMembersView(APIView):
@@ -327,24 +391,8 @@ class CalendarView(APIView):
 
 #View that returns tasks for a user
 class GetUserTasksView(APIView):
-    def get(self, request):
-        try:
-            auth_header = request.headers.get('Authorization')
-            if not auth_header or not auth_header.startswith('Bearer '):
-                return Response({'error': 'Authentication required'}, status=status.HTTP_401_UNAUTHORIZED)
-            
-            token = auth_header.split(' ')[1]
-            # Validate token and extract payload
-            try:
-                UntypedToken(token)
-                payload = UntypedToken(token).payload
-                user_email = payload.get('user_email') or payload.get('email')
-                if not user_email:
-                    return Response({'error': 'Invalid token: user_email not found'}, status=status.HTTP_401_UNAUTHORIZED)
-            except (InvalidToken) as e:
-                return Response({'error': f'Invalid or expired token: {str(e)}'}, status=status.HTTP_401_UNAUTHORIZED)
-
-            # Fetch the user based on the email from the token
+    def post(self, request):
+            user_email = request.data.get('email')
             try:
                 user = User.objects.get(email=user_email)
             except User.DoesNotExist:
@@ -366,9 +414,6 @@ class GetUserTasksView(APIView):
                 for user_task in user_tasks
             ]
             return Response({'tasks': tasks_list}, status=status.HTTP_200_OK)
-        except Exception as e:
-            print(f"Error: {str(e)}")  # Log error for debugging
-            return Response({'error': f'Failed to fetch tasks: {str(e)}'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 #View that updates tasks
 class UpdateTaskView(APIView):
@@ -773,46 +818,36 @@ class NotificationListView(APIView):
 #View that displays sends related to a project
 class GetProjectTasksView(APIView):
     def get(self, request):
+        project_id = request.query_params.get('project_id')
+        if not project_id:
+            return Response({'error': 'project_id is required'}, status=status.HTTP_400_BAD_REQUEST)
+
+        user = get_user_from_token(request)
+        if not user:
+            return Response({'error': 'Authentication required'}, status=status.HTTP_401_UNAUTHORIZED)
+
         try:
-            requested_project_id = request.GET.get('project_id')
-            if not requested_project_id:
-                return Response({'error': 'Project ID is required'}, status=status.HTTP_400_BAD_REQUEST)
-            project = Project.objects.get(project_id=requested_project_id)
-            tasks = Task.objects.filter(project_id=project)
-            task_members = User_Task.objects.filter(task_id__in=tasks).select_related('email', 'task_id')
-            task_members_dict = {}
-            for task_member in task_members:
-                task_id = task_member.task_id.task_id
-                try:
-                    user = User.objects.get(email=task_member.email.email)
-                    # Initialize list for task_id if it doesn't exist
-                    if task_id not in task_members_dict:
-                        task_members_dict[task_id] = []
-                    # Append user details to the list for this task_id
-                    task_members_dict[task_id].append({
-                        'fname': user.first_name,
-                        'lname': user.last_name
-                    })
-                except User.DoesNotExist:
-                    # Handle case where user is not found (optional)
-                    if task_id not in task_members_dict:
-                        task_members_dict[task_id] = []
-                    task_members_dict[task_id].append({'fname': 'Unknown', 'lname': 'Unknown'})
-            tasks_list = [
-                {
+            # Get user's projects to verify access
+            user_projects = UserProject.objects.filter(email=user, project_id=project_id).exists()
+            if not user_projects:
+                return Response({'error': 'Access denied to this project'}, status=status.HTTP_403_FORBIDDEN)
+
+            tasks = Task.objects.filter(project_id=project_id).select_related('project_id')
+            tasks_data = []
+            for task in tasks:
+                assignees = User_Task.objects.filter(task_id=task).select_related('email')
+                assignee_emails = [ut.email.email for ut in assignees]
+                assignee_names = User.objects.filter(email__in=assignee_emails).values('first_name', 'last_name', 'email')
+                tasks_data.append({
                     'task_id': task.task_id,
                     'task_name': task.task_name,
                     'task_description': task.task_description,
+                    'task_due_date': task.task_due_date.strftime('%Y-%m-%d'),
                     'task_status': task.task_status,
-                    'task_due_date': task.task_due_date.strftime('%d/%m/%Y') if task.task_due_date else 'No due date',
                     'task_priority': task.task_priority,
-                    'assigned_members': task_members_dict.get(task.task_id, [])
-                }
-                for task in tasks
-            ]
-            return Response({'tasks': tasks_list, 'members': task_members_dict}, status=status.HTTP_200_OK)
-        except Project.DoesNotExist:
-            return Response({'error': 'Project not found'}, status=status.HTTP_404_NOT_FOUND)
+                    'assignees': list(assignee_names)
+                })
+            return Response({'tasks': tasks_data}, status=status.HTTP_200_OK)
         except Exception as e:
             return Response({'error': f'Failed to fetch tasks: {str(e)}'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 

@@ -19,6 +19,7 @@ const StudentDashboard = () => {
   const [loadingDocuments, setLoadingDocuments] = useState({});
   const [loadingChat, setLoadingChat] = useState(false);
   const [error, setError] = useState('');
+  const isProjectGraded = projectData?.grade && projectData?.feedback;
   const location = useLocation();
   const navigate = useNavigate();
   const { projectId } = location.state || {};

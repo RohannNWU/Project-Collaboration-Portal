@@ -1,35 +1,56 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import PropTypes from 'prop-types';
-import styles from './ChangePasswordModal.module.css';  // Reuse styles or create new CSS module
+import { faEye, faEyeSlash, faLock } from '@fortawesome/free-solid-svg-icons';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import styles from './Models.module.css';  // Reuse styles or create new CSS module
 
 const ResetPasswordModal = ({ isOpen, onClose, onSuccess }) => {
   const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+  const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
-  const [showPassword, setShowPassword] = useState(false);
+  const [showNewPassword, setShowNewPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [successMessage, setSuccessMessage] = useState('');
 
   useEffect(() => {
     if (isOpen) {
       setEmail('');
-      setPassword('');
+      setNewPassword('');
       setConfirmPassword('');
-      setShowPassword(false);
+      setShowNewPassword(false);
+      setShowConfirmPassword(false);
       setError('');
+      setSuccessMessage('');
     }
   }, [isOpen]);
 
   const validateForm = () => {
-    if (!email || !password || !confirmPassword) {
+    if (!email.trim() || !newPassword || !confirmPassword) {
       setError('All fields are required');
       setTimeout(() => setError(''), 3000);
       return false;
     }
 
-    if (password !== confirmPassword) {
+    if (newPassword !== confirmPassword) {
       setError('Passwords do not match');
+      setTimeout(() => setError(''), 3000);
+      return false;
+    }
+
+    // Optional: Basic email validation
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      setError('Please enter a valid email address');
+      setTimeout(() => setError(''), 3000);
+      return false;
+    }
+
+    // Optional: Password strength
+    if (newPassword.length < 8) {
+      setError('Password must be at least 8 characters long');
       setTimeout(() => setError(''), 3000);
       return false;
     }
@@ -42,37 +63,71 @@ const ResetPasswordModal = ({ isOpen, onClose, onSuccess }) => {
 
     setLoading(true);
     setError('');
+    setSuccessMessage('');
 
     try {
       const API_BASE_URL = window.location.hostname === 'localhost'
         ? 'http://127.0.0.1:8000'
         : 'https://pcp-backend-f4a2.onrender.com';
 
-      console.log('Resetting password for:', { email });
+      console.log('Updating password for:', { email: email.trim() });
 
       const response = await axios.post(
         `${API_BASE_URL}/api/resetpassword/`,
         {
-          email: email,
-          password: password,
+          email: email.trim(),
+          password: newPassword,
         },
         { headers: { 'Content-Type': 'application/json' } }
       );
 
-      // If axios reaches here, status is already 2xx
-      onSuccess({ email });
-      onClose();
-    } catch (error) {
-      console.error('Error resetting password:', error);
-      setError(error.response?.data?.error || 'Failed to reset password');
-      setTimeout(() => setError(''), 3000);
+      // Log full response for debugging
+      console.log('Full response:', response);
+
+      // Check for backend errors in response body (even on 200 OK)
+      if (response.data?.error) {
+        throw new Error(response.data.error);
+      }
+
+      // Success
+      setSuccessMessage('Password updated successfully!');
+      onSuccess?.({ email });
+      setTimeout(() => {
+        setSuccessMessage('');
+        onClose();
+      }, 2000);
+    } catch (err) {
+      console.error('Error updating password:', err);
+      console.error('Status:', err.response?.status);
+      console.error('Response data:', err.response?.data);
+      console.error('Error message:', err.message);
+      console.error('Error code:', err.code);
+
+      let errorMsg = 'Failed to update password';
+      if (err.response?.status === 400) {
+        errorMsg = err.response.data?.error || 'Invalid email or password';
+      } else if (err.response?.status === 404) {
+        errorMsg = 'User not found—check your email';
+      } else if (err.code === 'ERR_NETWORK') {
+        errorMsg = 'Network error—check your connection';
+      } else if (err.message.includes('JSON parse')) {
+        errorMsg = 'Invalid response from server';
+      } else {
+        errorMsg = err.response?.data?.error || err.message || errorMsg;
+      }
+      setError(errorMsg);
+      setTimeout(() => setError(''), 5000);
     } finally {
       setLoading(false);
     }
   };
 
-  const togglePasswordVisibility = () => {
-    setShowPassword(!showPassword);
+  const toggleNewPasswordVisibility = () => {
+    setShowNewPassword(!showNewPassword);
+  };
+
+  const toggleConfirmPasswordVisibility = () => {
+    setShowConfirmPassword(!showConfirmPassword);
   };
 
   if (!isOpen) return null;
@@ -87,6 +142,7 @@ const ResetPasswordModal = ({ isOpen, onClose, onSuccess }) => {
           </button>
         </div>
         {error && <div className={styles.errorMessage}>{error}</div>}
+        {successMessage && <div className={styles.successMessage}>{successMessage}</div>}
 
         <div className={styles.modelBody}>
           <div className={styles.formGroup}>
@@ -96,50 +152,48 @@ const ResetPasswordModal = ({ isOpen, onClose, onSuccess }) => {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               className={styles.input}
-              placeholder="Enter email address"
+              placeholder="Enter your email address"
+              disabled={loading}
             />
           </div>
 
           <div className={styles.formGroup}>
             <label className={styles.label}>New Password</label>
-            <div className={styles.passwordInputWrapper}>
+            <div className={styles.passwordInputContainer}>
+              <FontAwesomeIcon icon={faLock} className={styles.inputIcon} />
               <input
-                type={showPassword ? 'text' : 'password'}
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
+                type={showNewPassword ? 'text' : 'password'}
+                value={newPassword}
+                onChange={(e) => setNewPassword(e.target.value)}
                 className={styles.input}
                 placeholder="Enter new password"
+                disabled={loading}
               />
               <button
                 type="button"
-                onClick={togglePasswordVisibility}
-                className={styles.eyeButton}
-                aria-label={showPassword ? 'Hide password' : 'Show password'}
+                onClick={toggleNewPasswordVisibility}
+                className={styles.togglePassword}
+                aria-label={showNewPassword ? 'Hide password' : 'Show password'}
+                disabled={loading}
               >
-                {showPassword ? (
-                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24" />
-                    <line x1="1" y1="1" x2="23" y2="23" />
-                  </svg>
-                ) : (
-                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
-                    <circle cx="12" cy="12" r="3" />
-                  </svg>
-                )}
+                <FontAwesomeIcon icon={showNewPassword ? faEyeSlash : faEye} />
               </button>
             </div>
           </div>
 
           <div className={styles.formGroup}>
             <label className={styles.label}>Confirm New Password</label>
-            <input
-              type="password"
-              value={confirmPassword}
-              onChange={(e) => setConfirmPassword(e.target.value)}
-              className={styles.input}
-              placeholder="Confirm new password"
-            />
+            <div className={styles.passwordInputContainer}>
+              <FontAwesomeIcon icon={faLock} className={styles.inputIcon} />
+              <input
+                type={showConfirmPassword ? 'text' : 'password'}
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+                className={styles.input}
+                placeholder="Confirm new password"
+                disabled={loading}
+              />
+            </div>
           </div>
         </div>
 
@@ -156,9 +210,9 @@ const ResetPasswordModal = ({ isOpen, onClose, onSuccess }) => {
             type="button"
             onClick={handleResetPassword}
             className={styles.submitButton}
-            disabled={loading || !email || !password || !confirmPassword}
+            disabled={loading || !email.trim() || !newPassword || !confirmPassword}
           >
-            {loading ? 'Resetting...' : 'Reset Password'}
+            {loading ? 'Updating...' : 'Change Password'}
           </button>
         </div>
       </div>
@@ -169,7 +223,7 @@ const ResetPasswordModal = ({ isOpen, onClose, onSuccess }) => {
 ResetPasswordModal.propTypes = {
   isOpen: PropTypes.bool.isRequired,
   onClose: PropTypes.func.isRequired,
-  onSuccess: PropTypes.func.isRequired,
+  onSuccess: PropTypes.func,
 };
 
 export default ResetPasswordModal;

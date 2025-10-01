@@ -50,7 +50,8 @@ class Task(models.Model):
     task_due_date = models.DateField()
     task_status = models.CharField(max_length=50)
     task_priority = models.CharField(max_length=50)
-    project_id = models.ForeignKey(Project, on_delete=models.DO_NOTHING)
+    project_id = models.ForeignKey(Project, on_delete=models.CASCADE)
+    is_final_submission = models.BooleanField(default=False)
 
     class Meta:
         managed = True

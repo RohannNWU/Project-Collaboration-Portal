@@ -28,6 +28,12 @@ const GroupLeaderDashboard = () => {
     const [showTaskUpdateModel, setShowTaskUpdateModel] = useState(false);
     const [showModal, setShowModal] = useState(false);
     const [selectedTaskId, setSelectedTaskId] = useState(null);
+    const [finalTask, setFinalTask] = useState(null);
+    const [finalDocuments, setFinalDocuments] = useState([]);
+    const [uploadTitle, setUploadTitle] = useState('');
+    const [uploadFile, setUploadFile] = useState(null);
+    const [uploading, setUploading] = useState(false);
+    const isProjectGraded = projectData?.grade && projectData?.feedback;
 
     // Helper function for CHAT
     function getGradientColors(senderName) {
@@ -62,6 +68,90 @@ const GroupLeaderDashboard = () => {
     useEffect(() => {
         if (activeTab === 'chat' && projectId) {
             fetchChat();
+        }
+    }, [activeTab, projectId, navigate]);
+
+    const fetchFinalSubmission = async () => {
+        if (!projectId) return;
+        setLoadingTasks(true);
+        try {
+            const token = localStorage.getItem('access_token');
+            if (!token) {
+                navigate('/');
+                return;
+            }
+
+            const API_BASE_URL = window.location.hostname === 'localhost'
+                ? 'http://127.0.0.1:8000'
+                : 'https://pcp-backend-f4a2.onrender.com';
+
+            const response = await axios.get(`${API_BASE_URL}/api/getprojecttasks/?project_id=${projectId}`, {
+                headers: { Authorization: `Bearer ${token}` },
+            });
+
+            const allTasks = response.data.tasks || [];
+            const finalTaskData = allTasks.find(task => task.task_name === 'Final Submission');
+            setFinalTask(finalTaskData || null);
+            setTasks(allTasks); // Also update general tasks
+
+            if (finalTaskData) {
+                await fetchDocuments(finalTaskData.task_id);
+                setFinalDocuments(documentsByTask[finalTaskData.task_id] || []);
+            }
+        } catch (err) {
+            console.error('Error fetching final submission:', err);
+            setError('Failed to fetch final submission');
+            setTimeout(() => setError(''), 3000);
+        } finally {
+            setLoadingTasks(false);
+        }
+    };
+
+    const handleUploadDocument = async (taskId) => {
+        if (!uploadTitle.trim() || !uploadFile) return;
+
+        setUploading(true);
+        const formData = new FormData();
+        formData.append('task_id', taskId);
+        formData.append('title', uploadTitle);
+        formData.append('file', uploadFile);
+
+        try {
+            const token = localStorage.getItem('access_token');
+            if (!token) {
+                navigate('/');
+                return;
+            }
+
+            const API_BASE_URL = window.location.hostname === 'localhost'
+                ? 'http://127.0.0.1:8000'
+                : 'https://pcp-backend-f4a2.onrender.com';
+
+            await axios.post(`${API_BASE_URL}/api/uploaddocument/`, formData, {
+                headers: {
+                    Authorization: `Bearer ${token}`,
+                    'Content-Type': 'multipart/form-data'
+                },
+            });
+
+            setUploadTitle('');
+            setUploadFile(null);
+            await fetchDocuments(taskId); // Refresh documents
+            setFinalDocuments(documentsByTask[taskId] || []);
+            setError('Document uploaded successfully!');
+            setTimeout(() => setError(''), 3000);
+        } catch (err) {
+            console.error('Error uploading document:', err);
+            setError('Failed to upload document');
+            setTimeout(() => setError(''), 3000);
+        } finally {
+            setUploading(false);
+        }
+    };
+
+    useEffect(() => {
+        if (activeTab === 'final-submission' && projectId) {
+            fetchFinalSubmission();
         }
     }, [activeTab, projectId, navigate]);
 
@@ -900,7 +990,7 @@ const GroupLeaderDashboard = () => {
                                             </p>
                                             {
                                                 task.task_status === 'In Progress' && (
-                                                    <button className={styles.deleteButton} onClick={() => handleDelete(task.task_id)}>Delete Task</button>
+                                                    <button className={styles.deleteButton} onClick={() => handleDelete(task.task_id)} disabled={isProjectGraded}>Delete Task</button>
                                                 )
                                             }
                                             {
@@ -912,6 +1002,7 @@ const GroupLeaderDashboard = () => {
                                                             setSelectedTaskId(task.task_id); // Set the task ID
                                                             setShowTaskUpdateModel(true); // Open the model
                                                         }}
+                                                        disabled={isProjectGraded}
                                                     >
                                                         Update Task Details
                                                     </button>
@@ -944,6 +1035,7 @@ const GroupLeaderDashboard = () => {
                                                         <label
                                                             htmlFor={`file-upload-${task.task_id}`}
                                                             className={styles.uploadButton}
+                                                            disabled={isProjectGraded}
                                                         >
                                                             Upload Document
                                                         </label>
@@ -977,6 +1069,7 @@ const GroupLeaderDashboard = () => {
                                                                         <span
                                                                             onClick={() => handleDeleteDocument(doc.document_id, task.task_id)}
                                                                             className={styles.removeDocument}
+                                                                            disabled={isProjectGraded}
                                                                         >
                                                                             (remove)
                                                                         </span>
@@ -1004,15 +1097,22 @@ const GroupLeaderDashboard = () => {
                     <div className={styles.detailSection}>
                         <h3 className={styles.detailHeading}>Important Links</h3>
                         <p className={styles.detailText}>{'No sharepoint links provided.'}</p>
-                        <button className={styles.addTaskButton}>Add new Links</button>
+                        {!isProjectGraded && (
+                            <button className={styles.addTaskButton}>Add new Links</button>
+                        )}
                     </div>
-                    <button className={styles.addTaskButton} onClick={() => handleAddNewTask(projectId)}>
-                        Add New Task
-                    </button>
+                    {!isProjectGraded && (
+                        <button
+                            className={styles.addTaskButton}
+                            onClick={() => handleAddNewTask()}
+                        >
+                            Add Task
+                        </button>
+                    )}
                     {showModal && (
-                        <AddTaskModal 
-                            isOpen={showModal} 
-                            onClose={() => setShowModal(false)} 
+                        <AddTaskModal
+                            isOpen={showModal}
+                            onClose={() => setShowModal(false)}
                             projectId={projectId}
                             onSuccess={async () => {
                                 await fetchTasks();
@@ -1222,23 +1322,116 @@ const GroupLeaderDashboard = () => {
                             })()}
                         </div>
                     )}
-                    <div className={styles.chatInputContainer}>
-                        <input
-                            type="text"
-                            placeholder="Type your message..."
-                            value={messageInput}
-                            onChange={(e) => setMessageInput(e.target.value)}
-                            onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
-                            className={styles.chatInput}
-                        />
-                        <button
-                            onClick={handleSendMessage}
-                            disabled={!messageInput.trim()}
-                            className={`${styles.sendButton} ${!messageInput.trim() ? styles.sendButtonDisabled : ''}`}
-                        >
-                            Send
-                        </button>
-                    </div>
+                    {!isProjectGraded && (
+                        <div className={styles.chatInputContainer}>
+                            <input
+                                type="text"
+                                placeholder="Type your message..."
+                                value={messageInput}
+                                onChange={(e) => setMessageInput(e.target.value)}
+                                onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
+                                className={styles.chatInput}
+                            />
+                            <button
+                                onClick={handleSendMessage}
+                                disabled={!messageInput.trim()}
+                                className={`${styles.sendButton} ${!messageInput.trim() ? styles.sendButtonDisabled : ''}`}
+                            >
+                                Send
+                            </button>
+                        </div>
+                    )}
+                </div>
+            ),
+        },
+        {
+            id: 'final-submission',
+            label: 'Final Submission',
+            content: (
+                <div className={styles.tabContent}>
+                    <h2 className={styles.tabHeading}>Final Submission</h2>
+                    {error && <div className={styles.errorMessage}>{error}</div>}
+                    {loadingTasks ? (
+                        <div className={styles.loadingMessage}>Loading final submission...</div>
+                    ) : !finalTask ? (
+                        <div className={styles.noDataMessage}>No Final Submission task found. Contact supervisor.</div>
+                    ) : (
+                        <div>
+                            <div className={styles.taskInfo}>
+                                <h3>{finalTask.task_name}</h3>
+                                <p><strong>Description:</strong> {finalTask.task_description}</p>
+                                <p><strong>Due Date:</strong> {finalTask.task_due_date}</p>
+                                <p><strong>Status:</strong> {finalTask.task_status}</p>
+                            </div>
+                            {/* Upload Form */}
+                            <div className={styles.uploadSection}>
+                                <h4>Upload Documents</h4>
+                                <div className={styles.formGroup}>
+                                    <input
+                                        type="text"
+                                        placeholder="Document Title"
+                                        value={uploadTitle}
+                                        onChange={(e) => setUploadTitle(e.target.value)}
+                                        className={styles.input}
+                                    />
+                                    <input
+                                        type="file"
+                                        onChange={(e) => setUploadFile(e.target.files[0])}
+                                        className={styles.input}
+                                        disabled={uploading}
+                                    />
+                                    <button
+                                        onClick={() => handleUploadDocument(finalTask.task_id)}
+                                        disabled={!uploadTitle.trim() || !uploadFile || uploading || finalTask.task_status === 'Completed'}
+                                        className={styles.submitButton}
+                                    >
+                                        {uploading ? 'Uploading...' : 'Upload'}
+                                    </button>
+                                </div>
+                            </div>
+                            {!isProjectGraded && finalTask.task_status !== 'Completed' && (
+                                <div className={styles.uploadSection}>
+                                    <h4>Upload Documents</h4>
+                                    <div className={styles.formGroup}>
+                                        <input
+                                            type="text"
+                                            placeholder="Document Title"
+                                            value={uploadTitle}
+                                            onChange={(e) => setUploadTitle(e.target.value)}
+                                            className={styles.input}
+                                            disabled={isProjectGraded}
+                                        />
+                                        <input
+                                            type="file"
+                                            onChange={(e) => setUploadFile(e.target.files[0])}
+                                            className={styles.input}
+                                            disabled={isProjectGraded || uploading}
+                                        />
+                                        <button
+                                            onClick={() => handleUploadDocument(finalTask.task_id)}
+                                            disabled={isProjectGraded || !uploadTitle.trim() || !uploadFile || uploading || finalTask.task_status === 'Completed'}
+                                            className={styles.submitButton}
+                                        >
+                                            {uploading ? 'Uploading...' : 'Upload'}
+                                        </button>
+                                    </div>
+                                </div>
+                            )}
+
+                            {!isProjectGraded && finalTask.task_status !== 'Completed' && (
+                                <button
+                                    className={styles.submitButton}
+                                    onClick={() => handleCompleteTask(finalTask.task_id)}
+                                    disabled={finalDocuments.length === 0}
+                                >
+                                    Submit Project
+                                </button>
+                            )}
+                            {finalTask.task_status === 'Completed' && (
+                                <p className={styles.successMessage}>Project submitted! Awaiting supervisor review.</p>
+                            )}
+                        </div>
+                    )}
                 </div>
             ),
         },

@@ -9,6 +9,7 @@ import {
 } from '@fortawesome/free-solid-svg-icons';
 import NewProjectModal from './NewProjectModal';
 import DeleteProjectModal from './DeleteProjectModal';
+import MyTasksModal from './MyTasksModal';
 import styles from './Dashboard.module.css';
 
 const Dashboard = () => {
@@ -23,6 +24,7 @@ const Dashboard = () => {
   const [showNewProjectModal, setShowNewProjectModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [selectedProject, setSelectedProject] = useState(null);
+  const [showMyTasksModal, setShowMyTasksModal] = useState(false);
   const navigate = useNavigate();
 
   const months = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
@@ -171,7 +173,14 @@ const Dashboard = () => {
         </div>
 
         <nav className={styles.nav}>
-          <button className={styles.navBtn} onClick={() => navigate('/mytasks', { state: { email } })}><FontAwesomeIcon icon={faCheckCircle} /> My Tasks</button>
+          <button className={styles.navBtn} onClick={() => setShowMyTasksModal(true)}>
+            <FontAwesomeIcon icon={faCheckCircle} /> My Tasks
+          </button>
+          <MyTasksModal
+            isOpen={showMyTasksModal}
+            onClose={() => setShowMyTasksModal(false)}
+            email={email}
+          />
           <button className={styles.navBtn}><FontAwesomeIcon icon={faUser} /> Profile</button>
           <button className={styles.navBtn} onClick={logout}><FontAwesomeIcon icon={faSignOutAlt} /> Logout</button>
         </nav>

@@ -11,6 +11,172 @@
   z-index: 9999;
 }
 
+/* Login.module.css */
+.loginPage {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 100vh;
+  background: linear-gradient(270deg, #228693 0%,  #83C8D1 50%, #228693 100%);
+}
+.loginContainer {
+  background: #BFDdde;
+  border: 2px solid black;
+  padding: 20px;
+  border-radius: 8px;
+}
+.loginContent {
+  max-width: 400px;
+}
+.branding {
+  text-align: center;
+  margin-bottom: 20px;
+}
+.logo {
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
+  background: #228693;
+  color: #fff;
+  display: grid;
+  place-items: center;
+  margin: 0 auto;
+}
+.welcome {
+  text-align: center;
+  margin-bottom: 20px;
+}
+.formGroup {
+  margin-bottom: 15px;
+}
+.inputWithIcon {
+  position: relative;
+}
+.inputIcon {
+  position: absolute;
+  left: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #CFDDEE;
+}
+.passwordInputContainer {
+  position: relative;
+}
+.passwordInputContainer input {
+  width: 100%;
+  padding: 8px 40px;
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  border-radius: 4px;
+}
+.togglePassword {
+  position: absolute;
+  right: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  cursor: pointer;
+}
+.formOptions {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 15px;
+}
+.rememberMe {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+.forgotPassword {
+  background: none;
+  border: none;
+  color: black;
+  cursor: pointer;
+}
+.loginButton {
+  width: 100%;
+  padding: 10px;
+  background: linear-gradient(90deg, #228693 0%, #83C8D1 50%, #228693 100%);
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+}
+.loadingSpinner {
+  display: inline-block;
+}
+.divider {
+  text-align: center;
+  margin: 20px 0;
+  color: black;
+}
+.signupLink {
+  text-align: center;
+}
+.signupButton {
+  background: none;
+  border: none;
+  color: #297b85;
+  cursor: pointer;
+}
+.toast {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  background: #e53e3e;
+  color: white;
+  padding: 10px;
+  border-radius: 4px;
+}
+
+.modelBody {
+  padding: 20px;
+  color: #042454;
+  background: #ffffff;
+  max-height: 60vh;
+  overflow-y: auto;
+}
+
+.errorMessage {
+  color: #dc2626;
+  background-color: #fef2f2;
+  border: 1px solid #fecaca;
+  border-radius: 6px;
+  padding: 12px;
+  margin: 10px 0;
+  font-size: 14px;
+  text-align: center;
+}
+
+.taskList {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.taskItem {
+  background-color: #f8f9fa;
+  border: 1px solid #e1e8ed;
+  border-radius: 8px;
+  padding: 16px;
+  margin-bottom: 12px;
+  color: #042454;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.taskItem strong {
+  color: #228693;
+  font-size: 16px;
+  display: block;
+  margin-bottom: 8px;
+}
+
+.taskItem br {
+  margin-bottom: 4px;
+}
+
 .modelContent {
   background: white;
   border: 2px solid black;

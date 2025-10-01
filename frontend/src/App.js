@@ -4,9 +4,8 @@ import { AuthProvider, useAuth } from './context/AuthProvider';
 import Login from './components/Login';
 import Dashboard from './components/Dashboard';
 import Signup from './components/Signup';
-import MyTasks from './components/MyTasks';
 import StudentDashboard from './components/StudentDashboard';
-import AddProjectMembers from './components/AddProjectMembers';
+import AddProjectMembers from './components/AddMemberModal';
 import SupervisorDashboard from './components/SupervisorDashboard';
 import GroupLeaderDashboard from './components/GroupLeaderDashboard';
 
@@ -34,7 +33,6 @@ function App() {
             {/* Protected Routes */}
             <Route element={<ProtectedRoute />}>
               <Route path="/dashboard" element={<Dashboard />} />
-              <Route path="/mytasks" element={<MyTasks />} />
               <Route path="/studentdashboard" element={<StudentDashboard />} />
               <Route path="/supervisordashboard" element={<SupervisorDashboard />} />
               <Route path="/groupleaderdashboard" element={<GroupLeaderDashboard />} />

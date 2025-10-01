@@ -5,6 +5,7 @@ import styles from './RoleDashboards.module.css';
 import GradeFeedbackModel from './GradeFeedbackModel';
 import ProjectDetailsModel from './ProjectDetailsModel';
 import ChangeRoleModel from './ChangeRoleModel';
+import AddMemberModal from './AddMemberModal';
 
 const SupervisorDashboard = () => {
   const [activeTab, setActiveTab] = useState('project-description');
@@ -29,6 +30,9 @@ const SupervisorDashboard = () => {
   const [showProjectDetailsModel, setShowProjectDetailsModel] = useState(false);
   const [showChangeRoleModel, setShowChangeRoleModel] = useState(false);
   const [selectedMember, setSelectedMember] = useState(null);
+  const [finalTask, setFinalTask] = useState(null);
+  const [finalDocuments, setFinalDocuments] = useState([]);
+  const [showAddMemberModal, setShowAddMemberModal] = useState(false);
 
   // Check if project is graded (both grade and feedback are set)
   const isProjectGraded = projectData?.grade && projectData?.feedback;
@@ -251,7 +255,7 @@ const SupervisorDashboard = () => {
       setTimeout(() => setError(''), 3000);
     }
   };
-  
+
   // Handle Project Details Modal Submit
   const handleProjectDetailsSubmit = async ({ name, description, due_date }) => {
     try {
@@ -287,18 +291,18 @@ const SupervisorDashboard = () => {
   };
 
   // Handle Change Role Modal Submit
-const handleRoleUpdate = async ({ projectId, memberEmail, role }) => {
-  // Optimistic local update
-  setMembers(prevMembers =>
-    prevMembers.map(m =>
-      m.email === memberEmail ? { ...m, role } : m
-    )
-  );
-  setShowChangeRoleModel(false);
-  
-  // Refresh members from server to ensure synced data
-  await fetchMembers();
-};
+  const handleRoleUpdate = async ({ projectId, memberEmail, role }) => {
+    // Optimistic local update
+    setMembers(prevMembers =>
+      prevMembers.map(m =>
+        m.email === memberEmail ? { ...m, role } : m
+      )
+    );
+    setShowChangeRoleModel(false);
+
+    // Refresh members from server to ensure synced data
+    await fetchMembers();
+  };
 
   // Redirect if no projectId
   useEffect(() => {
@@ -434,47 +438,82 @@ const handleRoleUpdate = async ({ projectId, memberEmail, role }) => {
   };
 
   useEffect(() => {
-    if (activeTab === 'review_project' && projectId) {
-      fetchFinalizedTasks();
+    if (activeTab === 'review_project' && projectId) {  // Keep id as 'review_project' for simplicity
+      const fetchCompletedTasks = async () => {
+        setLoadingTasks(true);
+        setError('');
+        try {
+          const token = localStorage.getItem('access_token');
+          if (!token) {
+            navigate('/');
+            return;
+          }
+
+          const API_BASE_URL = window.location.hostname === 'localhost'
+            ? 'http://127.0.0.1:8000'
+            : 'https://pcp-backend-f4a2.onrender.com';
+
+          const response = await axios.get(`${API_BASE_URL}/api/getcompletedtasks/?project_id=${projectId}`, {
+            headers: { Authorization: `Bearer ${token}` },
+          });
+
+          const allCompletedTasks = response.data.tasks || [];
+          const finalTaskData = allCompletedTasks.find(task => task.task_name === 'Final Submission');
+          setFinalTask(finalTaskData || null);
+          setTasks(allCompletedTasks);
+
+          if (finalTaskData) {
+            await fetchDocuments(finalTaskData.task_id);
+            setFinalDocuments(documentsByTask[finalTaskData.task_id] || []);
+          }
+        } catch (err) {
+          console.error('Error fetching completed tasks:', err);
+          // ... existing error handling
+        } finally {
+          setLoadingTasks(false);
+        }
+      };
+
+      fetchCompletedTasks();
     }
-  }, [activeTab, projectId]);
+  }, [activeTab, projectId, navigate]);
 
-const handleMemberDelete = async (email) => {
-  const memberToDelete = members.find(m => m.email === email);
-  if (!memberToDelete) return;
+  const handleMemberDelete = async (email) => {
+    const memberToDelete = members.find(m => m.email === email);
+    if (!memberToDelete) return;
 
-  const supervisors = members.filter(m => m.role === 'Supervisor').length;
-  const groupLeaders = members.filter(m => m.role === 'Group Leader').length;
+    const supervisors = members.filter(m => m.role === 'Supervisor').length;
+    const groupLeaders = members.filter(m => m.role === 'Group Leader').length;
 
-  const newSup = supervisors - (memberToDelete.role === 'Supervisor' ? 1 : 0);
-  const newGl = groupLeaders - (memberToDelete.role === 'Group Leader' ? 1 : 0);
+    const newSup = supervisors - (memberToDelete.role === 'Supervisor' ? 1 : 0);
+    const newGl = groupLeaders - (memberToDelete.role === 'Group Leader' ? 1 : 0);
 
-  if (newSup < 1 || newGl < 1) {
-    setError('Cannot remove member: Project must have at least one Supervisor and one Group Leader');
-    setTimeout(() => setError(''), 3000);
-    return;
-  }
+    if (newSup < 1 || newGl < 1) {
+      setError('Cannot remove member: Project must have at least one Supervisor and one Group Leader');
+      setTimeout(() => setError(''), 3000);
+      return;
+    }
 
-  try {
-    const token = localStorage.getItem('access_token');
-    const API_BASE_URL = window.location.hostname === 'localhost' ? 'http://127.0.0.1:8000' : 'https://pcp-backend-f4a2.onrender.com';
+    try {
+      const token = localStorage.getItem('access_token');
+      const API_BASE_URL = window.location.hostname === 'localhost' ? 'http://127.0.0.1:8000' : 'https://pcp-backend-f4a2.onrender.com';
 
-    await axios.post(`${API_BASE_URL}/api/deleteprojectmember/`, {
-      project_id: projectId,
-      email: email
-    }, {
-      headers: { Authorization: `Bearer ${token}` }
-    });
+      await axios.post(`${API_BASE_URL}/api/deleteprojectmember/`, {
+        project_id: projectId,
+        email: email
+      }, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
 
-    setMembers(prev => prev.filter(m => m.email !== email));
-    setError('Member removed successfully');
-    setTimeout(() => setError(''), 3000);
-  } catch (err) {
-    console.error('Error deleting member:', err);
-    setError(err.response?.data?.error || 'Failed to remove member');
-    setTimeout(() => setError(''), 3000);
-  }
-};
+      setMembers(prev => prev.filter(m => m.email !== email));
+      setError('Member removed successfully');
+      setTimeout(() => setError(''), 3000);
+    } catch (err) {
+      console.error('Error deleting member:', err);
+      setError(err.response?.data?.error || 'Failed to remove member');
+      setTimeout(() => setError(''), 3000);
+    }
+  };
 
   // Handle task deletion
   const handleDelete = async (taskId) => {
@@ -591,44 +630,44 @@ const handleMemberDelete = async (email) => {
       fetchMembers();
     }
   }, [activeTab, projectId, navigate]);
-  
+
   const fetchMembers = async () => {
     setLoadingMembers(true);
-       setError('');
-        try {
-          const token = localStorage.getItem('access_token');
-          if (!token) {
-            navigate('/');
-            return;
-          }
+    setError('');
+    try {
+      const token = localStorage.getItem('access_token');
+      if (!token) {
+        navigate('/');
+        return;
+      }
 
-          const API_BASE_URL = window.location.hostname === 'localhost'
-            ? 'http://127.0.0.1:8000'
-            : 'https://pcp-backend-f4a2.onrender.com';
+      const API_BASE_URL = window.location.hostname === 'localhost'
+        ? 'http://127.0.0.1:8000'
+        : 'https://pcp-backend-f4a2.onrender.com';
 
-          const response = await axios.post(
-            `${API_BASE_URL}/api/getmembers/`,
-            { projectId: projectId },
-            { headers: { Authorization: `Bearer ${token}` } }
-          );
+      const response = await axios.post(
+        `${API_BASE_URL}/api/getmembers/`,
+        { projectId: projectId },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
 
-          setMembers(response.data.members || []);
-        } catch (err) {
-          console.error('Error fetching members:', err);
-          if (err.response?.status === 400) {
-            setError('Project ID is required');
-            setTimeout(() => setError(''), 3000);
-          } else if (err.response?.status === 401) {
-            localStorage.removeItem('access_token');
-            navigate('/');
-          } else {
-            setError('Failed to fetch members');
-            setTimeout(() => setError(''), 3000);
-          }
-        } finally {
-          setLoadingMembers(false);
-        }
-      };
+      setMembers(response.data.members || []);
+    } catch (err) {
+      console.error('Error fetching members:', err);
+      if (err.response?.status === 400) {
+        setError('Project ID is required');
+        setTimeout(() => setError(''), 3000);
+      } else if (err.response?.status === 401) {
+        localStorage.removeItem('access_token');
+        navigate('/');
+      } else {
+        setError('Failed to fetch members');
+        setTimeout(() => setError(''), 3000);
+      }
+    } finally {
+      setLoadingMembers(false);
+    }
+  };
   const tabs = [
     {
       id: 'project-description',
@@ -736,7 +775,7 @@ const handleMemberDelete = async (email) => {
                           Due: {task.task_due_date} | Status: {task.task_status} | Priority: {task.task_priority}
                         </p>
                         {task.task_status !== 'Finalized' && (
-                          <button className={styles.deleteButton} onClick={() => handleDelete(task.task_id)}>
+                          <button className={styles.deleteButton} onClick={() => handleDelete(task.task_id)} disabled={isProjectGraded}>
                             Delete Task
                           </button>
                         )}
@@ -793,108 +832,50 @@ const handleMemberDelete = async (email) => {
     },
     {
       id: 'review_project',
-      label: 'Finalized Project',
+      label: 'Finalized Project',  // Changed label
       content: (
         <div className={styles.tabContent}>
-          <h2 className={styles.tabHeading}>Finalized Tasks</h2>
-          {error && (
-            <div className={styles.errorMessage}>
-              {error}
-            </div>
-          )}
+          <h2 className={styles.tabHeading}>Finalized Project</h2>
+          {error && <div className={styles.errorMessage}>{error}</div>}
           {loadingTasks ? (
-            <div className={styles.loadingMessage}>
-              Loading final project...
-            </div>
-          ) : tasks.length === 0 ? (
-            <div className={styles.noDataMessage}>
-              Nothing to review yet.
-            </div>
+            <div className={styles.loadingMessage}>Loading finalized project...</div>
+          ) : !finalTask ? (
+            <div className={styles.noDataMessage}>No Final Submission submitted yet.</div>
           ) : (
-            <div className={styles.taskContainer}>
-              <div className={styles.taskList}>
-                {tasks.map((task) => (
-                  <div
-                    key={task.task_id}
-                    className={styles.taskItem}
-                    onMouseEnter={(e) => {
-                      e.currentTarget.classList.add(styles.taskItemHover);
-                    }}
-                    onMouseLeave={(e) => {
-                      e.currentTarget.classList.remove(styles.taskItemHover);
-                    }}
-                  >
-                    <div className={styles.taskHeader}>
-                      <div className={styles.taskInfo}>
-                        <p className={styles.taskName}>{task.task_name}</p>
-                        <p className={styles.taskDescription}>{task.task_description}</p>
-                        <p className={styles.taskMeta}>
-                          Due: {task.task_due_date} | Status: {task.task_status} | Priority: {task.task_priority}
-                        </p>
-                        <p className={styles.submittedBy}>
-                          Submitted by:{' '}
-                          {task.assigned_members && task.assigned_members.length > 0 ? (
-                            task.assigned_members.map((member, index) => (
-                              <span key={index}>
-                                {member.fname} {member.lname}
-                                {index < task.assigned_members.length - 1 ? ', ' : ''}
-                              </span>
-                            ))
-                          ) : (
-                            'N/A'
-                          )}
-                        </p>
-                      </div>
-                      <div
-                        className={`${styles.dropdownToggle} ${expandedTasks[task.task_id] ? styles.dropdownToggleActive : ''}`}
-                        onClick={() => toggleTaskDropdown(task.task_id)}
-                      >
-                        ▼
-                      </div>
-                    </div>
-                    {expandedTasks[task.task_id] && (
-                      <div className={styles.taskDocuments}>
-                        <h4 className={styles.documentsHeading}>Documents</h4>
-                        {loadingDocuments[task.task_id] ? (
-                          <p className={styles.documentsLoading}>Loading documents...</p>
-                        ) : documentsByTask[task.task_id]?.length > 0 ? (
-                          <ul className={styles.documentList}>
-                            {documentsByTask[task.task_id].map((doc) => (
-                              <li
-                                key={doc.document_id}
-                                className={styles.documentItem}
-                                onMouseEnter={(e) => {
-                                  e.currentTarget.classList.add(styles.documentItemHover);
-                                }}
-                                onMouseLeave={(e) => {
-                                  e.currentTarget.classList.remove(styles.documentItemHover);
-                                }}
-                              >
-                                <span className={styles.documentTitle}>
-                                  {doc.document_title} ({doc.doc_type})
-                                </span>
-                                <button
-                                  onClick={() => handleDownload(doc.document_id, doc.document_title)}
-                                  className={styles.downloadButton}
-                                >
-                                  Download
-                                </button>
-                              </li>
-                            ))}
-                          </ul>
-                        ) : (
-                          <p className={styles.noDocuments}>No documents available.</p>
-                        )}
-                      </div>
-                    )}
-                  </div>
-                ))}
+            <div>
+              <div className={styles.taskInfo}>
+                <h3>{finalTask.task_name}</h3>
+                <p><strong>Description:</strong> {finalTask.task_description}</p>
+                <p><strong>Due Date:</strong> {finalTask.task_due_date}</p>
+                <p><strong>Status:</strong> {finalTask.task_status}</p>
+              </div>
+              {/* Documents List (reuse existing logic) */}
+              <div className={styles.documentsSection}>
+                <h4>Final Submission Documents</h4>
+                {finalDocuments.length === 0 ? (
+                  <p className={styles.noDocuments}>No documents available.</p>
+                ) : (
+                  <ul className={styles.documentList}>
+                    {finalDocuments.map((doc) => (
+                      <li key={doc.document_id} className={styles.documentItem}>
+                        <span className={styles.documentTitle}>{doc.document_title}</span>
+                        <button
+                          onClick={() => handleDownload(doc.document_id, doc.document_title)}
+                          className={styles.downloadButton}
+                        >
+                          Download
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                )}
               </div>
               <button
                 className={styles.addTaskButton}
                 onClick={() => setShowGradeModel(true)}
+                disabled={isProjectGraded}
               >
-                Provide Grade and Feedback
+                {isProjectGraded ? 'Project Graded' : 'Provide Grade and Feedback'}
               </button>
             </div>
           )}
@@ -1061,7 +1042,7 @@ const handleMemberDelete = async (email) => {
                       <p className={styles.memberEmail}>{member.email}</p>
                       <p className={styles.memberRole}>Role: {member.role}</p>
                     </div>
-                     {!isProjectGraded && (
+                    {!isProjectGraded && (
                       <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginTop: '10px' }}>
                         <button
                           className={styles.deleteMemberButton}
@@ -1071,7 +1052,7 @@ const handleMemberDelete = async (email) => {
                         </button>
                         <button
                           className={styles.deleteMemberButton}
-                          onClick={() => {setSelectedMember(member);setShowChangeRoleModel(true); }}
+                          onClick={() => { setSelectedMember(member); setShowChangeRoleModel(true); }}
                         >
                           Change Role
                         </button>
@@ -1085,7 +1066,7 @@ const handleMemberDelete = async (email) => {
           {!isProjectGraded && (
             <button
               className={styles.addMemberButton}
-              onClick={() => navigate('/addprojectmembers', { state: { projectId: projectId } })}
+              onClick={() => setShowAddMemberModal(true)}
             >
               Add Members
             </button>
@@ -1133,6 +1114,11 @@ const handleMemberDelete = async (email) => {
         </div>
 
       </div>
+      <AddMemberModal
+        isOpen={showAddMemberModal}
+        onClose={() => setShowAddMemberModal(false)}
+        projectId={projectId}
+      />
       <GradeFeedbackModel
         isOpen={showGradeModel}
         onClose={() => setShowGradeModel(false)}
