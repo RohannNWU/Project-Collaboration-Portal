@@ -39,6 +39,8 @@ def get_user_from_token(request):
     except (InvalidToken, User.DoesNotExist) as e:
         logger.warning(f"Token validation failed: {e}")
         return None
+    
+#View that handles user login
 class LoginView(APIView):
     def post(self, request):
         email = request.data.get('email')
@@ -1158,21 +1160,33 @@ class DownloadDocumentView(APIView):
 
 #View that removes user from project
 class DeleteProjectUserView(APIView):
-    def delete(self, request):
+    def post(self, request):
+        project_id = request.data.get('project_id')
+        email = request.data.get('email')
+        
         try:
-            requested_project_id = request.data.get('project_id')
-            requested_email = request.data.get('email')
-
-            project = Project.objects.get(project_id=requested_project_id)
-            user = User.objects.get(email=requested_email)
-            UserProject.objects.filter(project_id=project, email=user).delete()
-            return Response({'message': 'User removed from project successfully'}, status=status.HTTP_200_OK)
-        except Project.DoesNotExist:
-            return Response({'error': 'Project not found'}, status=status.HTTP_404_NOT_FOUND)
-        except User.DoesNotExist:
-            return Response({'error': 'User not found'}, status=status.HTTP_404_NOT_FOUND)
+            user_project = UserProject.objects.get(project_id=project_id, email=email)
+            
+            # Count current Supervisors and Group Leaders
+            supervisors = UserProject.objects.filter(project_id=project_id, role='Supervisor').count()
+            group_leaders = UserProject.objects.filter(project_id=project_id, role='Group Leader').count()
+            
+            role = user_project.role
+            # Simulate counts after deletion
+            new_sup = supervisors - (1 if role == 'Supervisor' else 0)
+            new_gl = group_leaders - (1 if role == 'Group Leader' else 0)
+            
+            if new_sup < 1 or new_gl < 1:
+                return Response({
+                    'error': 'Cannot remove member: Project must have at least one Supervisor and one Group Leader'
+                }, status=status.HTTP_403_FORBIDDEN)
+            
+            user_project.delete()
+            return Response({'message': 'Project user deleted successfully'}, status=status.HTTP_200_OK)
+        except UserProject.DoesNotExist:
+            return Response({'error': 'User not found in project'}, status=status.HTTP_404_NOT_FOUND)
         except Exception as e:
-            return Response({'error': f'Failed to remove user: {str(e)}'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+            return Response({'error': f'Failed to delete member: {str(e)}'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 #View that deletes documents
 class DeleteDocumentView(APIView):
@@ -1648,6 +1662,7 @@ class DeleteNotificationView(APIView):
             logger.error(f"Error deleting notification: {str(e)}")
             return Response({'error': f'Failed to delete notification: {str(e)}'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
+#View that marks a task as completed
 class CompleteTaskView(APIView):
     def post(self, request):
         user = get_user_from_token(request)
@@ -1680,7 +1695,8 @@ class CompleteTaskView(APIView):
         except Exception as e:
             logger.error(f"Error completing task: {str(e)}")
             return Response({'error': f'Failed to complete task: {str(e)}'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-        
+
+#View that fetches task details       
 class GetTaskMembersView(APIView):
     def post(self, request):
         user = get_user_from_token(request)
@@ -1695,6 +1711,7 @@ class GetTaskMembersView(APIView):
         task_members_list = [{'first_name': member.first_name, 'last_name': member.last_name, 'email': member.email} for member in task_members]
         return Response({'task_members': task_members_list}, status=status.HTTP_200_OK)
 
+#View that gets task details
 class GetTaskDetailsView(APIView):
     def post(self, request):
         user = get_user_from_token(request)
@@ -1711,6 +1728,7 @@ class GetTaskDetailsView(APIView):
         print(task_details)
         return Response({'task_details': task_details}, status=status.HTTP_200_OK)
 
+#View that removes a member from a task
 class RemoveTaskMemberView(APIView):
     def post(self, request):
         task_id = request.data.get('taskId')
@@ -1720,6 +1738,7 @@ class RemoveTaskMemberView(APIView):
         job.delete()
         return Response({'message': 'Task member removed successfully'}, status=status.HTTP_200_OK)
 
+#View that adds a member to a task
 class AddTaskMemberView(APIView):
     def post(self, request):
         task_id = request.data.get('taskId')
@@ -1760,9 +1779,68 @@ class ResetPasswordView(APIView):
         except Exception as e:
             logger.error(f"Error resetting password: {str(e)}")
             return Response({'error': f'Failed to reset password: {str(e)}'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-          
+
+
+#View that deletes a project          
 class DeleteProjectView(APIView):
     def delete(self, request, project_id):
         project = Project.objects.get(project_id=project_id)
         project.delete();
         return Response({'message': "Project deleted successfully"}, status=status.HTTP_200_OK)
+
+#View that changes role of a user in a project
+class ChangeRoleView(APIView):
+    def post(self, request):
+        # Authenticate the requester
+        requester = get_user_from_token(request)
+        if not requester:
+            logger.error("Authentication failed: No valid user token")
+            return Response({'error': 'Authentication required'}, status=status.HTTP_401_UNAUTHORIZED)
+
+        # Extract data from request body
+        member_email = request.data.get('email')
+        project_id = request.data.get('project_id')
+        new_role = request.data.get('new_role')
+
+        if not all([member_email, project_id, new_role]):
+            return Response({'error': 'email, project_id, and new_role are required'}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            # Fetch the project
+            project = Project.objects.get(project_id=project_id)
+
+            # Fetch the member's UserProject entry
+            try:
+                member_project = UserProject.objects.get(email__email=member_email, project_id=project)
+            except UserProject.DoesNotExist:
+                logger.error(f"Member {member_email} not found in project {project_id}")
+                return Response({'error': 'Member not found in this project'}, status=status.HTTP_404_NOT_FOUND)
+
+            # Count current Supervisors and Group Leaders
+            supervisors = UserProject.objects.filter(project_id=project_id, role='Supervisor').count()
+            group_leaders = UserProject.objects.filter(project_id=project_id, role='Group Leader').count()
+            current_role = member_project.role
+
+            # Simulate counts after change
+            new_sup = supervisors + (1 if new_role == 'Supervisor' else 0) - (1 if current_role == 'Supervisor' else 0)
+            new_gl = group_leaders + (1 if new_role == 'Group Leader' else 0) - (1 if current_role == 'Group Leader' else 0)
+
+            if new_sup < 1 or new_gl < 1:
+                return Response({
+                    'error': 'Cannot change role: Project must have at least one Supervisor and one Group Leader'
+                }, status=status.HTTP_403_FORBIDDEN)
+
+            # Update the role
+            member_project.role = new_role
+            member_project.save()
+
+            logger.info(f"Role changed for {member_email} in project {project_id} to {new_role} by {requester.email}")
+            return Response({'message': 'Role changed successfully'}, status=status.HTTP_200_OK)
+
+        except Project.DoesNotExist:
+            logger.error(f"Project not found: project_id={project_id}")
+            return Response({'error': 'Project not found'}, status=status.HTTP_404_NOT_FOUND)
+
+        except Exception as e:
+            logger.error(f"Error changing role: {str(e)}")
+            return Response({'error': f'Failed to change role: {str(e)}'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)

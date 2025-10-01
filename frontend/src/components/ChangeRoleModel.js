@@ -1,18 +1,21 @@
+// Updated ChangeRoleModel.js
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import PropTypes from 'prop-types';
 import styles from './ChangeRoleModel.module.css';
 
 const ChangeRoleModel = ({ isOpen, onClose, projectId, memberEmail, onUpdate, initialRole = '' }) => {
-  const [role, setRole] = useState(initialRole);
+  const [role, setRole] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const allRoles = ['Supervisor', 'Group Leader', 'Student'];
 
   useEffect(() => {
-    if (isOpen && !role) {
-      setRole(initialRole);
+    if (isOpen) {
+      setRole('');
+      setError('');
     }
-  }, [isOpen, initialRole]);
+  }, [isOpen]);
 
   const handleUpdateRole = async () => {
     try {
@@ -66,36 +69,37 @@ const ChangeRoleModel = ({ isOpen, onClose, projectId, memberEmail, onUpdate, in
   if (!isOpen) return null;
 
   return (
-    <div className={styles.ChangeRoleModel__modelOverlay} onClick={onClose}>
-      <div className={styles.ChangeRoleModel__modelContent} onClick={(e) => e.stopPropagation()}>
-        <div className={styles.ChangeRoleModel__modelHeader}>
-          <h2 className={styles.ChangeRoleModel__modelTitle}>Change Role</h2>
-          <button onClick={onClose} className={styles.ChangeRoleModel__closeButton} aria-label="Close modal">
+    <div className={styles.modelOverlay} onClick={onClose}>
+      <div className={styles.modelContent} onClick={(e) => e.stopPropagation()}>
+        <div className={styles.modelHeader}>
+          <h2 className={styles.modelTitle}>Change Role</h2>
+          <button onClick={onClose} className={styles.closeButton} aria-label="Close modal">
             &times;
           </button>
         </div>
-        {error && <div className={styles.ChangeRoleModel__errorMessage}>{error}</div>}
+        {error && <div className={styles.errorMessage}>{error}</div>}
         
-        <div className={styles.ChangeRoleModel__modelBody}>
-          <div className={styles.ChangeRoleModel__formGroup}>
-            <label className={styles.ChangeRoleModel__label}>Select New Role</label>
+        <div className={styles.modelBody}>
+          <div className={styles.formGroup}>
+            <label className={styles.label}>Select New Role</label>
             <select
               value={role}
               onChange={(e) => setRole(e.target.value)}
-              className={styles.ChangeRoleModel__input}
+              className={styles.input}
             >
               <option value="">-- Select Role --</option>
-              <option value="Student">Student</option>
-              <option value="Supervisor">Supervisor</option>
+              {allRoles.filter(r => r !== initialRole).map(r => (
+                <option key={r} value={r}>{r}</option>
+              ))}
             </select>
           </div>
         </div>
 
-        <div className={styles.ChangeRoleModel__modelFooter}>
+        <div className={styles.modelFooter}>
           <button
             type="button"
             onClick={onClose}
-            className={styles.ChangeRoleModel__cancelButton}
+            className={styles.cancelButton}
             disabled={loading}
           >
             Cancel
@@ -103,7 +107,7 @@ const ChangeRoleModel = ({ isOpen, onClose, projectId, memberEmail, onUpdate, in
           <button
             type="button"
             onClick={handleUpdateRole}
-            className={styles.ChangeRoleModel__submitButton}
+            className={styles.submitButton}
             disabled={loading || !role}
           >
             {loading ? 'Updating...' : 'Update Role'}
