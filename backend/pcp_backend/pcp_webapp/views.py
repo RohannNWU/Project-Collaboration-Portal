@@ -1733,7 +1733,7 @@ class CompleteTaskView(APIView):
                 logger.error(f"User {user.email} is not assigned to task {task_id}")
                 return Response({'error': 'You are not assigned to this task'}, status=status.HTTP_403_FORBIDDEN)
 
-            task.task_status = 'Completed'
+            task.task_status = 'Finalized'
             task.save()
             
             logger.info(f"Task {task_id} marked as completed by {user.email}")
