@@ -391,29 +391,45 @@ class CalendarView(APIView):
 
 #View that returns tasks for a user
 class GetUserTasksView(APIView):
-    def post(self, request):
-            user_email = request.data.get('email')
+    def get(self, request):
+            auth_header = request.headers.get('Authorization')
+            if not auth_header or not auth_header.startswith('Bearer '):
+                return Response({'error': 'Authentication required'}, status=status.HTTP_401_UNAUTHORIZED)
+            
+            token = auth_header.split(' ')[1]
             try:
-                user = User.objects.get(email=user_email)
-            except User.DoesNotExist:
-                return Response({'error': 'User not found'}, status=status.HTTP_404_NOT_FOUND)
+                # Validate token
+                payload = UntypedToken(token).payload
+                user_email = payload.get('user_email')
+                try:
+                    user = User.objects.get(email=user_email)
+                except User.DoesNotExist:
+                    return Response({'error': 'User not found'}, status=status.HTTP_404_NOT_FOUND)
 
-            # Fetch tasks assigned to the user
-            user_tasks = User_Task.objects.filter(email=user).select_related('task_id')
-            tasks_list = [
-                {
-                    'task_id': user_task.task_id.task_id,
-                    'task_name': user_task.task_id.task_name,
-                    'task_description': user_task.task_id.task_description,
-                    'task_due_date': user_task.task_id.task_due_date.strftime('%d/%m/%Y'),
-                    'task_status': user_task.task_id.task_status,
-                    'task_priority': user_task.task_id.task_priority,
-                    'project_id': user_task.task_id.project_id.project_id,
-                    'project_name': user_task.task_id.project_id.project_name
-                }
-                for user_task in user_tasks
-            ]
-            return Response({'tasks': tasks_list}, status=status.HTTP_200_OK)
+
+
+                # Fetch tasks assigned to the user
+                user_tasks = User_Task.objects.filter(email=user).select_related('task_id')
+                tasks_list = [
+                    {
+                        'task_id': user_task.task_id.task_id,
+                        'task_name': user_task.task_id.task_name,
+                        'task_description': user_task.task_id.task_description,
+                        'task_due_date': user_task.task_id.task_due_date.strftime('%d/%m/%Y'),
+                        'task_status': user_task.task_id.task_status,
+                        'task_priority': user_task.task_id.task_priority,
+                        'project_id': user_task.task_id.project_id.project_id,
+                        'project_name': user_task.task_id.project_id.project_name
+                    }
+                    for user_task in user_tasks
+                ]
+                return Response({'tasks': tasks_list}, status=status.HTTP_200_OK)
+            except InvalidToken:
+                return Response({'error': 'Invalid token'}, status=status.HTTP_401_UNAUTHORIZED)
+            except User.DoesNotExist:
+                return Response({'error': 'User not found'}, status=status.HTTP_401_UNAUTHORIZED)
+            except Exception as e:
+                return Response({'error': f'Database error: {str(e)}'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 #View that updates tasks
 class UpdateTaskView(APIView):

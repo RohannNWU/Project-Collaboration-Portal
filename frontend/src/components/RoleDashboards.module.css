@@ -158,7 +158,7 @@
 .taskItem {
   background-color: white;
   border-radius: 0.25rem;
-  border: 1px solid #d1d5db;
+  border: 2px solid black;
   overflow: hidden;
   transition: all 0.2s ease;
 }

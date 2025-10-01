@@ -806,7 +806,7 @@ const SupervisorDashboard = () => {
                                 }}
                               >
                                 <span className={styles.documentTitle}>
-                                  {doc.document_title} ({doc.doc_type})
+                                  {doc.document_title}
                                 </span>
                                 <button
                                   onClick={() => handleDownload(doc.document_id, doc.document_title)}
