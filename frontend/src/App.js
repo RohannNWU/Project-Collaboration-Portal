@@ -5,7 +5,6 @@ import Login from './components/Login';
 import Dashboard from './components/Dashboard';
 import Signup from './components/Signup';
 import StudentDashboard from './components/StudentDashboard';
-import AddProjectMembers from './components/AddMemberModal';
 import SupervisorDashboard from './components/SupervisorDashboard';
 import GroupLeaderDashboard from './components/GroupLeaderDashboard';
 
@@ -36,7 +35,6 @@ function App() {
               <Route path="/studentdashboard" element={<StudentDashboard />} />
               <Route path="/supervisordashboard" element={<SupervisorDashboard />} />
               <Route path="/groupleaderdashboard" element={<GroupLeaderDashboard />} />
-              <Route path="/addprojectmembers" element={<AddProjectMembers />} />
             </Route>
             
             {/* Redirect any unknown paths to home */}
