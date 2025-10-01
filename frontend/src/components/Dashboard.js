@@ -16,7 +16,6 @@ const Dashboard = () => {
   const [calendarEvents, setCalendarEvents] = useState([]);
   const [currentDate, setCurrentDate] = useState(new Date());
   const [selectedDate, setSelectedDate] = useState(null);
-  const [currentTime, setCurrentTime] = useState('');
   const [error, setError] = useState('');
   const [calendarKey, setCalendarKey] = useState(0);
   const navigate = useNavigate();
@@ -49,7 +48,6 @@ const Dashboard = () => {
       });
 
       setCalendarEvents(calendarResponse.data.events || []);
-      setCurrentTime(calendarResponse.data.current_time || 'N/A');
 
       setError('');
     } catch (err) {
@@ -196,6 +194,7 @@ const Dashboard = () => {
                 <th>Due Date</th>
                 <th>Action</th>
                 <th>Role</th>
+                <th>Project Grade</th>
               </tr>
             </thead>
             <tbody>
@@ -218,6 +217,9 @@ const Dashboard = () => {
                   </td>
                   <td>
                     {project.role}
+                  </td>
+                  <td>
+                    {project.grade || '-'}
                   </td>
                 </tr>
               ))}

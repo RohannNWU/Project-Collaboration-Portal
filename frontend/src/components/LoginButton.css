@@ -1,0 +1,15 @@
+.loginButton {
+  width: 100%;
+  padding: 10px;
+  background: #228693; /* Solid color by default */
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  position: relative;
+  transition: background 0.2s ease;
+}
+
+.loginButton:hover {
+  box-shadow: 0 2px 8px rgba(34, 134, 147, 0.3);
+}

@@ -119,9 +119,9 @@ const EditProject = () => {
         <label className={styles.formLabel}>Task Status:</label>
         <select name="taskStatus" className={styles.formSelect}>
           <option>-- Select Status --</option>
-          <option value="Assigned">Assigned</option>
           <option value="In Progress">In Progress</option>
           <option value="Completed">Completed</option>
+          <option value="Finalized">Finalized</option>
         </select>
         <label className={styles.formLabel}>Task Priority:</label>
         <select name="taskPriority" className={styles.formSelect}>

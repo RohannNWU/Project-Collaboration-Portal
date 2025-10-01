@@ -92,7 +92,7 @@ class DashboardView(APIView):
                 project_tasks = [t for t in tasks if t['project_id'] == project_id]
                 total_tasks = len(project_tasks)
                 if total_tasks > 0:
-                    completed_tasks = sum(1 for t in project_tasks if t['task_status'] == 'Completed')
+                    completed_tasks = sum(1 for t in project_tasks if t['task_status'] == 'Finalized')
                     progress_by_project[project_id] = int((completed_tasks / total_tasks) * 100)
                 else:
                     progress_by_project[project_id] = 0
@@ -373,13 +373,15 @@ class UpdateTaskView(APIView):
     def post(self, request):
         try:
             task_id = request.data.get('task_id')
-            task_due_date = request.data.get('task_due_date')
-            task_status = request.data.get('task_status')
-            task_priority = request.data.get('task_priority')
+            task_name = request.data.get('task_name')
+            task_description = request.data.get('task_description')
+            task_due_date = request.data.get('due_date')
+            print(task_id)
+
             task = Task.objects.get(task_id=task_id)
+            task.task_name = task_name
+            task.task_description = task_description
             task.task_due_date = task_due_date
-            task.task_status = task_status
-            task.task_priority = task_priority
             task.save()
             return Response({'message': 'Task status updated successfully'}, status=status.HTTP_200_OK)
         except Task.DoesNotExist:
@@ -822,6 +824,34 @@ class DeleteTaskView(APIView):
         except Task.DoesNotExist:
             return Response({'error': 'Task not found'}, status=status.HTTP_404_NOT_FOUND)
 
+class ReviewTask(APIView):
+    def post(self, request, task_id):
+        try:
+            task = Task.objects.get(task_id=task_id)
+            task_status = request.data.get('status')
+            print("Status: ", task_status)
+            
+            # Ensure task_status is not None, use a default or raise an error
+            if task_status is None:
+                return Response(
+                    {'error': 'Status is required'},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+            
+            task.task_status = task_status
+            task.save()
+            return Response({'message': 'Task reviewed'}, status=status.HTTP_200_OK)
+        except Task.DoesNotExist:
+            return Response(
+                {'error': 'Task not found'},
+                status=status.HTTP_404_NOT_FOUND
+            )
+        except Exception as e:
+            return Response(
+                {'error': str(e)},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+
 #View that adds user to project
 class AddProjectUserView(APIView):
     def post(self, request):
@@ -1222,6 +1252,69 @@ class GetCompletedTasksView(APIView):
             return Response({'error': 'Project not found'}, status=status.HTTP_404_NOT_FOUND)
         except Exception as e:
             return Response({'error': f'Failed to fetch tasks: {str(e)}'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+class GetFinalizedTasksView(APIView):
+    def get(self, request, requested_project_id):
+        try:
+            user = get_user_from_token(request)
+            if not user:
+                logger.error("Authentication failed: No valid user token")
+                return Response({'error': 'Authentication required'}, status=status.HTTP_401_UNAUTHORIZED)
+            
+            # Fetch the project
+            project = Project.objects.get(project_id=requested_project_id)
+            
+            # Get all tasks for the project
+            all_tasks = Task.objects.filter(project_id=project)
+            # Get only finalized tasks
+            finalized_tasks = all_tasks.filter(task_status='Finalized')
+            
+            # Check if all tasks are finalized
+            if all_tasks.count() != finalized_tasks.count():
+                return Response(
+                    {'error': 'Not all tasks are finalized'},
+                )
+            
+            # If all tasks are finalized, proceed with the original logic
+            task_members = User_Task.objects.filter(task_id__in=finalized_tasks).select_related('email', 'task_id')
+            task_members_dict = {}
+            for task_member in task_members:
+                task_id = task_member.task_id.task_id
+                try:
+                    user = User.objects.get(email=task_member.email.email)
+                    if task_id not in task_members_dict:
+                        task_members_dict[task_id] = []
+                    task_members_dict[task_id].append({
+                        'fname': user.first_name,
+                        'lname': user.last_name
+                    })
+                except User.DoesNotExist:
+                    if task_id not in task_members_dict:
+                        task_members_dict[task_id] = []
+                    task_members_dict[task_id].append({'fname': 'Unknown', 'lname': 'Unknown'})
+            
+            tasks_list = [
+                {
+                    'task_id': task.task_id,
+                    'task_name': task.task_name,
+                    'task_description': task.task_description,
+                    'task_status': task.task_status,
+                    'task_due_date': task.task_due_date.strftime('%d/%m/%Y') if task.task_due_date else 'No due date',
+                    'task_priority': task.task_priority,
+                    'assigned_members': task_members_dict.get(task.task_id, [])
+                }
+                for task in finalized_tasks
+            ]
+            
+            return Response(
+                {'tasks': tasks_list, 'members': task_members_dict},
+                status=status.HTTP_200_OK
+            )
+        
+        except Project.DoesNotExist:
+            return Response({'error': 'Project not found'}, status=status.HTTP_404_NOT_FOUND)
+        except Exception as e:
+            return Response({'error': f'Failed to fetch tasks: {str(e)}'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
         
 # API endpoint to fetch chat history for a specific project.
 # Requires authentication via JWT token.
@@ -1553,4 +1646,87 @@ class DeleteNotificationView(APIView):
         
         except Exception as e:
             logger.error(f"Error deleting notification: {str(e)}")
-            return Response({'error': f'Failed to delete notification: {str(e)}'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)          
+            return Response({'error': f'Failed to delete notification: {str(e)}'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+class CompleteTaskView(APIView):
+    def post(self, request):
+        user = get_user_from_token(request)
+        if not user:
+            logger.error("Authentication failed: No valid user token")
+            return Response({'error': 'Authentication required'}, status=status.HTTP_401_UNAUTHORIZED)
+
+        task_id = request.data.get('task_id')
+        if not task_id:
+            return Response({'error': 'task_id is required'}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            task = Task.objects.get(task_id=task_id)
+            
+            # Check if user is assigned to the task
+            if not User_Task.objects.filter(email=user, task_id=task).exists():
+                logger.error(f"User {user.email} is not assigned to task {task_id}")
+                return Response({'error': 'You are not assigned to this task'}, status=status.HTTP_403_FORBIDDEN)
+
+            task.task_status = 'Completed'
+            task.save()
+            
+            logger.info(f"Task {task_id} marked as completed by {user.email}")
+            return Response({'message': 'Task marked as completed successfully'}, status=status.HTTP_200_OK)
+        
+        except Task.DoesNotExist:
+            logger.error(f"Task not found: task_id={task_id}")
+            return Response({'error': 'Task not found'}, status=status.HTTP_404_NOT_FOUND)
+        
+        except Exception as e:
+            logger.error(f"Error completing task: {str(e)}")
+            return Response({'error': f'Failed to complete task: {str(e)}'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        
+class GetTaskMembersView(APIView):
+    def post(self, request):
+        user = get_user_from_token(request)
+        task_id = request.data.get('taskId')
+        if not user:
+            logger.error("Authentication failed: No valid user token")
+        
+        task = Task.objects.get(task_id=task_id)
+        task_members = User_Task.objects.filter(task_id=task).select_related('email')
+        email_list = [member.email.email for member in task_members]
+        task_members = User.objects.filter(email__in=email_list)
+        task_members_list = [{'first_name': member.first_name, 'last_name': member.last_name, 'email': member.email} for member in task_members]
+        return Response({'task_members': task_members_list}, status=status.HTTP_200_OK)
+
+class GetTaskDetailsView(APIView):
+    def post(self, request):
+        user = get_user_from_token(request)
+        task_id = request.data.get('taskId')
+        if not user:
+            logger.error("Authentication failed: No valid user token")
+
+        task = Task.objects.get(task_id=task_id)
+        task_details = {
+            'task_name': task.task_name,
+            'task_description': task.task_description,
+            'task_due_date': task.task_due_date
+        }
+        print(task_details)
+        return Response({'task_details': task_details}, status=status.HTTP_200_OK)
+
+class RemoveTaskMemberView(APIView):
+    def post(self, request):
+        task_id = request.data.get('taskId')
+        email = request.data.get('email')
+
+        job = User_Task.objects.get(task_id=task_id, email=email)
+        job.delete()
+        return Response({'message': 'Task member removed successfully'}, status=status.HTTP_200_OK)
+
+class AddTaskMemberView(APIView):
+    def post(self, request):
+        task_id = request.data.get('taskId')
+        email = request.data.get('email')
+        task = Task.objects.get(task_id=task_id)
+        user = User.objects.get(email=email)
+
+        job = User_Task.objects.create(task_id=task, email=user)
+        job.save()
+        return Response({'message': 'Task member added successfully'}, status=status.HTTP_200_OK)

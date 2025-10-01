@@ -53,6 +53,49 @@ const StudentDashboard = () => {
     }
   }, [chatMessages]);
 
+  // Fetch project data on component mount
+  useEffect(() => {
+    if (projectId) {
+      const fetchProjectData = async () => {
+        setLoadingProject(true);
+        setError('');
+        try {
+          const token = localStorage.getItem('access_token');
+          if (!token) {
+            navigate('/');
+            return;
+          }
+
+          const API_BASE_URL = window.location.hostname === 'localhost'
+            ? 'http://127.0.0.1:8000'
+            : 'https://pcp-backend-f4a2.onrender.com';
+
+          const response = await axios.get(`${API_BASE_URL}/api/getprojectdata/?project_id=${projectId}`, {
+            headers: { Authorization: `Bearer ${token}` },
+          });
+
+          setProjectData(response.data.project_data || {});
+        } catch (err) {
+          console.error('Error fetching project data:', err);
+          if (err.response?.status === 400) {
+            setError('Project ID is required');
+          } else if (err.response?.status === 404) {
+            setError('Project not found');
+          } else if (err.response?.status === 401) {
+            localStorage.removeItem('access_token');
+            navigate('/');
+          } else {
+            setError('Failed to fetch project data');
+          }
+        } finally {
+          setLoadingProject(false);
+        }
+      };
+
+      fetchProjectData();
+    }
+  }, [projectId, navigate]);
+
   // Fetch chat messages when Chat tab is clicked
   useEffect(() => {
     if (activeTab === 'chat' && projectId) {
@@ -178,93 +221,50 @@ const StudentDashboard = () => {
     }
   }, [projectId, navigate]);
 
-  // Fetch project data when Project Description tab is clicked
-  useEffect(() => {
-    if (activeTab === 'project-description' && projectId) {
-      const fetchProjectData = async () => {
-        setLoadingProject(true);
-        setError('');
-        try {
-          const token = localStorage.getItem('access_token');
-          if (!token) {
-            navigate('/');
-            return;
-          }
-
-          const API_BASE_URL = window.location.hostname === 'localhost'
-            ? 'http://127.0.0.1:8000'
-            : 'https://pcp-backend-f4a2.onrender.com';
-
-          const response = await axios.get(`${API_BASE_URL}/api/getprojectdata/?project_id=${projectId}`, {
-            headers: { Authorization: `Bearer ${token}` },
-          });
-
-          setProjectData(response.data.project_data || {});
-        } catch (err) {
-          console.error('Error fetching project data:', err);
-          if (err.response?.status === 400) {
-            setError('Project ID is required');
-          } else if (err.response?.status === 404) {
-            setError('Project not found');
-          } else if (err.response?.status === 401) {
-            localStorage.removeItem('access_token');
-            navigate('/');
-          } else {
-            setError('Failed to fetch project data');
-          }
-        } finally {
-          setLoadingProject(false);
-        }
-      };
-
-      fetchProjectData();
-    }
-  }, [activeTab, projectId, navigate]);
-
   // Fetch tasks when Tasks tab is clicked
   useEffect(() => {
     if (activeTab === 'tasks' && projectId) {
-      const fetchTasks = async () => {
-        setLoadingTasks(true);
-        setError('');
-        try {
-          const token = localStorage.getItem('access_token');
-          if (!token) {
-            navigate('/');
-            return;
-          }
-
-          const API_BASE_URL = window.location.hostname === 'localhost'
-            ? 'http://127.0.0.1:8000'
-            : 'https://pcp-backend-f4a2.onrender.com';
-
-          const response = await axios.get(`${API_BASE_URL}/api/getprojecttasks/?project_id=${projectId}`, {
-            headers: { Authorization: `Bearer ${token}` },
-          });
-
-          setTasks(response.data.tasks || []);
-
-          await fetchUserTaskAssignments();
-        } catch (err) {
-          console.error('Error fetching tasks:', err);
-          if (err.response?.status === 400) {
-            setError('Project ID is required');
-          } else if (err.response?.status === 404) {
-            setError('Project not found');
-          } else if (err.response?.status === 401) {
-            localStorage.removeItem('access_token');
-            navigate('/');
-          } else {
-            setError('Failed to fetch tasks');
-          }
-        } finally {
-          setLoadingTasks(false);
-        }
-      };
-
       fetchTasks();
     }
   }, [activeTab, projectId, navigate]);
+
+  const fetchTasks = async () => {
+    setLoadingTasks(true);
+    setError('');
+    try {
+      const token = localStorage.getItem('access_token');
+      if (!token) {
+        navigate('/');
+        return;
+      }
+
+      const API_BASE_URL = window.location.hostname === 'localhost'
+        ? 'http://127.0.0.1:8000'
+        : 'https://pcp-backend-f4a2.onrender.com';
+
+      const response = await axios.get(`${API_BASE_URL}/api/getprojecttasks/?project_id=${projectId}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      setTasks(response.data.tasks || []);
+
+      await fetchUserTaskAssignments();
+    } catch (err) {
+      console.error('Error fetching tasks:', err);
+      if (err.response?.status === 400) {
+        setError('Project ID is required');
+      } else if (err.response?.status === 404) {
+        setError('Project not found');
+      } else if (err.response?.status === 401) {
+        localStorage.removeItem('access_token');
+        navigate('/');
+      } else {
+        setError('Failed to fetch tasks');
+      }
+    } finally {
+      setLoadingTasks(false);
+    }
+  };
 
   // Fetch members when Members tab is clicked
   useEffect(() => {
@@ -308,6 +308,41 @@ const StudentDashboard = () => {
       fetchMembers();
     }
   }, [activeTab, projectId, navigate]);
+
+  const handleCompleteTask = async (taskId) => {
+    try {
+      const token = localStorage.getItem('access_token');
+      if (!token) {
+        navigate('/');
+        return;
+      }
+
+      const API_BASE_URL = window.location.hostname === 'localhost'
+        ? 'http://127.0.0.1:8000'
+        : 'https://pcp-backend-f4a2.onrender.com';
+
+      await axios.post(`${API_BASE_URL}/api/completetask/`, { task_id: taskId }, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      fetchTasks();
+      await fetchUserTaskAssignments(); // Refresh the user task assignments
+      setError('Task marked as complete.');
+      setTimeout(() => setError(''), 3000);
+    } catch (err) {
+      console.error(`Error marking task ${taskId} as complete:`, err);
+      if (err.response?.status === 401) {
+        localStorage.removeItem('access_token');
+        navigate('/');
+      } else if (err.response?.status === 404) {
+        setError('Task not found');
+      } else if (err.response?.status === 403) {
+        setError('Access denied to this task');
+      } else {
+        setError('Failed to mark task as complete');
+      }
+    }
+  };
 
   // Fetch documents for a specific task
   const fetchDocuments = async (taskId) => {
@@ -395,7 +430,7 @@ const StudentDashboard = () => {
 
       console.log('File uploaded successfully:', response.data);
       setError('File uploaded successfully!');
-
+      setTimeout(() => setError(''), 3000);
       fetchDocuments(taskId);
     } catch (err) {
       console.error('Error uploading file:', err);
@@ -413,67 +448,6 @@ const StudentDashboard = () => {
     const file = event.target.files[0];
     if (file) {
       handleFileUpload(taskId, file);
-    }
-  };
-
-  const handleMemberDelete = async (memberEmail) => {
-    if (!window.confirm('Are you sure you want to delete this member?')) {
-      return;
-    }
-
-    try {
-      const token = localStorage.getItem('access_token');
-      if (!token) {
-        navigate('/');
-        return;
-      }
-
-      const API_BASE_URL = window.location.hostname === 'localhost'
-        ? 'http://127.0.0.1:8000'
-        : 'https://pcp-backend-f4a2.onrender.com';
-
-      await axios.delete(`${API_BASE_URL}/api/deleteprojectmember/`, {
-        headers: { Authorization: `Bearer ${token}` },
-        data: { project_id: projectId, email: memberEmail }
-      });
-
-      setMembers((prev) => prev.filter((member) => member.email !== memberEmail));
-      setError('Member deleted successfully.');
-    } catch (err) {
-      console.error(`Error deleting member ${memberEmail}:`, err);
-      setError('Failed to delete member');
-    }
-  };
-
-  const handleCompleteTask = async (taskId) => {
-    try {
-      const token = localStorage.getItem('access_token');
-      if (!token) {
-        navigate('/');
-        return;
-      }
-
-      const API_BASE_URL = window.location.hostname === 'localhost'
-        ? 'http://127.0.0.1:8000'
-        : 'https://pcp-backend-f4a2.onrender.com';
-
-      await axios.post(`${API_BASE_URL}/api/completetask/`, { task_id: taskId }, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-
-      fetchUserTaskAssignments();
-    } catch (err) {
-      console.error(`Error marking task ${taskId} as complete:`, err);
-      if (err.response?.status === 401) {
-        localStorage.removeItem('access_token');
-        navigate('/');
-      } else if (err.response?.status === 404) {
-        setError('Task not found');
-      } else if (err.response?.status === 403) {
-        setError('Access denied to this task');
-      } else {
-        setError('Failed to mark task as complete');
-      }
     }
   };
 
@@ -500,6 +474,7 @@ const StudentDashboard = () => {
 
       fetchDocuments(taskId);
       setError('Document deleted successfully.');
+      setTimeout(() => setError(''), 3000);
     } catch (err) {
       console.error(`Error deleting document ${documentId}:`, err);
       if (err.response?.status === 401) {
@@ -689,7 +664,7 @@ const StudentDashboard = () => {
                       </p>
                     </div>
                     <div className={styles.taskActions}>
-                      {userTaskAssignments[task.task_id] && (
+                      {userTaskAssignments[task.task_id] && task.task_status !== 'Completed' && task.task_status !== 'Finalized' && (
                         <button
                           onClick={(e) => {
                             e.stopPropagation();
@@ -708,7 +683,7 @@ const StudentDashboard = () => {
                   {expandedTasks[task.task_id] && (
                     <div className={styles.taskDetails}>
                       <p className={styles.taskDescription}>{task.task_description || 'No description available.'}</p>
-                      {userTaskAssignments[task.task_id] && (
+                      {userTaskAssignments[task.task_id] && task.task_status !== 'Completed' && task.task_status !== 'Finalized' && (
                         <div className={styles.uploadContainer}>
                           <label
                             htmlFor={`file-upload-${task.task_id}`}
@@ -742,7 +717,7 @@ const StudentDashboard = () => {
                             >
                               <div className={styles.documentInfo}>
                                 <span className={styles.documentTitle}>{doc.document_title}</span>
-                                {userTaskAssignments[task.task_id] && (
+                                {userTaskAssignments[task.task_id] && task.task_status !== 'Completed' && task.task_status !== 'Finalized' && (
                                   <span
                                     onClick={() => handleDeleteDocument(doc.document_id, task.task_id)}
                                     className={styles.removeDocument}
@@ -874,39 +849,41 @@ const StudentDashboard = () => {
               })()}
             </div>
           )}
-          <div className={styles.chatInputContainer}>
-            <input
-              type="text"
-              placeholder="Type your message..."
-              value={messageInput}
-              onChange={(e) => setMessageInput(e.target.value)}
-              onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
-              className={styles.chatInput}
-              onFocus={(e) => {
-                e.target.classList.add(styles.chatInputFocus);
-              }}
-              onBlur={(e) => {
-                e.target.classList.remove(styles.chatInputFocus);
-              }}
-            />
-            <button
-              onClick={handleSendMessage}
-              disabled={!messageInput.trim()}
-              className={`${styles.sendButton} ${!messageInput.trim() ? styles.sendButtonDisabled : ''}`}
-              onMouseEnter={(e) => {
-                if (messageInput.trim()) {
-                  e.target.classList.add(styles.sendButtonHover);
-                }
-              }}
-              onMouseLeave={(e) => {
-                if (messageInput.trim()) {
-                  e.target.classList.remove(styles.sendButtonHover);
-                }
-              }}
-            >
-              Send
-            </button>
-          </div>
+          {projectData && projectData.grade && projectData.feedback ? null : (
+            <div className={styles.chatInputContainer}>
+              <input
+                type="text"
+                placeholder="Type your message..."
+                value={messageInput}
+                onChange={(e) => setMessageInput(e.target.value)}
+                onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
+                className={styles.chatInput}
+                onFocus={(e) => {
+                  e.target.classList.add(styles.chatInputFocus);
+                }}
+                onBlur={(e) => {
+                  e.target.classList.remove(styles.chatInputFocus);
+                }}
+              />
+              <button
+                onClick={handleSendMessage}
+                disabled={!messageInput.trim()}
+                className={`${styles.sendButton} ${!messageInput.trim() ? styles.sendButtonDisabled : ''}`}
+                onMouseEnter={(e) => {
+                  if (messageInput.trim()) {
+                    e.target.classList.add(styles.sendButtonHover);
+                  }
+                }}
+                onMouseLeave={(e) => {
+                  if (messageInput.trim()) {
+                    e.target.classList.remove(styles.sendButtonHover);
+                  }
+                }}
+              >
+                Send
+              </button>
+            </div>
+          )}
         </div>
       ),
     },

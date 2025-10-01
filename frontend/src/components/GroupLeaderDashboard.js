@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import axios from 'axios';
+import TaskUpdateModel from './TaskUpdateModel';
 import styles from './RoleDashboards.module.css';
 
 const GroupLeaderDashboard = () => {
@@ -12,6 +13,7 @@ const GroupLeaderDashboard = () => {
     const [chatMessages, setChatMessages] = useState([]);
     const [messageInput, setMessageInput] = useState('');
     const [expandedTasks, setExpandedTasks] = useState({});
+    const [userTaskAssignments, setUserTaskAssignments] = useState({});
     const [loadingProject, setLoadingProject] = useState(false);
     const [loadingTasks, setLoadingTasks] = useState(false);
     const [loadingMembers, setLoadingMembers] = useState(false);
@@ -22,6 +24,8 @@ const GroupLeaderDashboard = () => {
     const navigate = useNavigate();
     const { projectId } = location.state || {};
     const chatContainerRef = useRef(null);
+    const [showTaskUpdateModel, setShowTaskUpdateModel] = useState(false);
+    const [selectedTaskId, setSelectedTaskId] = useState(null);
 
     // Helper function for CHAT
     function getGradientColors(senderName) {
@@ -92,15 +96,19 @@ const GroupLeaderDashboard = () => {
             console.error('Error fetching chat messages:', err);
             if (err.response?.status === 400) {
                 setError('Project ID is required');
+                setTimeout(() => setError(''), 3000);
             } else if (err.response?.status === 404) {
                 setError('Project not found');
+                setTimeout(() => setError(''), 3000);
             } else if (err.response?.status === 403) {
                 setError('Access denied to this project');
+                setTimeout(() => setError(''), 3000);
             } else if (err.response?.status === 401) {
                 localStorage.removeItem('access_token');
                 navigate('/');
             } else {
                 setError('Failed to fetch chat messages');
+                setTimeout(() => setError(''), 3000);
             }
         } finally {
             setLoadingChat(false);
@@ -157,15 +165,20 @@ const GroupLeaderDashboard = () => {
 
             if (err.response?.status === 400) {
                 setError('Invalid input');
+                setTimeout(() => setError(''), 3000);
             } else if (err.response?.status === 404) {
                 setError('Project not found');
+                setTimeout(() => setError(''), 3000);
             } else if (err.response?.status === 403) {
                 setError('Access denied to this project');
+                setTimeout(() => setError(''), 3000);
             } else if (err.response?.status === 401) {
                 localStorage.removeItem('access_token');
+                setTimeout(() => setError(''), 3000);
                 navigate('/');
             } else {
                 setError('Failed to send message');
+                setTimeout(() => setError(''), 3000);
             }
         }
     };
@@ -180,85 +193,65 @@ const GroupLeaderDashboard = () => {
     // Fetch project data when Project Description tab is clicked
     useEffect(() => {
         if (activeTab === 'project-description' && projectId) {
-            const fetchProjectData = async () => {
-                setLoadingProject(true);
-                setError('');
-                try {
-                    const token = localStorage.getItem('access_token');
-                    if (!token) {
-                        navigate('/');
-                        return;
-                    }
-
-                    const API_BASE_URL = window.location.hostname === 'localhost'
-                        ? 'http://127.0.0.1:8000'
-                        : 'https://pcp-backend-f4a2.onrender.com';
-
-                    const response = await axios.get(`${API_BASE_URL}/api/getprojectdata/?project_id=${projectId}`, {
-                        headers: { Authorization: `Bearer ${token}` },
-                    });
-
-                    setProjectData(response.data.project_data || {});
-                } catch (err) {
-                    console.error('Error fetching project data:', err);
-                    if (err.response?.status === 400) {
-                        setError('Project ID is required');
-                    } else if (err.response?.status === 404) {
-                        setError('Project not found');
-                    } else if (err.response?.status === 401) {
-                        localStorage.removeItem('access_token');
-                        navigate('/');
-                    } else {
-                        setError('Failed to fetch project data');
-                    }
-                } finally {
-                    setLoadingProject(false);
-                }
-            };
-
             fetchProjectData();
         }
     }, [activeTab, projectId, navigate]);
 
+    const fetchProjectData = async () => {
+        setLoadingProject(true);
+        setError('');
+        try {
+            const token = localStorage.getItem('access_token');
+            if (!token) {
+                navigate('/');
+                return;
+            }
+
+            const API_BASE_URL = window.location.hostname === 'localhost'
+                ? 'http://127.0.0.1:8000'
+                : 'https://pcp-backend-f4a2.onrender.com';
+
+            const response = await axios.get(`${API_BASE_URL}/api/getprojectdata/?project_id=${projectId}`, {
+                headers: { Authorization: `Bearer ${token}` },
+            });
+
+            setProjectData(response.data.project_data || {});
+        } catch (err) {
+            console.error('Error fetching project data:', err);
+            if (err.response?.status === 400) {
+                setError('Project ID is required');
+                setTimeout(() => setError(''), 3000);
+            } else if (err.response?.status === 404) {
+                setError('Project not found');
+                setTimeout(() => setError(''), 3000);
+            } else if (err.response?.status === 401) {
+                localStorage.removeItem('access_token');
+                navigate('/');
+            } else {
+                setError('Failed to fetch project data');
+                setTimeout(() => setError(''), 3000);
+            }
+        } finally {
+            setLoadingProject(false);
+        }
+    };
+
+    const handleTaskUpdate = async ({ taskId, taskName, taskDescription, dueDate }) => {
+        try {
+            setError('Task updated successfully!');
+            setTimeout(() => setError(''), 3000);
+            await fetchTasks(); // Refresh tasks list
+            setActiveTab('tasks'); // Stay on tasks tab
+        } catch (err) {
+            console.error('Error handling task update:', err);
+            setError('Failed to refresh tasks after update');
+            setTimeout(() => setError(''), 3000);
+        }
+    };
+
     // Fetch tasks when Tasks tab is clicked
     useEffect(() => {
         if (activeTab === 'tasks' && projectId) {
-            const fetchTasks = async () => {
-                setLoadingTasks(true);
-                setError('');
-                try {
-                    const token = localStorage.getItem('access_token');
-                    if (!token) {
-                        navigate('/');
-                        return;
-                    }
-
-                    const API_BASE_URL = window.location.hostname === 'localhost'
-                        ? 'http://127.0.0.1:8000'
-                        : 'https://pcp-backend-f4a2.onrender.com';
-
-                    const response = await axios.get(`${API_BASE_URL}/api/getprojecttasks/?project_id=${projectId}`, {
-                        headers: { Authorization: `Bearer ${token}` },
-                    });
-
-                    setTasks(response.data.tasks || []);
-                } catch (err) {
-                    console.error('Error fetching tasks:', err);
-                    if (err.response?.status === 400) {
-                        setError('Project ID is required');
-                    } else if (err.response?.status === 404) {
-                        setError('Project not found');
-                    } else if (err.response?.status === 401) {
-                        localStorage.removeItem('access_token');
-                        navigate('/');
-                    } else {
-                        setError('Failed to fetch tasks');
-                    }
-                } finally {
-                    setLoadingTasks(false);
-                }
-            };
-
             fetchTasks();
         }
     }, [activeTab, projectId, navigate]);
@@ -288,13 +281,16 @@ const GroupLeaderDashboard = () => {
                     console.error('Error fetching tasks:', err);
                     if (err.response?.status === 400) {
                         setError('Project ID is required');
+                        setTimeout(() => setError(''), 3000);
                     } else if (err.response?.status === 404) {
                         setError('Project not found');
+                        setTimeout(() => setError(''), 3000);
                     } else if (err.response?.status === 401) {
                         localStorage.removeItem('access_token');
                         navigate('/');
                     } else {
                         setError('Failed to fetch tasks');
+                        setTimeout(() => setError(''), 3000);
                     }
                 } finally {
                     setLoadingTasks(false);
@@ -330,6 +326,7 @@ const GroupLeaderDashboard = () => {
         } catch (err) {
             console.error(`Error fetching documents for task ${taskId}:`, err);
             setError('Failed to fetch documents');
+            setTimeout(() => setError(''), 3000);
         } finally {
             setLoadingDocuments((prev) => ({ ...prev, [taskId]: false }));
         }
@@ -337,6 +334,201 @@ const GroupLeaderDashboard = () => {
 
     const handleAddNewTask = (projectId) => {
         navigate('/editproject', { state: { projectId: projectId, projectName: projectData.project_name } });
+    };
+
+    const handleCompleteTask = async (taskId) => {
+        try {
+            const token = localStorage.getItem('access_token');
+            if (!token) {
+                navigate('/');
+                return;
+            }
+
+            const API_BASE_URL = window.location.hostname === 'localhost'
+                ? 'http://127.0.0.1:8000'
+                : 'https://pcp-backend-f4a2.onrender.com';
+
+            await axios.post(`${API_BASE_URL}/api/completetask/`, { task_id: taskId }, {
+                headers: { Authorization: `Bearer ${token}` },
+            });
+
+            fetchTasks();
+            await fetchUserTaskAssignments(); // Refresh the user task assignments
+            setError('Task marked as complete.');
+            setTimeout(() => setError(''), 3000);
+        } catch (err) {
+            console.error(`Error marking task ${taskId} as complete:`, err);
+            if (err.response?.status === 401) {
+                localStorage.removeItem('access_token');
+                navigate('/');
+            } else if (err.response?.status === 404) {
+                setError('Task not found');
+                setTimeout(() => setError(''), 3000);
+            } else if (err.response?.status === 403) {
+                setError('Access denied to this task');
+                setTimeout(() => setError(''), 3000);
+            } else {
+                setError('Failed to mark task as complete');
+                setTimeout(() => setError(''), 3000);
+            }
+        }
+    };
+
+    const handleFileSelect = (taskId, event) => {
+        const file = event.target.files[0];
+        if (file) {
+            handleFileUpload(taskId, file);
+        }
+    };
+
+    const handleDeleteDocument = async (documentId, taskId) => {
+        if (!window.confirm('Are you sure you want to delete this document?')) {
+            return;
+        }
+
+        try {
+            const token = localStorage.getItem('access_token');
+            if (!token) {
+                navigate('/');
+                return;
+            }
+
+            const API_BASE_URL = window.location.hostname === 'localhost'
+                ? 'http://127.0.0.1:8000'
+                : 'https://pcp-backend-f4a2.onrender.com';
+
+            await axios.delete(`${API_BASE_URL}/api/deletedocument/${documentId}/`, {
+                headers: { Authorization: `Bearer ${token}` },
+            });
+
+            fetchDocuments(taskId);
+            setError('Document deleted successfully.');
+            setTimeout(() => setError(''), 3000);
+        } catch (err) {
+            console.error(`Error deleting document ${documentId}:`, err);
+            if (err.response?.status === 401) {
+                localStorage.removeItem('access_token');
+                navigate('/');
+            } else if (err.response?.status === 404) {
+                setError('Document not found');
+                setTimeout(() => setError(''), 3000);
+            } else if (err.response?.status === 403) {
+                setError('Access denied to this document');
+                setTimeout(() => setError(''), 3000);
+            } else {
+                setError('Failed to delete document');
+                setTimeout(() => setError(''), 3000);
+            }
+        }
+    };
+
+    const handleFileUpload = async (taskId, file) => {
+        try {
+            const token = localStorage.getItem('access_token');
+            if (!token) {
+                navigate('/');
+                return;
+            }
+
+            const API_BASE_URL = window.location.hostname === 'localhost'
+                ? 'http://127.0.0.1:8000'
+                : 'https://pcp-backend-f4a2.onrender.com';
+
+            const formData = new FormData();
+            formData.append('file', file);
+            formData.append('title', file.name);
+            formData.append('description', `Uploaded for task: ${tasks.find(t => t.task_id === taskId)?.task_name || 'Unknown Task'}`);
+            formData.append('task_id', taskId);
+
+            const response = await axios.post(`${API_BASE_URL}/api/document-upload/`, formData, {
+                headers: {
+                    Authorization: `Bearer ${token}`,
+                    'Content-Type': 'multipart/form-data'
+                },
+            });
+
+            console.log('File uploaded successfully:', response.data);
+            setError('File uploaded successfully!');
+            setTimeout(() => setError(''), 3000);
+            fetchDocuments(taskId);
+        } catch (err) {
+            console.error('Error uploading file:', err);
+            if (err.response?.status === 401) {
+                localStorage.removeItem('access_token');
+                navigate('/');
+            } else {
+                setError('Failed to upload file');
+                setTimeout(() => setError(''), 3000);
+            }
+        }
+    };
+
+    const fetchTasks = async () => {
+        setLoadingTasks(true);
+        setError('');
+        try {
+            const token = localStorage.getItem('access_token');
+            if (!token) {
+                navigate('/');
+                return;
+            }
+
+            const API_BASE_URL = window.location.hostname === 'localhost'
+                ? 'http://127.0.0.1:8000'
+                : 'https://pcp-backend-f4a2.onrender.com';
+
+            const response = await axios.get(`${API_BASE_URL}/api/getprojecttasks/?project_id=${projectId}`, {
+                headers: { Authorization: `Bearer ${token}` },
+            });
+
+            setTasks(response.data.tasks || []);
+
+            await fetchUserTaskAssignments();
+        } catch (err) {
+            console.error('Error fetching tasks:', err);
+            if (err.response?.status === 400) {
+                setError('Project ID is required');
+                setTimeout(() => setError(''), 3000);
+            } else if (err.response?.status === 404) {
+                setError('Project not found');
+                setTimeout(() => setError(''), 3000);
+            } else if (err.response?.status === 401) {
+                localStorage.removeItem('access_token');
+                navigate('/');
+            } else {
+                setError('Failed to fetch tasks');
+                setTimeout(() => setError(''), 3000);
+            }
+        } finally {
+            setLoadingTasks(false);
+        }
+    };
+
+    const fetchUserTaskAssignments = async () => {
+        try {
+            const token = localStorage.getItem('access_token');
+            if (!token) {
+                navigate('/');
+                return;
+            }
+
+            const API_BASE_URL = window.location.hostname === 'localhost'
+                ? 'http://127.0.0.1:8000'
+                : 'https://pcp-backend-f4a2.onrender.com';
+
+            const response = await axios.get(`${API_BASE_URL}/api/getusertasks/`, {
+                headers: { Authorization: `Bearer ${token}` },
+            });
+
+            const assignmentLookup = {};
+            response.data.tasks.forEach(task => {
+                assignmentLookup[task.task_id] = true;
+            });
+
+            setUserTaskAssignments(assignmentLookup);
+        } catch (err) {
+            console.error('Error fetching user task assignments:', err);
+        }
     };
 
     const handleMemberDelete = async (memberEmail) => {
@@ -362,9 +554,11 @@ const GroupLeaderDashboard = () => {
 
             setMembers((prev) => prev.filter((member) => member.email !== memberEmail));
             setError('Member deleted successfully.');
+            setTimeout(() => setError(''), 3000);
         } catch (err) {
             console.error(`Error deleting member ${memberEmail}:`, err);
             setError('Failed to delete member');
+            setTimeout(() => setError(''), 3000);
         }
     };
 
@@ -391,9 +585,67 @@ const GroupLeaderDashboard = () => {
 
             setTasks((prev) => prev.filter((task) => task.task_id !== taskId));
             setError('Task deleted successfully.');
+            setTimeout(() => setError(''), 3000);
         } catch (err) {
             console.error(`Error deleting task ${taskId}:`, err);
             setError('Failed to delete task');
+            setTimeout(() => setError(''), 3000);
+        }
+    };
+
+    const handleReject = async (taskId) => {
+        try {
+            const token = localStorage.getItem('access_token');
+            if (!token) {
+                navigate('/');
+                return;
+            }
+
+            const API_BASE_URL = window.location.hostname === 'localhost'
+                ? 'http://127.0.0.1:8000'
+                : 'https://pcp-backend-f4a2.onrender.com';
+
+            await axios.post(`${API_BASE_URL}/api/updatetask/${taskId}/`, {
+                status: 'In Progress' // Payload directly
+            }, {
+                headers: { Authorization: `Bearer ${token}` } // Headers as a separate object
+            });
+
+            setTasks((prev) => prev.filter((task) => task.task_id !== taskId));
+            setError('Task Rejected');
+            setTimeout(() => setError(''), 3000);
+        } catch (err) {
+            console.error(`Error rejecting task ${taskId}:`, err);
+            setError('Failed to reject task');
+            setTimeout(() => setError(''), 3000);
+        }
+    };
+
+    const handleApprove = async (taskId) => {
+        try {
+            const token = localStorage.getItem('access_token');
+            if (!token) {
+                navigate('/');
+                return;
+            }
+
+            const API_BASE_URL = window.location.hostname === 'localhost'
+                ? 'http://127.0.0.1:8000'
+                : 'https://pcp-backend-f4a2.onrender.com';
+
+            await axios.post(`${API_BASE_URL}/api/updatetask/${taskId}/`, {
+                status: 'Finalized' // Payload directly
+            }, {
+                headers: { Authorization: `Bearer ${token}` } // Headers as a separate object
+            });
+
+            setTasks((prev) => prev.filter((task) => task.task_id !== taskId));
+            setError('Task approved.');
+            setTimeout(() => setError(''), 3000);
+        } catch (err) {
+            console.error(`Error deleting task ${taskId}:`, err);
+            setError('Failed to delete task');
+            setTimeout(() => setError(''), 3000);
         }
     };
 
@@ -461,18 +713,24 @@ const GroupLeaderDashboard = () => {
                 const status = err.response.status;
                 if (status === 404) {
                     setError('Document not found');
+                    setTimeout(() => setError(''), 3000);
                 } else if (status === 403) {
                     setError('Access denied to this document');
+                    setTimeout(() => setError(''), 3000);
                 } else if (status === 401) {
                     setError('Authentication required');
+                    setTimeout(() => setError(''), 3000);
                     navigate('/');
                 } else {
                     setError(`Download failed: ${err.response.data?.error || 'Server error'}`);
+                    setTimeout(() => setError(''), 3000);
                 }
             } else if (err.request) {
                 setError('Network error - please check your connection');
+                setTimeout(() => setError(''), 3000);
             } else {
                 setError('Failed to download document');
+                setTimeout(() => setError(''), 3000);
             }
         }
     };
@@ -517,11 +775,13 @@ const GroupLeaderDashboard = () => {
                     console.error('Error fetching members:', err);
                     if (err.response?.status === 400) {
                         setError('Project ID is required');
+                        setTimeout(() => setError(''), 3000);
                     } else if (err.response?.status === 401) {
                         localStorage.removeItem('access_token');
                         navigate('/');
                     } else {
                         setError('Failed to fetch members');
+                        setTimeout(() => setError(''), 3000);
                     }
                 } finally {
                     setLoadingMembers(false);
@@ -531,6 +791,16 @@ const GroupLeaderDashboard = () => {
             fetchMembers();
         }
     }, [activeTab, projectId, navigate]);
+
+    const toggleTaskExpansion = (taskId) => {
+        setExpandedTasks((prev) => {
+            const isExpanded = prev[taskId];
+            if (!isExpanded && !documentsByTask[taskId]) {
+                fetchDocuments(taskId);
+            }
+            return { ...prev, [taskId]: !isExpanded };
+        });
+    };
 
     const tabs = [
         {
@@ -602,40 +872,87 @@ const GroupLeaderDashboard = () => {
                         </div>
                     ) : tasks.length === 0 ? (
                         <div className={styles.noDataMessage}>
-                            No tasks found for this project.
+                            No tasks available for this project.
                         </div>
                     ) : (
-                        <div className={styles.taskContainer}>
-                            <div className={styles.taskList}>
-                                {tasks.map((task) => (
+                        <div className={styles.taskList}>
+                            {tasks.map((task) => (
+                                <div
+                                    key={task.task_id}
+                                    className={styles.taskItem}
+                                    onMouseEnter={(e) => {
+                                        e.currentTarget.classList.add(styles.taskItemHover);
+                                    }}
+                                    onMouseLeave={(e) => {
+                                        e.currentTarget.classList.remove(styles.taskItemHover);
+                                    }}
+                                >
                                     <div
-                                        key={task.task_id}
-                                        className={styles.taskItem}
-                                        onMouseEnter={(e) => {
-                                            e.currentTarget.classList.add(styles.taskItemHover);
-                                        }}
-                                        onMouseLeave={(e) => {
-                                            e.currentTarget.classList.remove(styles.taskItemHover);
-                                        }}
+                                        className={`${styles.taskHeader} ${expandedTasks[task.task_id] ? styles.taskHeaderExpanded : ''}`}
+                                        onClick={() => toggleTaskExpansion(task.task_id)}
                                     >
-                                        <div className={styles.taskHeader}>
-                                            <div className={styles.taskInfo}>
-                                                <p className={styles.taskName}>{task.task_name}</p>
-                                                <p className={styles.taskDescription}>{task.task_description}</p>
-                                                <p className={styles.taskMeta}>
-                                                    Due: {task.task_due_date} | Status: {task.task_status} | Priority: {task.task_priority}
-                                                </p>
-                                                <button className={styles.deleteButton} onClick={() => handleDelete(task.task_id)}>Delete Task</button>
-                                            </div>
-                                            <div
-                                                className={`${styles.dropdownToggle} ${expandedTasks[task.task_id] ? styles.dropdownToggleActive : ''}`}
-                                                onClick={() => toggleTaskDropdown(task.task_id)}
-                                            >
-                                                ▼
-                                            </div>
+                                        <div className={styles.taskInfo}>
+                                            <h4 className={styles.taskName}>{task.task_name}</h4>
+                                            <p className={styles.taskMeta}>
+                                                Due: {task.task_due_date} | Status: {task.task_status} | Priority: {task.task_priority}
+                                            </p>
+                                            {
+                                                task.task_status === 'In Progress' && (
+                                                    <button className={styles.deleteButton} onClick={() => handleDelete(task.task_id)}>Delete Task</button>
+                                                )
+                                            }
+                                            {
+                                                task.task_status === 'In Progress' && (
+                                                    <button
+                                                        className={styles.addTaskButton}
+                                                        onClick={(e) => {
+                                                            e.stopPropagation(); // Prevent triggering toggleTaskExpansion
+                                                            setSelectedTaskId(task.task_id); // Set the task ID
+                                                            setShowTaskUpdateModel(true); // Open the model
+                                                        }}
+                                                    >
+                                                        Update Task Details
+                                                    </button>
+                                                )
+                                            }
                                         </div>
-                                        {expandedTasks[task.task_id] && (
-                                            <div className={styles.taskDocuments}>
+                                        <div className={styles.taskActions}>
+                                            {userTaskAssignments[task.task_id] && task.task_status !== 'Completed' && task.task_status !== 'Finalized' && (
+                                                <button
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        handleCompleteTask(task.task_id);
+                                                    }}
+                                                    className={styles.deleteButton}
+                                                >
+                                                    Mark as Complete
+                                                </button>
+                                            )}
+                                            <span className={`${styles.dropdownToggle} ${expandedTasks[task.task_id] ? styles.dropdownToggleActive : ''}`}>
+                                                ▼
+                                            </span>
+                                        </div>
+                                    </div>
+                                    {
+                                        expandedTasks[task.task_id] && (
+                                            <div className={styles.taskDetails}>
+                                                <p className={styles.taskDescription}>{task.task_description || 'No description available.'}</p>
+                                                {userTaskAssignments[task.task_id] && task.task_status !== 'Completed' && task.task_status !== 'Finalized' && (
+                                                    <div className={styles.uploadContainer}>
+                                                        <label
+                                                            htmlFor={`file-upload-${task.task_id}`}
+                                                            className={styles.uploadButton}
+                                                        >
+                                                            Upload Document
+                                                        </label>
+                                                        <input
+                                                            id={`file-upload-${task.task_id}`}
+                                                            type="file"
+                                                            className={styles.fileInput}
+                                                            onChange={(e) => handleFileSelect(task.task_id, e)}
+                                                        />
+                                                    </div>
+                                                )}
                                                 <h4 className={styles.documentsHeading}>Documents</h4>
                                                 {loadingDocuments[task.task_id] ? (
                                                     <p className={styles.documentsLoading}>Loading documents...</p>
@@ -652,9 +969,17 @@ const GroupLeaderDashboard = () => {
                                                                     e.currentTarget.classList.remove(styles.documentItemHover);
                                                                 }}
                                                             >
-                                                                <span className={styles.documentTitle}>
-                                                                    {doc.document_title} ({doc.doc_type})
-                                                                </span>
+                                                                <div className={styles.documentInfo}>
+                                                                    <span className={styles.documentTitle}>{doc.document_title}</span>
+                                                                    {userTaskAssignments[task.task_id] && (
+                                                                        <span
+                                                                            onClick={() => handleDeleteDocument(doc.document_id, task.task_id)}
+                                                                            className={styles.removeDocument}
+                                                                        >
+                                                                            (remove)
+                                                                        </span>
+                                                                    )}
+                                                                </div>
                                                                 <button
                                                                     onClick={() => handleDownload(doc.document_id, doc.document_title)}
                                                                     className={styles.downloadButton}
@@ -668,12 +993,17 @@ const GroupLeaderDashboard = () => {
                                                     <p className={styles.noDocuments}>No documents available.</p>
                                                 )}
                                             </div>
-                                        )}
-                                    </div>
-                                ))}
-                            </div>
+                                        )
+                                    }
+                                </div>
+                            ))}
                         </div>
                     )}
+                    <div className={styles.detailSection}>
+                        <h3 className={styles.detailHeading}>Important Links</h3>
+                        <p className={styles.detailText}>{'No sharepoint links provided.'}</p>
+                        <button className={styles.addTaskButton}>Add new Links</button>
+                    </div>
                     <button className={styles.addTaskButton} onClick={() => handleAddNewTask(projectId)}>Add New Task</button>
                 </div>
             ),
@@ -726,6 +1056,8 @@ const GroupLeaderDashboard = () => {
                                                         'N/A'
                                                     )}
                                                 </p>
+                                                <button className={styles.rejectButton} onClick={() => handleReject(task.task_id)}>Reject and Send back</button>
+                                                <button className={styles.approveButton} onClick={() => handleApprove(task.task_id)}>Approve and Finalize</button>
                                             </div>
                                             <div
                                                 className={`${styles.dropdownToggle} ${expandedTasks[task.task_id] ? styles.dropdownToggleActive : ''}`}
@@ -753,7 +1085,7 @@ const GroupLeaderDashboard = () => {
                                                                 }}
                                                             >
                                                                 <span className={styles.documentTitle}>
-                                                                    {doc.document_title} ({doc.doc_type})
+                                                                    {doc.document_title}
                                                                 </span>
                                                                 <button
                                                                     onClick={() => handleDownload(doc.document_id, doc.document_title)}
@@ -856,8 +1188,8 @@ const GroupLeaderDashboard = () => {
                                                     <p className={styles.senderName}>
                                                         {msg.sender_name} <span className={
                                                             msg.role === 'Supervisor' ? styles.roleSupervisor :
-                                                            msg.role === 'Group Leader' ? styles.roleGroupLeader :
-                                                            styles.roleDefault
+                                                                msg.role === 'Group Leader' ? styles.roleGroupLeader :
+                                                                    styles.roleDefault
                                                         }>({msg.role})</span>
                                                     </p>
                                                     <span className={styles.messageTime}>{shortTime}</span>
@@ -934,15 +1266,11 @@ const GroupLeaderDashboard = () => {
                                             <p className={styles.memberEmail}>{member.email}</p>
                                             <p className={styles.memberRole}>Role: {member.role}</p>
                                         </div>
-                                        <button className={styles.deleteMemberButton} onClick={() => handleMemberDelete(member.email)}>Delete Member</button>
                                     </div>
                                 ))}
                             </div>
                         </div>
                     )}
-                            <button className={styles.addMemberButton} onClick={() => navigate('/addprojectmembers', { state: { projectId: projectId } })}>
-                                Add Members
-                            </button>
                 </div>
             ),
         },
@@ -984,13 +1312,26 @@ const GroupLeaderDashboard = () => {
                         ))}
                     </div>
                 </div>
-                <button
-                    onClick={() => navigate('/dashboard')}
-                    className={styles.backButton}
-                >
-                    Back to Dashboard
-                </button>
             </div>
+            <TaskUpdateModel
+                isOpen={showTaskUpdateModel}
+                onClose={() => {
+                    setShowTaskUpdateModel(false);
+                    setSelectedTaskId(null); // Reset task ID when closing
+                }}
+                projectId={projectId}
+                taskId={selectedTaskId}
+                onUpdate={handleTaskUpdate}
+                initialName={tasks.find(task => task.task_id === selectedTaskId)?.task_name || ''}
+                initialDescription={tasks.find(task => task.task_id === selectedTaskId)?.task_description || ''}
+                initialDueDate={tasks.find(task => task.task_id === selectedTaskId)?.task_due_date || ''}
+            />
+            <button
+                onClick={() => navigate('/dashboard')}
+                className={styles.backButton}
+            >
+                Back to Dashboard
+            </button>
         </div>
     );
 };

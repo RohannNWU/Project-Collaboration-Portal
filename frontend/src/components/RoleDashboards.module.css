@@ -34,6 +34,10 @@
   border: none;
 }
 
+.tabButton:focus {
+  caret-color: transparent;
+}
+
 .tabButtonActive {
   background-color: #83C8D1;
   color: black;
@@ -60,6 +64,10 @@
   font-weight: 600;
   margin-bottom: 1.5rem;
   color: #1f2937;
+}
+
+.tabHeading:focus {
+  caret-color: transparent;
 }
 
 .errorMessage {
@@ -96,6 +104,10 @@
   font-weight: 500;
   margin-bottom: 0.5rem;
   color: #1f2937;
+}
+
+.detailHeading:focus {
+  caret-color: transparent;
 }
 
 .detailSection {
@@ -178,10 +190,18 @@
   color: #1f2937;
 }
 
+.taskName:focus {
+  caret-color: transparent;
+}
+
 .taskDescription {
   font-size: 0.875rem;
   color: #4b5563;
   margin-bottom: 1rem;
+}
+
+.taskDescription:focus {
+  caret-color: transparent;
 }
 
 .taskMeta {
@@ -190,9 +210,17 @@
   margin-top: 0.25rem;
 }
 
+.taskMeta:focus {
+  caret-color: transparent;
+}
+
 .submittedBy {
   font-size: 0.85rem;
   color: #6b7280;
+}
+
+.submittedBy:focus {
+  caret-color: transparent;
 }
 
 .taskActions {
@@ -228,10 +256,19 @@
   color: #1f2937;
 }
 
+.documentsHeading:focus {
+  caret-color: transparent;
+}
+
 .documentsLoading {
   font-size: 0.85rem;
   color: #4b5563;
   text-align: center;
+}
+
+.tabButtonDisabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 
 .documentList {
@@ -268,6 +305,10 @@
   color: #1f2937;
 }
 
+.documentTitle:focus {
+  caret-color: transparent;
+}
+
 .removeDocument {
   font-size: 0.75rem;
   color: #dc2626;
@@ -291,6 +332,10 @@
   transition: background-color 0.2s;
 }
 
+.downloadButton:focus {
+  caret-color: transparent;
+}
+
 .downloadButton:hover {
   background-color: #83C8D1;
 }
@@ -308,6 +353,10 @@
   font-size: 0.875rem;
   display: inline-block;
   transition: background-color 0.2s;
+}
+
+.uploadButton:focus {
+  caret-color: transparent;
 }
 
 .uploadButton:hover {
@@ -329,8 +378,51 @@
   transition: background-color 0.2s;
 }
 
+.deleteButton:focus {
+  caret-color: transparent;
+}
+
 .deleteButton:hover {
   background-color: #dc2626;
+}
+
+.rejectButton {
+  padding: 0.25rem 0.75rem;
+  background-color: #ef4444;
+  color: white;
+  border-radius: 0.25rem;
+  border: none;
+  cursor: pointer;
+  font-size: 0.75rem;
+  transition: background-color 0.2s;
+}
+
+.rejectButton:focus {
+  caret-color: transparent;
+}
+
+.rejectButton:hover {
+  background-color: #dc2626;
+}
+
+.approveButton {
+  margin-left: 30px;
+  padding: 0.25rem 0.75rem;
+  background-color: #15f900;
+  color: black;
+  border-radius: 0.25rem;
+  border: none;
+  cursor: pointer;
+  font-size: 0.75rem;
+  transition: background-color 0.2s;
+}
+
+.approveButton:focus {
+  caret-color: transparent;
+}
+
+.approveButton:hover {
+  background-color: #9bf093;
 }
 
 .addTaskButton {
@@ -346,12 +438,11 @@
   gap: 15px;
   transition: background 0.2s, transform 0.2s;
   backdrop-filter: blur(5px);
-  margin-top:30px;
+  margin-top: 30px;
 }
 
-.addTaskButton:hover {
-  background: rgba(255, 255, 255, 0.2);
-  transform: translateX(5px);
+.addTaskButton:focus {
+  caret-color: transparent;
 }
 
 .chatContainer {
@@ -370,6 +461,10 @@
   color: #1f2937;
   text-align: center;
   text-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.chatHeading:focus {
+  caret-color: transparent;
 }
 
 .chatError {
@@ -433,8 +528,16 @@
   color: #1f2937;
 }
 
+.noMessagesTitle:focus {
+  caret-color: transparent;
+}
+
 .noMessagesText {
   font-size: 0.9rem;
+}
+
+.noMessagesText:focus {
+  caret-color: transparent;
 }
 
 .chatMessages {
@@ -470,6 +573,10 @@
   border: 2px solid black;
   position: relative;
   z-index: 1;
+}
+
+.dateLabel:focus {
+  caret-color: transparent;
 }
 
 .dateLine {
@@ -593,7 +700,7 @@
   color: black;
 }
 
-.chatInputFocus {
+.chatInput:focus {
   border-color: #228693;
   background-color: #ffffff;
   box-shadow: 0 0 0 3px rgba(34, 134, 147, 0.1);
@@ -613,7 +720,11 @@
   transform: translateY(0);
 }
 
-.sendButtonHover {
+.sendButton:focus {
+  caret-color: transparent;
+}
+
+.sendButton:hover {
   transform: translateY(-1px);
   box-shadow: 0 6px 16px rgba(34, 134, 147, 0.5);
 }
@@ -678,10 +789,18 @@
   margin-bottom: 0.25rem;
 }
 
+.memberName:focus {
+  caret-color: transparent;
+}
+
 .memberEmail {
   font-size: 0.85rem;
   color: #4b5563;
   margin-bottom: 0.25rem;
+}
+
+.memberEmail:focus {
+  caret-color: transparent;
 }
 
 .memberRole {
@@ -689,8 +808,16 @@
   color: #6b7280;
 }
 
+.memberRole:focus {
+  caret-color: transparent;
+}
+
 .deleteMemberButton {
   width: 150px;
+}
+
+.deleteMemberButton:focus {
+  caret-color: transparent;
 }
 
 .addMemberButton {
@@ -706,12 +833,11 @@
   gap: 15px;
   transition: background 0.2s, transform 0.2s;
   backdrop-filter: blur(5px);
-  margin-top:30px;
+  margin-top: 30px;
 }
 
-.addMemberButton:hover {
-  background: rgba(255, 255, 255, 0.2);
-  transform: translateX(5px);
+.addMemberButton:focus {
+  caret-color: transparent;
 }
 
 .backButton {
@@ -727,7 +853,11 @@
   gap: 15px;
   transition: background 0.2s, transform 0.2s;
   backdrop-filter: blur(5px);
-  margin-top:30px;
+  margin-top: 30px;
+}
+
+.backButton:focus {
+  caret-color: transparent;
 }
 
 .backButton:hover {
@@ -739,4 +869,8 @@
   font-size: 0.85rem;
   color: #4b5563;
   text-align: center;
+}
+
+.noDocuments:focus {
+  caret-color: transparent;
 }
