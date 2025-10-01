@@ -2,18 +2,19 @@ import React, { useState } from 'react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 import styles from './Login.module.css';
-import { faEnvelope, faLock, faEye, faEyeSlash, faArrowRight } from '@fortawesome/free-solid-svg-icons';
+import { faEnvelope, faLock, faEye, faEyeSlash } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { useAuth } from '../context/AuthProvider';
 import LoginButton from './LoginButton';
+import ChangePasswordModal from './ChangePasswordModal';
 
 const Login = () => {
   const [showPassword, setShowPassword] = useState(false);
-  const [email, setEmail] = useState('')
+  const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
+  const [isModalOpen, setIsModalOpen] = useState(false);
   const navigate = useNavigate();
-
   const { setUser } = useAuth();
 
   const handleSubmit = async (e) => {
@@ -57,6 +58,19 @@ const Login = () => {
 
   const togglePasswordVisibility = () => {
     setShowPassword(!showPassword);
+  };
+
+  const openModal = () => {
+    setIsModalOpen(true);
+  };
+
+  const closeModal = () => {
+    setIsModalOpen(false);
+  };
+
+  const handlePasswordUpdate = ({ email }) => {
+    setError('Password updated successfully. Please log in.');
+    setTimeout(() => setError(''), 3000);
   };
 
   return (
@@ -117,12 +131,11 @@ const Login = () => {
 
             <div className={styles.formOptions}>
               <label className={styles.rememberMe}>
-                
               </label>
               <button
                 type="button"
                 className={styles.forgotPassword}
-                onClick={() => navigate('/forgot-password')}
+                onClick={openModal}
               >
                 Forgot password?
               </button>
@@ -148,6 +161,12 @@ const Login = () => {
           </div>
         </div>
       </div>
+
+      <ChangePasswordModal
+        isOpen={isModalOpen}
+        onClose={closeModal}
+        onUpdate={handlePasswordUpdate}
+      />
 
       {error && <div id="toast" className={styles.toast}>{error}</div>}
     </div>

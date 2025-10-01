@@ -4,6 +4,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import styles from './RoleDashboards.module.css';
 import GradeFeedbackModel from './GradeFeedbackModel';
 import ProjectDetailsModel from './ProjectDetailsModel';
+import ChangeRoleModel from './ChangeRoleModel';
 
 const SupervisorDashboard = () => {
   const [activeTab, setActiveTab] = useState('project-description');
@@ -26,6 +27,8 @@ const SupervisorDashboard = () => {
   const chatContainerRef = useRef(null);
   const [showGradeModel, setShowGradeModel] = useState(false);
   const [showProjectDetailsModel, setShowProjectDetailsModel] = useState(false);
+  const [showChangeRoleModel, setShowChangeRoleModel] = useState(false);
+  const [selectedMember, setSelectedMember] = useState(null);
 
   // Check if project is graded (both grade and feedback are set)
   const isProjectGraded = projectData?.grade && projectData?.feedback;
@@ -248,7 +251,7 @@ const SupervisorDashboard = () => {
       setTimeout(() => setError(''), 3000);
     }
   };
-
+  
   // Handle Project Details Modal Submit
   const handleProjectDetailsSubmit = async ({ name, description, due_date }) => {
     try {
@@ -282,6 +285,20 @@ const SupervisorDashboard = () => {
       setTimeout(() => setError(''), 3000);
     }
   };
+
+  // Handle Change Role Modal Submit
+const handleRoleUpdate = async ({ projectId, memberEmail, role }) => {
+  // Optimistic local update
+  setMembers(prevMembers =>
+    prevMembers.map(m =>
+      m.email === memberEmail ? { ...m, role } : m
+    )
+  );
+  setShowChangeRoleModel(false);
+  
+  // Refresh members from server to ensure synced data
+  await fetchMembers();
+};
 
   // Redirect if no projectId
   useEffect(() => {
@@ -422,36 +439,42 @@ const SupervisorDashboard = () => {
     }
   }, [activeTab, projectId]);
 
-  const handleMemberDelete = async (memberEmail) => {
-    if (!window.confirm('Are you sure you want to delete this member?')) {
-      return;
-    }
+const handleMemberDelete = async (email) => {
+  const memberToDelete = members.find(m => m.email === email);
+  if (!memberToDelete) return;
 
-    try {
-      const token = localStorage.getItem('access_token');
-      if (!token) {
-        navigate('/');
-        return;
-      }
+  const supervisors = members.filter(m => m.role === 'Supervisor').length;
+  const groupLeaders = members.filter(m => m.role === 'Group Leader').length;
 
-      const API_BASE_URL = window.location.hostname === 'localhost'
-        ? 'http://127.0.0.1:8000'
-        : 'https://pcp-backend-f4a2.onrender.com';
+  const newSup = supervisors - (memberToDelete.role === 'Supervisor' ? 1 : 0);
+  const newGl = groupLeaders - (memberToDelete.role === 'Group Leader' ? 1 : 0);
 
-      await axios.delete(`${API_BASE_URL}/api/deleteprojectmember/`, {
-        headers: { Authorization: `Bearer ${token}` },
-        data: { project_id: projectId, email: memberEmail }
-      });
+  if (newSup < 1 || newGl < 1) {
+    setError('Cannot remove member: Project must have at least one Supervisor and one Group Leader');
+    setTimeout(() => setError(''), 3000);
+    return;
+  }
 
-      setMembers((prev) => prev.filter((member) => member.email !== memberEmail));
-      setError('Member deleted successfully.');
-      setTimeout(() => setError(''), 3000);
-    } catch (err) {
-      console.error(`Error deleting member ${memberEmail}:`, err);
-      setError('Failed to delete member');
-      setTimeout(() => setError(''), 3000);
-    }
-  };
+  try {
+    const token = localStorage.getItem('access_token');
+    const API_BASE_URL = window.location.hostname === 'localhost' ? 'http://127.0.0.1:8000' : 'https://pcp-backend-f4a2.onrender.com';
+
+    await axios.post(`${API_BASE_URL}/api/deleteprojectmember/`, {
+      project_id: projectId,
+      email: email
+    }, {
+      headers: { Authorization: `Bearer ${token}` }
+    });
+
+    setMembers(prev => prev.filter(m => m.email !== email));
+    setError('Member removed successfully');
+    setTimeout(() => setError(''), 3000);
+  } catch (err) {
+    console.error('Error deleting member:', err);
+    setError(err.response?.data?.error || 'Failed to remove member');
+    setTimeout(() => setError(''), 3000);
+  }
+};
 
   // Handle task deletion
   const handleDelete = async (taskId) => {
@@ -565,9 +588,13 @@ const SupervisorDashboard = () => {
   // Fetch members when Members tab is clicked
   useEffect(() => {
     if (activeTab === 'members' && projectId) {
-      const fetchMembers = async () => {
-        setLoadingMembers(true);
-        setError('');
+      fetchMembers();
+    }
+  }, [activeTab, projectId, navigate]);
+  
+  const fetchMembers = async () => {
+    setLoadingMembers(true);
+       setError('');
         try {
           const token = localStorage.getItem('access_token');
           if (!token) {
@@ -602,11 +629,6 @@ const SupervisorDashboard = () => {
           setLoadingMembers(false);
         }
       };
-
-      fetchMembers();
-    }
-  }, [activeTab, projectId]);
-
   const tabs = [
     {
       id: 'project-description',
@@ -1039,13 +1061,21 @@ const SupervisorDashboard = () => {
                       <p className={styles.memberEmail}>{member.email}</p>
                       <p className={styles.memberRole}>Role: {member.role}</p>
                     </div>
-                    {!isProjectGraded && (
-                      <button
-                        className={styles.deleteMemberButton}
-                        onClick={() => handleMemberDelete(member.email)}
-                      >
-                        Delete Member
-                      </button>
+                     {!isProjectGraded && (
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginTop: '10px' }}>
+                        <button
+                          className={styles.deleteMemberButton}
+                          onClick={() => handleMemberDelete(member.email)}
+                        >
+                          Remove Member
+                        </button>
+                        <button
+                          className={styles.deleteMemberButton}
+                          onClick={() => {setSelectedMember(member);setShowChangeRoleModel(true); }}
+                        >
+                          Change Role
+                        </button>
+                      </div>
                     )}
                   </div>
                 ))}
@@ -1119,6 +1149,14 @@ const SupervisorDashboard = () => {
         initialName={projectData?.project_name ?? ''}
         initialDescription={projectData?.project_description ?? ''}
         initialDueDate={projectData?.due_date ?? ''}
+      />
+      <ChangeRoleModel
+        isOpen={showChangeRoleModel}
+        onClose={() => setShowChangeRoleModel(false)}
+        projectId={projectId}
+        memberEmail={selectedMember?.email}
+        onUpdate={handleRoleUpdate}
+        initialRole={selectedMember?.role}
       />
       <button
         onClick={() => navigate('/dashboard')}
