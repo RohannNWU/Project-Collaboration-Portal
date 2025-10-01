@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import TaskUpdateModel from './TaskUpdateModel';
+import AddTaskModal from './AddTaskModal';
 import styles from './RoleDashboards.module.css';
 
 const GroupLeaderDashboard = () => {
@@ -25,6 +26,7 @@ const GroupLeaderDashboard = () => {
     const { projectId } = location.state || {};
     const chatContainerRef = useRef(null);
     const [showTaskUpdateModel, setShowTaskUpdateModel] = useState(false);
+    const [showModal, setShowModal] = useState(false);
     const [selectedTaskId, setSelectedTaskId] = useState(null);
 
     // Helper function for CHAT
@@ -197,6 +199,10 @@ const GroupLeaderDashboard = () => {
         }
     }, [activeTab, projectId, navigate]);
 
+    const handleAddNewTask = (id) => {
+        setShowModal(true);
+    };
+
     const fetchProjectData = async () => {
         setLoadingProject(true);
         setError('');
@@ -330,10 +336,6 @@ const GroupLeaderDashboard = () => {
         } finally {
             setLoadingDocuments((prev) => ({ ...prev, [taskId]: false }));
         }
-    };
-
-    const handleAddNewTask = (projectId) => {
-        navigate('/editproject', { state: { projectId: projectId, projectName: projectData.project_name } });
     };
 
     const handleCompleteTask = async (taskId) => {
@@ -1004,8 +1006,23 @@ const GroupLeaderDashboard = () => {
                         <p className={styles.detailText}>{'No sharepoint links provided.'}</p>
                         <button className={styles.addTaskButton}>Add new Links</button>
                     </div>
-                    <button className={styles.addTaskButton} onClick={() => handleAddNewTask(projectId)}>Add New Task</button>
+                    <button className={styles.addTaskButton} onClick={() => handleAddNewTask(projectId)}>
+                        Add New Task
+                    </button>
+                    {showModal && (
+                        <AddTaskModal 
+                            isOpen={showModal} 
+                            onClose={() => setShowModal(false)} 
+                            projectId={projectId}
+                            onSuccess={async () => {
+                                await fetchTasks();
+                                setError('Task added successfully!');
+                                setTimeout(() => setError(''), 3000);
+                            }}
+                        />
+                    )}
                 </div>
+
             ),
         },
         {
