@@ -33,6 +33,8 @@ const SupervisorDashboard = () => {
   const [finalTask, setFinalTask] = useState(null);
   const [finalDocuments, setFinalDocuments] = useState([]);
   const [showAddMemberModal, setShowAddMemberModal] = useState(false);
+  const [userContributions, setUserContributions] = useState([]);
+  const [loading, setLoading] = useState(false);
 
   // Check if project is graded (both grade and feedback are set)
   const isProjectGraded = projectData?.grade && projectData?.feedback;
@@ -65,8 +67,53 @@ const SupervisorDashboard = () => {
     }
   }, [chatMessages]);
 
-  // Fetch chat messages when Chat tab is clicked
-  
+  const fetchUserContributions = useCallback(async () => {
+    setError('');
+    setLoading(true);
+    try {
+      const token = localStorage.getItem('access_token');
+      if (!token) {
+        navigate('/');
+        return;
+      }
+
+      const API_BASE_URL = window.location.hostname === 'localhost'
+        ? 'http://127.0.0.1:8000'
+        : 'https://pcp-backend-f4a2.onrender.com';
+
+      // Fix: Pass projectId in params for query string (?projectId=123)
+      const response = await axios.get(`${API_BASE_URL}/api/getcontributions/`, {
+        params: { projectId },  // This appends ?projectId=${projectId}
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      setUserContributions(response.data.contributors || []);  // Fallback to empty array
+    } catch (err) {
+      console.error('Error fetching contributions:', err);
+      if (err.response?.status === 400) {
+        setError('Project ID is required');
+      } else if (err.response?.status === 404) {
+        setError('Project not found');
+      } else if (err.response?.status === 403) {
+        setError('Access denied to this project');
+      } else if (err.response?.status === 401) {
+        localStorage.removeItem('access_token');
+        navigate('/');
+      } else {
+        setError('Failed to fetch contributions');
+      }
+      setUserContributions([]);  // Clear on error
+    } finally {
+      setLoading(false);
+    }
+  }, [projectId, navigate]);  // Removed fetchUserContributions from deps (circular); add if needed
+
+  useEffect(() => {
+    if (activeTab === 'review_project' && projectId) {
+      fetchUserContributions();
+    }
+  }, [activeTab, projectId, fetchUserContributions]);
+
 
   // Fetch chat messages function
   const fetchChat = useCallback(async () => {
@@ -588,7 +635,7 @@ const SupervisorDashboard = () => {
   };
 
   // Fetch members when Members tab is clicked
-  
+
 
   const fetchMembers = useCallback(async () => {
     setLoadingMembers(true);
@@ -829,6 +876,24 @@ const SupervisorDashboard = () => {
                         >
                           Download
                         </button>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+              <div>
+                <h3>Contributions</h3>
+                {loading ? (
+                  <p>Loading contributions...</p>
+                ) : error ? (
+                  <p className="error">{error}</p>
+                ) : userContributions.length === 0 ? (
+                  <p>No contributors found.</p>
+                ) : (
+                  <ul>
+                    {userContributions.map((contributor, index) => (
+                      <li key={contributor.email || index}>  {/* Use email as key for uniqueness */}
+                        {contributor.first_name} {contributor.last_name} ({contributor.email})
                       </li>
                     ))}
                   </ul>

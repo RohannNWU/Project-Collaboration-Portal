@@ -22,6 +22,7 @@ import bcrypt
 import logging
 import mimetypes
 from django.utils import timezone
+from django.db.models import Count
 
 logger = logging.getLogger(__name__)
 
@@ -1897,3 +1898,65 @@ class ChangeRoleView(APIView):
         except Exception as e:
             logger.error(f"Error changing role: {str(e)}")
             return Response({'error': f'Failed to change role: {str(e)}'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+class GetContributionsView(APIView):
+    def get(self, request):
+        # Auth check (keeping your manual token validation for now)
+        auth_header = request.headers.get('Authorization')
+        if not auth_header or not auth_header.startswith('Bearer '):
+            return Response({'error': 'Authentication required'}, status=status.HTTP_401_UNAUTHORIZED)
+        
+        token = auth_header.split(' ')[1]
+        try:
+            # Validate token (assuming UntypedToken from your JWT setup)
+            payload = UntypedToken(token).payload
+        except Exception:
+            return Response({'error': 'Invalid token'}, status=status.HTTP_401_UNAUTHORIZED)
+
+        # Get project_id from query params (matches frontend send)
+        project_id = request.query_params.get('projectId')
+        if not project_id:
+            return Response({'error': 'Project ID is required'}, status=status.HTTP_400_BAD_REQUEST)
+        try:
+            # Fetch task IDs for the project
+            tasks = Task.objects.filter(project_id=project_id)
+            if not tasks.exists():
+                return Response({'contributors': []}, status=status.HTTP_200_OK)
+
+            tasks_id_list = tasks.values_list('task_id', flat=True)
+
+            # Fetch task-user assignments (emails with potential duplicates)
+            task_emails = User_Task.objects.filter(task_id__in=tasks_id_list).values_list('email__email', flat=True)
+
+            if not task_emails:
+                return Response({'contributors': []}, status=status.HTTP_200_OK)
+
+            # Get UNIQUE emails (flat list of str, no tuples/duplicates)
+            contributors_data = list(
+                User_Task.objects
+                .filter(task_id__in=tasks_id_list)
+                .values_list('email__email', flat=True)
+                .distinct()  # Ensures unique emails
+            )
+            
+            # Build users and dict from unique emails
+            users = User.objects.filter(email__in=contributors_data).values('first_name', 'last_name', 'email')
+            user_dict = {u['email']: {'first_name': u['first_name'], 'last_name': u['last_name']} for u in users}
+            
+            # Now loop over strings (matches dict keys)
+            contributors = []
+            for email in contributors_data:
+                if email in user_dict:  # Always true now, but safe
+                    contributors.append({
+                        'first_name': user_dict[email]['first_name'],
+                        'last_name': user_dict[email]['last_name'],
+                        'email': email,
+                    })
+            
+            return Response({'contributors': contributors}, status=status.HTTP_200_OK)
+
+        except Task.DoesNotExist:
+            return Response({'error': 'Project not found'}, status=status.HTTP_404_NOT_FOUND)
+        except Exception as e:
+            logger.error(f"Error getting contributions: {str(e)}")
+            return Response({'error': 'Failed to get contributions'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)

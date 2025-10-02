@@ -63,72 +63,87 @@ const GroupLeaderDashboard = () => {
         }
     }, [chatMessages]);
 
-    // Fetch chat messages when Chat tab is clicked
+    const getApiConfig = (token) => {
+        const API_BASE_URL = window.location.hostname === 'localhost'
+            ? 'http://127.0.0.1:8000'
+            : 'https://pcp-backend-f4a2.onrender.com';
+
+        return {
+            baseURL: API_BASE_URL,
+            headers: { Authorization: `Bearer ${token}` },
+        };
+    };
+
+    // Refined fetchDocuments (no getApiConfig in deps needed now)
     const fetchDocuments = useCallback(async (taskId) => {
+        const token = localStorage.getItem('access_token');
+        if (!token) {
+            navigate('/');
+            return [];  // Early return empty
+        }
+
         setLoadingDocuments((prev) => ({ ...prev, [taskId]: true }));
         try {
-            const token = localStorage.getItem('access_token');
-            if (!token) {
-                navigate('/');
-                return;
-            }
-
-            const API_BASE_URL = window.location.hostname === 'localhost'
-                ? 'http://127.0.0.1:8000'
-                : 'https://pcp-backend-f4a2.onrender.com';
-
-            const response = await axios.get(`${API_BASE_URL}/api/gettaskdocuments/?task_id=${taskId}`, {
-                headers: { Authorization: `Bearer ${token}` },
+            const config = getApiConfig(token);  // Plain function call
+            const response = await axios.get(`${config.baseURL}/api/gettaskdocuments/?task_id=${taskId}`, {
+                ...config,  // Spread headers
             });
 
+            const docs = response.data.documents || [];
             setDocumentsByTask((prev) => ({
                 ...prev,
-                [taskId]: response.data.documents || [],
+                [taskId]: docs,
             }));
+
+            return docs;  // Return for direct use
         } catch (err) {
             console.error(`Error fetching documents for task ${taskId}:`, err);
             setError('Failed to fetch documents');
             setTimeout(() => setError(''), 3000);
+            return [];  // Return empty on error
         } finally {
             setLoadingDocuments((prev) => ({ ...prev, [taskId]: false }));
         }
-    }, [navigate]);
+    }, [navigate]);  // Unchanged—no getApiConfig dep
 
+    // Refined fetchFinalSubmission (no getApiConfig in deps needed)
     const fetchFinalSubmission = useCallback(async () => {
         if (!projectId) return;
+
         setLoadingTasks(true);
+        const token = localStorage.getItem('access_token');
+        if (!token) {
+            navigate('/');
+            setLoadingTasks(false);
+            return;
+        }
+
         try {
-            const token = localStorage.getItem('access_token');
-            if (!token) {
-                navigate('/');
-                return;
-            }
-
-            const API_BASE_URL = window.location.hostname === 'localhost'
-                ? 'http://127.0.0.1:8000'
-                : 'https://pcp-backend-f4a2.onrender.com';
-
-            const response = await axios.get(`${API_BASE_URL}/api/getprojecttasks/?project_id=${projectId}`, {
-                headers: { Authorization: `Bearer ${token}` },
+            const config = getApiConfig(token);  // Plain function call
+            const response = await axios.get(`${config.baseURL}/api/getprojecttasks/?project_id=${projectId}`, {
+                ...config,
             });
 
             const allTasks = response.data.tasks || [];
             const finalTaskData = allTasks.find(task => task.task_name === 'Final Submission');
             setFinalTask(finalTaskData || null);
-            setTasks(allTasks); // Also update general tasks
+            setTasks(allTasks);
 
             if (finalTaskData) {
-                await fetchDocuments(finalTaskData.task_id);
-                setFinalDocuments(documentsByTask[finalTaskData.task_id] || []);
+                const docs = await fetchDocuments(finalTaskData.task_id);
+                setFinalDocuments(docs);
+            } else {
+                setFinalDocuments([]);
             }
         } catch (err) {
             console.error('Error fetching final submission:', err);
             setError('Failed to fetch final submission');
             setTimeout(() => setError(''), 3000);
+            setFinalDocuments([]);
         } finally {
             setLoadingTasks(false);
         }
-    }, [projectId, navigate, documentsByTask, fetchDocuments]);
+    }, [projectId, navigate, fetchDocuments]);
 
     const handleUploadDocument = async (taskId) => {
         if (!uploadTitle.trim() || !uploadFile) return;
@@ -173,10 +188,10 @@ const GroupLeaderDashboard = () => {
     };
 
     useEffect(() => {
-        if (activeTab === 'final-submission' && projectId) {
+        if (activeTab === 'final-submission' && projectId) {  // Or 'review_project' if that's the tab
             fetchFinalSubmission();
         }
-    }, [activeTab, projectId, navigate, fetchFinalSubmission]);
+    }, [activeTab, projectId, fetchFinalSubmission]);
 
     // Fetch chat messages function
     const fetchChat = useCallback(async () => {
@@ -444,7 +459,7 @@ const GroupLeaderDashboard = () => {
                 ? 'http://127.0.0.1:8000'
                 : 'https://pcp-backend-f4a2.onrender.com';
 
-            await axios.post(`${API_BASE_URL}/api/completetask/`, { task_id: taskId , task_status: 'Completed' }, {
+            await axios.post(`${API_BASE_URL}/api/completetask/`, { task_id: taskId, task_status: 'Finalized' }, {
                 headers: { Authorization: `Bearer ${token}` },
             });
 
@@ -1352,7 +1367,7 @@ const GroupLeaderDashboard = () => {
                                     />
                                     <button
                                         onClick={() => handleUploadDocument(finalTask.task_id)}
-                                        disabled={!uploadTitle.trim() || !uploadFile || uploading || finalTask.task_status === 'Completed'}
+                                        disabled={!uploadTitle.trim() || !uploadFile || uploading || finalTask.task_status === 'Finalized'}
                                         className={styles.submitButton}
                                     >
                                         {uploading ? 'Uploading...' : 'Upload'}
@@ -1360,7 +1375,7 @@ const GroupLeaderDashboard = () => {
                                 </div>
                             </div>
 
-                            {finalTask.task_status !== 'Completed' && (
+                            {finalTask.task_status !== 'Finalized' && (
                                 <button
                                     className={styles.submitButton}
                                     onClick={() => handleCompleteTask(finalTask.task_id)}
@@ -1369,7 +1384,7 @@ const GroupLeaderDashboard = () => {
                                     Submit Project
                                 </button>
                             )}
-                            {finalTask.task_status === 'Completed' && (
+                            {finalTask.task_status === 'Finalized' && (
                                 <p className={styles.successMessage}>Project submitted! Awaiting supervisor review.</p>
                             )}
                         </div>
