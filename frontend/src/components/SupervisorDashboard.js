@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import axios from 'axios';
 import { useNavigate, useLocation } from 'react-router-dom';
 import styles from './RoleDashboards.module.css';
@@ -66,14 +66,10 @@ const SupervisorDashboard = () => {
   }, [chatMessages]);
 
   // Fetch chat messages when Chat tab is clicked
-  useEffect(() => {
-    if (activeTab === 'chat' && projectId) {
-      fetchChat();
-    }
-  }, [activeTab, projectId, navigate]);
+  
 
   // Fetch chat messages function
-  const fetchChat = async () => {
+  const fetchChat = useCallback(async () => {
     setLoadingChat(true);
     setError('');
     try {
@@ -118,7 +114,13 @@ const SupervisorDashboard = () => {
     } finally {
       setLoadingChat(false);
     }
-  };
+  }, [projectId, navigate]);
+
+  useEffect(() => {
+    if (activeTab === 'chat' && projectId) {
+      fetchChat();
+    }
+  }, [activeTab, projectId, navigate, fetchChat]);
 
   // Handle sending chat message
   const handleSendMessage = async () => {
@@ -184,7 +186,7 @@ const SupervisorDashboard = () => {
   };
 
   // Fetch project data function
-  const fetchProjectData = async () => {
+  const fetchProjectData = useCallback(async () => {
     setLoadingProject(true);
     setError('');
     try {
@@ -221,7 +223,7 @@ const SupervisorDashboard = () => {
     } finally {
       setLoadingProject(false);
     }
-  };
+  }, [projectId, navigate]);
 
   // For Grade and Feedback Modal
   const handleGradeFeedbackSubmit = async ({ grade, feedback }) => {
@@ -316,7 +318,7 @@ const SupervisorDashboard = () => {
     if (activeTab === 'project-description' && projectId) {
       fetchProjectData();
     }
-  }, [activeTab, projectId]);
+  }, [activeTab, projectId, navigate, fetchProjectData]);
 
   // Fetch tasks when Tasks tab is clicked
   useEffect(() => {
@@ -362,10 +364,10 @@ const SupervisorDashboard = () => {
 
       fetchTasks();
     }
-  }, [activeTab, projectId]);
+  }, [activeTab, projectId, navigate]);
 
   // Fetch documents for a specific task
-  const fetchDocuments = async (taskId) => {
+  const fetchDocuments = useCallback(async (taskId) => {
     setLoadingDocuments((prev) => ({ ...prev, [taskId]: true }));
     try {
       const token = localStorage.getItem('access_token');
@@ -393,49 +395,7 @@ const SupervisorDashboard = () => {
     } finally {
       setLoadingDocuments((prev) => ({ ...prev, [taskId]: false }));
     }
-  };
-
-  const fetchFinalizedTasks = async () => {
-    setLoadingTasks(true);
-    setError('');
-    try {
-      const token = localStorage.getItem('access_token');
-      if (!token) {
-        navigate('/');
-        return;
-      }
-
-      const API_BASE_URL = window.location.hostname === 'localhost'
-        ? 'http://127.0.0.1:8000'
-        : 'https://pcp-backend-f4a2.onrender.com';
-
-      const response = await axios.get(`${API_BASE_URL}/api/getfinalizedtasks/${projectId}`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-
-      setTasks(response.data.tasks || []);
-    } catch (err) {
-      console.error('Error fetching finalized tasks:', err);
-      if (err.response?.data?.error === 'Not all tasks are finalized') {
-        setError('Not all tasks are finalized for this project.');
-        setTimeout(() => setError(''), 3000);
-      } else if (err.response?.status === 400) {
-        setError('Project ID is required.');
-        setTimeout(() => setError(''), 3000);
-      } else if (err.response?.status === 404) {
-        setError('Project not found.');
-        setTimeout(() => setError(''), 3000);
-      } else if (err.response?.status === 401) {
-        localStorage.removeItem('access_token');
-        navigate('/');
-      } else {
-        setError('Failed to fetch finalized tasks.');
-        setTimeout(() => setError(''), 3000);
-      }
-    } finally {
-      setLoadingTasks(false);
-    }
-  };
+  }, [navigate]);
 
   useEffect(() => {
     if (activeTab === 'review_project' && projectId) {  // Keep id as 'review_project' for simplicity
@@ -462,10 +422,7 @@ const SupervisorDashboard = () => {
           setFinalTask(finalTaskData || null);
           setTasks(allCompletedTasks);
 
-          if (finalTaskData) {
-            await fetchDocuments(finalTaskData.task_id);
-            setFinalDocuments(documentsByTask[finalTaskData.task_id] || []);
-          }
+
         } catch (err) {
           console.error('Error fetching completed tasks:', err);
           // ... existing error handling
@@ -477,6 +434,12 @@ const SupervisorDashboard = () => {
       fetchCompletedTasks();
     }
   }, [activeTab, projectId, navigate]);
+
+  useEffect(() => {
+    if (finalTask) {
+      setFinalDocuments(documentsByTask[finalTask.task_id] || []);
+    }
+  }, [finalTask, documentsByTask, fetchDocuments]);
 
   const handleMemberDelete = async (email) => {
     const memberToDelete = members.find(m => m.email === email);
@@ -625,13 +588,9 @@ const SupervisorDashboard = () => {
   };
 
   // Fetch members when Members tab is clicked
-  useEffect(() => {
-    if (activeTab === 'members' && projectId) {
-      fetchMembers();
-    }
-  }, [activeTab, projectId, navigate]);
+  
 
-  const fetchMembers = async () => {
+  const fetchMembers = useCallback(async () => {
     setLoadingMembers(true);
     setError('');
     try {
@@ -667,7 +626,12 @@ const SupervisorDashboard = () => {
     } finally {
       setLoadingMembers(false);
     }
-  };
+  }, [projectId, navigate]);
+  useEffect(() => {
+    if (activeTab === 'members' && projectId) {
+      fetchMembers();
+    }
+  }, [activeTab, projectId, navigate, fetchMembers]);
   const tabs = [
     {
       id: 'project-description',

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import axios from 'axios';
 import PropTypes from 'prop-types';
 import styles from './Models.module.css';
@@ -181,22 +181,15 @@ const TaskUpdateModel = ({ isOpen, onClose, projectId, taskId, onUpdate, initial
   const [activeTab, setActiveTab] = useState('details');
 
   useEffect(() => {
-    console.log('TaskUpdateModel props:', { taskId, projectId, initialName, initialDescription, initialDueDate });
-    if (!taskName && !taskDescription && !dueDate) {
-      setTaskName(initialName);
-      setTaskDescription(initialDescription);
-      setDueDate(formatDateToYYYYMMDD(initialDueDate));
-    }
-  }, [initialName, initialDescription, initialDueDate]);
+  console.log('TaskUpdateModel props:', { taskId, projectId, initialName, initialDescription, initialDueDate });
+  if (!taskName && !taskDescription && !dueDate) {
+    setTaskName(initialName);
+    setTaskDescription(initialDescription);
+    setDueDate(formatDateToYYYYMMDD(initialDueDate));
+  }
+}, [initialName, initialDescription, initialDueDate, taskName, taskDescription, dueDate, projectId, taskId]);
 
-  useEffect(() => {
-    if (isOpen && taskId) {
-      fetchProjectMembers(projectId);
-      fetchTaskMembers(taskId);
-      fetchTaskDetails(taskId);
-      setLoading(false);
-    }
-  }, [isOpen, projectId, taskId]);
+  
 
   const fetchProjectMembers = async (projectId) => {
     try {
@@ -246,32 +239,40 @@ const TaskUpdateModel = ({ isOpen, onClose, projectId, taskId, onUpdate, initial
     }
   };
 
-  const fetchTaskDetails = async (taskId) => {
-    try {
-      const token = localStorage.getItem('access_token');
-      if (!token) {
-        setError('Please log in to continue');
-        return;
-      }
-
-      const API_BASE_URL = window.location.hostname === 'localhost'
-        ? 'http://127.0.0.1:8000'
-        : 'https://pcp-backend-f4a2.onrender.com';
-
-      const response = await axios.post(
-        `${API_BASE_URL}/api/gettaskdetails/`,
-        { taskId },
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
-      console.log('Task details response:', response.data);
-      setTaskName(response.data.task_name || initialName);
-      setTaskDescription(response.data.task_description || initialDescription);
-      setDueDate(formatDateToYYYYMMDD(response.data.task_due_date) || initialDueDate);
-    } catch (error) {
-      console.error('Error fetching task details:', error);
-      setError('Failed to fetch task details');
+  const fetchTaskDetails = useCallback(async (taskId) => {
+  try {
+    const token = localStorage.getItem('access_token');
+    if (!token) {
+      setError('Please log in to continue');
+      return;
     }
-  };
+
+    const API_BASE_URL = window.location.hostname === 'localhost'
+      ? 'http://127.0.0.1:8000'
+      : 'https://pcp-backend-f4a2.onrender.com';
+
+    const response = await axios.get(
+      `${API_BASE_URL}/api/gettaskdetails/?task_id=${taskId}`,
+      { headers: { Authorization: `Bearer ${token}` } }
+    );
+    console.log('Task details response:', response.data);
+    setTaskName(response.data.task_name || initialName);
+    setTaskDescription(response.data.task_description || initialDescription);
+    setDueDate(formatDateToYYYYMMDD(response.data.task_due_date) || initialDueDate);
+  } catch (error) {
+    console.error('Error fetching task details:', error);
+    setError('Failed to fetch task details');
+  }
+}, [initialName, initialDescription, initialDueDate]);
+
+useEffect(() => {
+  if (isOpen && taskId) {
+    fetchProjectMembers(projectId);
+    fetchTaskMembers(taskId);
+    fetchTaskDetails(taskId);
+    setLoading(false);
+  }
+}, [isOpen, projectId, taskId, fetchTaskDetails]);
 
   const handleAddMember = async (email) => {
     if (!email) return;

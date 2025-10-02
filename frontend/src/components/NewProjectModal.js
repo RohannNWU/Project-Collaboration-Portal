@@ -44,8 +44,7 @@ const NewProjectModal = ({ onClose, onSuccess }) => {
     const handleAddMember = (e) => {
         e.preventDefault();
         if (memberName.trim()) {
-            const emailWithDomain = `${memberName.trim()}@mynwu.ac.za`;
-            setProjectMembers([emailWithDomain, ...project_members]);
+            setProjectMembers([memberName, ...project_members]);
             setMemberName('');
         }
     };

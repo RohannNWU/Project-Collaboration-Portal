@@ -126,10 +126,6 @@ const ResetPasswordModal = ({ isOpen, onClose, onSuccess }) => {
     setShowNewPassword(!showNewPassword);
   };
 
-  const toggleConfirmPasswordVisibility = () => {
-    setShowConfirmPassword(!showConfirmPassword);
-  };
-
   if (!isOpen) return null;
 
   return (

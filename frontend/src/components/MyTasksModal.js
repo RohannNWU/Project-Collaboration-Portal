@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import axios from 'axios';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faTimes } from '@fortawesome/free-solid-svg-icons'; // For close button, adjust if needed
@@ -9,13 +9,9 @@ const MyTasksModal = ({ isOpen, onClose, email }) => {
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
 
-    useEffect(() => {
-        if (isOpen) {
-            fetchTasks();
-        }
-    }, [isOpen]);
+    
 
-    const fetchTasks = async () => {
+    const fetchTasks = useCallback(async () => {
         setLoading(true);
         setError('');
         try {
@@ -32,7 +28,12 @@ const MyTasksModal = ({ isOpen, onClose, email }) => {
         } finally {
             setLoading(false);
         }
-    };
+    }, [email]);
+    useEffect(() => {
+  if (isOpen) {
+    fetchTasks();
+  }
+}, [isOpen, fetchTasks]);
 
     if (!isOpen) return null;
 

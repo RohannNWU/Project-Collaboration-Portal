@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import axios from 'axios'; // Assuming axios is used for API calls
 import styles from './Models.module.css'; // Import the CSS module
 
@@ -14,32 +14,33 @@ const AddTaskModal = ({ isOpen, onClose, projectId, onSuccess }) => {
   const [error, setError] = useState('');
 
   // Fetch project members when modal opens
-  useEffect(() => {
-    if (isOpen && projectId) {
-      setTaskName('');
-      setTaskDescription('');
-      setTaskDueDate('');
-      setTaskStatus('In Progress');
-      setTaskPriority('Medium');
-      setTaskMembers([]);
-      setError('');
-      fetchProjectMembers();
-    }
-  }, [isOpen, projectId]);
+  
 
-  const fetchProjectMembers = async () => {
-    try {
-        const API_BASE_URL = window.location.hostname === 'localhost'
-        ? 'http://127.0.0.1:8000'
-        : 'https://pcp-backend-f4a2.onrender.com';
-      // Assuming an API endpoint like /api/projects/{projectId}/members/ that returns [{email: 'user@example.com'}, ...]
-      const response = await axios.post(`${API_BASE_URL}/api/getmembers/`, { projectId });
-      setProjectMembers(response.data.members); // Expecting array of {email: string}
-    } catch (err) {
-      setError('Failed to load project members');
-      console.error(err);
-    }
-  };
+  const fetchProjectMembers = useCallback(async () => {
+  try {
+    const API_BASE_URL = window.location.hostname === 'localhost'
+      ? 'http://127.0.0.1:8000'
+      : 'https://pcp-backend-f4a2.onrender.com';
+    // Assuming an API endpoint like /api/projects/{projectId}/members/ that returns [{email: 'user@example.com'}, ...]
+    const response = await axios.post(`${API_BASE_URL}/api/getmembers/`, { projectId });
+    setProjectMembers(response.data.members); // Expecting array of {email: string}
+  } catch (err) {
+    setError('Failed to load project members');
+    console.error(err);
+  }
+}, [projectId]);
+useEffect(() => {
+  if (isOpen && projectId) {
+    setTaskName('');
+    setTaskDescription('');
+    setTaskDueDate('');
+    setTaskStatus('In Progress');
+    setTaskPriority('Medium');
+    setTaskMembers([]);
+    setError('');
+    fetchProjectMembers();
+  }
+}, [isOpen, projectId, fetchProjectMembers]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();

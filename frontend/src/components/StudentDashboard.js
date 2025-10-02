@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import styles from './RoleDashboards.module.css';
@@ -98,14 +98,10 @@ const StudentDashboard = () => {
   }, [projectId, navigate]);
 
   // Fetch chat messages when Chat tab is clicked
-  useEffect(() => {
-    if (activeTab === 'chat' && projectId) {
-      fetchChat();
-    }
-  }, [activeTab, projectId, navigate]);
+  
 
   // Fetch chat messages function
-  const fetchChat = async () => {
+  const fetchChat = useCallback(async () => {
     setLoadingChat(true);
     setError('');
     try {
@@ -150,7 +146,13 @@ const StudentDashboard = () => {
     } finally {
       setLoadingChat(false);
     }
-  };
+  }, [projectId, navigate]);
+
+  useEffect(() => {
+  if (activeTab === 'chat' && projectId) {
+    fetchChat();
+  }
+}, [activeTab, projectId, navigate, fetchChat]);
 
   // Handle sending chat message
   const handleSendMessage = async () => {
@@ -223,13 +225,34 @@ const StudentDashboard = () => {
   }, [projectId, navigate]);
 
   // Fetch tasks when Tasks tab is clicked
-  useEffect(() => {
-    if (activeTab === 'tasks' && projectId) {
-      fetchTasks();
-    }
-  }, [activeTab, projectId, navigate]);
+  const fetchUserTaskAssignments = useCallback(async () => {
+    try {
+      const token = localStorage.getItem('access_token');
+      if (!token) {
+        navigate('/');
+        return;
+      }
 
-  const fetchTasks = async () => {
+      const API_BASE_URL = window.location.hostname === 'localhost'
+        ? 'http://127.0.0.1:8000'
+        : 'https://pcp-backend-f4a2.onrender.com';
+
+      const response = await axios.get(`${API_BASE_URL}/api/getusertasks/`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      const assignmentLookup = {};
+      response.data.tasks.forEach(task => {
+        assignmentLookup[task.task_id] = true;
+      });
+
+      setUserTaskAssignments(assignmentLookup);
+    } catch (err) {
+      console.error('Error fetching user task assignments:', err);
+    }
+  }, [navigate]);
+
+  const fetchTasks = useCallback(async () => {
     setLoadingTasks(true);
     setError('');
     try {
@@ -265,7 +288,9 @@ const StudentDashboard = () => {
     } finally {
       setLoadingTasks(false);
     }
-  };
+  }, [projectId, navigate, fetchUserTaskAssignments]);
+
+  
 
   // Fetch members when Members tab is clicked
   useEffect(() => {
@@ -376,32 +401,13 @@ const StudentDashboard = () => {
   };
 
   // Fetch user task assignments
-  const fetchUserTaskAssignments = async () => {
-    try {
-      const token = localStorage.getItem('access_token');
-      if (!token) {
-        navigate('/');
-        return;
-      }
+  
 
-      const API_BASE_URL = window.location.hostname === 'localhost'
-        ? 'http://127.0.0.1:8000'
-        : 'https://pcp-backend-f4a2.onrender.com';
-
-      const response = await axios.get(`${API_BASE_URL}/api/getusertasks/`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-
-      const assignmentLookup = {};
-      response.data.tasks.forEach(task => {
-        assignmentLookup[task.task_id] = true;
-      });
-
-      setUserTaskAssignments(assignmentLookup);
-    } catch (err) {
-      console.error('Error fetching user task assignments:', err);
-    }
-  };
+  useEffect(() => {
+  if (activeTab === 'tasks' && projectId) {
+    fetchTasks();
+  }
+}, [activeTab, projectId, navigate, fetchTasks]);
 
   // Handle file upload
   const handleFileUpload = async (taskId, file) => {
@@ -850,9 +856,9 @@ const StudentDashboard = () => {
               })()}
             </div>
           )}
-          {projectData && projectData.grade && projectData.feedback ? null : (
-            <div className={styles.chatInputContainer}>
-              <input
+          {projectData && projectData.grade && projectData.feedback ? null : ( // Use isProjectGraded here
+  <div className={styles.chatInputContainer}>
+    <input
                 type="text"
                 placeholder="Type your message..."
                 value={messageInput}
@@ -865,10 +871,10 @@ const StudentDashboard = () => {
                 onBlur={(e) => {
                   e.target.classList.remove(styles.chatInputFocus);
                 }}
+                disabled={isProjectGraded}
               />
               <button
                 onClick={handleSendMessage}
-                disabled={!messageInput.trim()}
                 className={`${styles.sendButton} ${!messageInput.trim() ? styles.sendButtonDisabled : ''}`}
                 onMouseEnter={(e) => {
                   if (messageInput.trim()) {
@@ -880,6 +886,7 @@ const StudentDashboard = () => {
                     e.target.classList.remove(styles.sendButtonHover);
                   }
                 }}
+                disabled={isProjectGraded || !messageInput.trim()}
               >
                 Send
               </button>

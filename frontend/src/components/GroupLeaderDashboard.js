@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import TaskUpdateModel from './TaskUpdateModel';
@@ -64,15 +64,8 @@ const GroupLeaderDashboard = () => {
     }, [chatMessages]);
 
     // Fetch chat messages when Chat tab is clicked
-    useEffect(() => {
-        if (activeTab === 'chat' && projectId) {
-            fetchChat();
-        }
-    }, [activeTab, projectId, navigate]);
-
-    const fetchFinalSubmission = async () => {
-        if (!projectId) return;
-        setLoadingTasks(true);
+    const fetchDocuments = useCallback(async (taskId) => {
+        setLoadingDocuments((prev) => ({ ...prev, [taskId]: true }));
         try {
             const token = localStorage.getItem('access_token');
             if (!token) {
@@ -84,27 +77,58 @@ const GroupLeaderDashboard = () => {
                 ? 'http://127.0.0.1:8000'
                 : 'https://pcp-backend-f4a2.onrender.com';
 
-            const response = await axios.get(`${API_BASE_URL}/api/getprojecttasks/?project_id=${projectId}`, {
+            const response = await axios.get(`${API_BASE_URL}/api/gettaskdocuments/?task_id=${taskId}`, {
                 headers: { Authorization: `Bearer ${token}` },
             });
 
-            const allTasks = response.data.tasks || [];
-            const finalTaskData = allTasks.find(task => task.task_name === 'Final Submission');
-            setFinalTask(finalTaskData || null);
-            setTasks(allTasks); // Also update general tasks
-
-            if (finalTaskData) {
-                await fetchDocuments(finalTaskData.task_id);
-                setFinalDocuments(documentsByTask[finalTaskData.task_id] || []);
-            }
+            setDocumentsByTask((prev) => ({
+                ...prev,
+                [taskId]: response.data.documents || [],
+            }));
         } catch (err) {
-            console.error('Error fetching final submission:', err);
-            setError('Failed to fetch final submission');
+            console.error(`Error fetching documents for task ${taskId}:`, err);
+            setError('Failed to fetch documents');
             setTimeout(() => setError(''), 3000);
         } finally {
-            setLoadingTasks(false);
+            setLoadingDocuments((prev) => ({ ...prev, [taskId]: false }));
         }
-    };
+    }, [navigate]);
+
+    const fetchFinalSubmission = useCallback(async () => {
+  if (!projectId) return;
+  setLoadingTasks(true);
+  try {
+    const token = localStorage.getItem('access_token');
+    if (!token) {
+      navigate('/');
+      return;
+    }
+
+    const API_BASE_URL = window.location.hostname === 'localhost'
+      ? 'http://127.0.0.1:8000'
+      : 'https://pcp-backend-f4a2.onrender.com';
+
+    const response = await axios.get(`${API_BASE_URL}/api/getprojecttasks/?project_id=${projectId}`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+
+    const allTasks = response.data.tasks || [];
+    const finalTaskData = allTasks.find(task => task.task_name === 'Final Submission');
+    setFinalTask(finalTaskData || null);
+    setTasks(allTasks); // Also update general tasks
+
+    if (finalTaskData) {
+      await fetchDocuments(finalTaskData.task_id);
+      setFinalDocuments(documentsByTask[finalTaskData.task_id] || []);
+    }
+  } catch (err) {
+    console.error('Error fetching final submission:', err);
+    setError('Failed to fetch final submission');
+    setTimeout(() => setError(''), 3000);
+  } finally {
+    setLoadingTasks(false);
+  }
+}, [projectId, navigate, documentsByTask, fetchDocuments]);
 
     const handleUploadDocument = async (taskId) => {
         if (!uploadTitle.trim() || !uploadFile) return;
@@ -149,62 +173,69 @@ const GroupLeaderDashboard = () => {
     };
 
     useEffect(() => {
-        if (activeTab === 'final-submission' && projectId) {
-            fetchFinalSubmission();
-        }
-    }, [activeTab, projectId, navigate]);
+  if (activeTab === 'final-submission' && projectId) {
+    fetchFinalSubmission();
+  }
+}, [activeTab, projectId, navigate, fetchFinalSubmission]);
 
     // Fetch chat messages function
-    const fetchChat = async () => {
-        setLoadingChat(true);
-        setError('');
-        try {
-            const token = localStorage.getItem('access_token');
-            if (!token) {
-                navigate('/');
-                return;
-            }
+    const fetchChat = useCallback(async () => {
+  setLoadingChat(true);
+  setError('');
+  try {
+    const token = localStorage.getItem('access_token');
+    if (!token) {
+      navigate('/');
+      return;
+    }
 
-            const API_BASE_URL = window.location.hostname === 'localhost'
-                ? 'http://127.0.0.1:8000'
-                : 'https://pcp-backend-f4a2.onrender.com';
+    const API_BASE_URL = window.location.hostname === 'localhost'
+      ? 'http://127.0.0.1:8000'
+      : 'https://pcp-backend-f4a2.onrender.com';
 
-            const response = await axios.get(`${API_BASE_URL}/api/getprojectchat/?project_id=${projectId}`, {
-                headers: { Authorization: `Bearer ${token}` },
-            });
+    const response = await axios.get(`${API_BASE_URL}/api/getprojectchat/?project_id=${projectId}`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
 
-            const serverMessages = response.data.messages || [];
-            setChatMessages(prev => {
-                const nonTempMessages = prev.filter(msg => {
-                    return !(msg.id && typeof msg.id === 'string' && msg.id.startsWith('temp-'));
-                });
-                if (JSON.stringify(nonTempMessages) !== JSON.stringify(serverMessages)) {
-                    return serverMessages;
-                }
-                return prev;
-            });
-        } catch (err) {
-            console.error('Error fetching chat messages:', err);
-            if (err.response?.status === 400) {
-                setError('Project ID is required');
-                setTimeout(() => setError(''), 3000);
-            } else if (err.response?.status === 404) {
-                setError('Project not found');
-                setTimeout(() => setError(''), 3000);
-            } else if (err.response?.status === 403) {
-                setError('Access denied to this project');
-                setTimeout(() => setError(''), 3000);
-            } else if (err.response?.status === 401) {
-                localStorage.removeItem('access_token');
-                navigate('/');
-            } else {
-                setError('Failed to fetch chat messages');
-                setTimeout(() => setError(''), 3000);
-            }
-        } finally {
-            setLoadingChat(false);
-        }
-    };
+    const serverMessages = response.data.messages || [];
+    setChatMessages(prev => {
+      const nonTempMessages = prev.filter(msg => {
+        return !(msg.id && typeof msg.id === 'string' && msg.id.startsWith('temp-'));
+      });
+      if (JSON.stringify(nonTempMessages) !== JSON.stringify(serverMessages)) {
+        return serverMessages;
+      }
+      return prev;
+    });
+  } catch (err) {
+    console.error('Error fetching chat messages:', err);
+    if (err.response?.status === 400) {
+      setError('Project ID is required');
+      setTimeout(() => setError(''), 3000);
+    } else if (err.response?.status === 404) {
+      setError('Project not found');
+      setTimeout(() => setError(''), 3000);
+    } else if (err.response?.status === 403) {
+      setError('Access denied to this project');
+      setTimeout(() => setError(''), 3000);
+    } else if (err.response?.status === 401) {
+      localStorage.removeItem('access_token');
+      navigate('/');
+    } else {
+      setError('Failed to fetch chat messages');
+      setTimeout(() => setError(''), 3000);
+    }
+  } finally {
+    setLoadingChat(false);
+  }
+}, [projectId, navigate]); // Memoize with dependencies
+
+// Update the useEffect for chat (line 68-72)
+useEffect(() => {
+  if (activeTab === 'chat' && projectId) {
+    fetchChat();
+  }
+}, [activeTab, projectId, navigate, fetchChat]);
 
     // Handle sending chat message
     const handleSendMessage = async () => {
@@ -273,6 +304,11 @@ const GroupLeaderDashboard = () => {
             }
         }
     };
+    useEffect(() => {
+        if (activeTab === 'chat' && projectId) {
+            fetchChat();
+        }
+    }, [activeTab, projectId, navigate, fetchChat]);
 
     // Redirect if no projectId
     useEffect(() => {
@@ -282,17 +318,13 @@ const GroupLeaderDashboard = () => {
     }, [projectId, navigate]);
 
     // Fetch project data when Project Description tab is clicked
-    useEffect(() => {
-        if (activeTab === 'project-description' && projectId) {
-            fetchProjectData();
-        }
-    }, [activeTab, projectId, navigate]);
+    
 
     const handleAddNewTask = (id) => {
         setShowModal(true);
     };
 
-    const fetchProjectData = async () => {
+    const fetchProjectData = useCallback(async () => {
         setLoadingProject(true);
         setError('');
         try {
@@ -329,7 +361,12 @@ const GroupLeaderDashboard = () => {
         } finally {
             setLoadingProject(false);
         }
-    };
+    }, [projectId, navigate]);
+    useEffect(() => {
+  if (activeTab === 'project-description' && projectId) {
+    fetchProjectData();
+  }
+}, [activeTab, projectId, navigate, fetchProjectData]);
 
     const handleTaskUpdate = async ({ taskId, taskName, taskDescription, dueDate }) => {
         try {
@@ -345,11 +382,7 @@ const GroupLeaderDashboard = () => {
     };
 
     // Fetch tasks when Tasks tab is clicked
-    useEffect(() => {
-        if (activeTab === 'tasks' && projectId) {
-            fetchTasks();
-        }
-    }, [activeTab, projectId, navigate]);
+    
 
     useEffect(() => {
         if (activeTab === 'review_tasks' && projectId) {
@@ -397,35 +430,7 @@ const GroupLeaderDashboard = () => {
     }, [activeTab, projectId, navigate]);
 
     // Fetch documents for a specific task
-    const fetchDocuments = async (taskId) => {
-        setLoadingDocuments((prev) => ({ ...prev, [taskId]: true }));
-        try {
-            const token = localStorage.getItem('access_token');
-            if (!token) {
-                navigate('/');
-                return;
-            }
-
-            const API_BASE_URL = window.location.hostname === 'localhost'
-                ? 'http://127.0.0.1:8000'
-                : 'https://pcp-backend-f4a2.onrender.com';
-
-            const response = await axios.get(`${API_BASE_URL}/api/gettaskdocuments/?task_id=${taskId}`, {
-                headers: { Authorization: `Bearer ${token}` },
-            });
-
-            setDocumentsByTask((prev) => ({
-                ...prev,
-                [taskId]: response.data.documents || [],
-            }));
-        } catch (err) {
-            console.error(`Error fetching documents for task ${taskId}:`, err);
-            setError('Failed to fetch documents');
-            setTimeout(() => setError(''), 3000);
-        } finally {
-            setLoadingDocuments((prev) => ({ ...prev, [taskId]: false }));
-        }
-    };
+    
 
     const handleCompleteTask = async (taskId) => {
         try {
@@ -554,7 +559,34 @@ const GroupLeaderDashboard = () => {
         }
     };
 
-    const fetchTasks = async () => {
+    const fetchUserTaskAssignments = useCallback(async() => {
+        try {
+            const token = localStorage.getItem('access_token');
+            if (!token) {
+                navigate('/');
+                return;
+            }
+
+            const API_BASE_URL = window.location.hostname === 'localhost'
+                ? 'http://127.0.0.1:8000'
+                : 'https://pcp-backend-f4a2.onrender.com';
+
+            const response = await axios.get(`${API_BASE_URL}/api/getusertasks/`, {
+                headers: { Authorization: `Bearer ${token}` }
+            });
+
+            const assignmentLookup = {};
+            response.data.tasks.forEach(task => {
+                assignmentLookup[task.task_id] = true;
+            });
+
+            setUserTaskAssignments(assignmentLookup);
+        } catch (err) {
+            console.error('Error fetching user task assignments:', err);
+        }
+    }, [navigate]);
+
+    const fetchTasks = useCallback(async () => {
         setLoadingTasks(true);
         setError('');
         try {
@@ -593,65 +625,13 @@ const GroupLeaderDashboard = () => {
         } finally {
             setLoadingTasks(false);
         }
-    };
+    }, [projectId, navigate, fetchUserTaskAssignments]);
 
-    const fetchUserTaskAssignments = async () => {
-        try {
-            const token = localStorage.getItem('access_token');
-            if (!token) {
-                navigate('/');
-                return;
-            }
-
-            const API_BASE_URL = window.location.hostname === 'localhost'
-                ? 'http://127.0.0.1:8000'
-                : 'https://pcp-backend-f4a2.onrender.com';
-
-            const response = await axios.get(`${API_BASE_URL}/api/getusertasks/`, {
-                headers: { Authorization: `Bearer ${token}` }
-            });
-
-            const assignmentLookup = {};
-            response.data.tasks.forEach(task => {
-                assignmentLookup[task.task_id] = true;
-            });
-
-            setUserTaskAssignments(assignmentLookup);
-        } catch (err) {
-            console.error('Error fetching user task assignments:', err);
-        }
-    };
-
-    const handleMemberDelete = async (memberEmail) => {
-        if (!window.confirm('Are you sure you want to delete this member?')) {
-            return;
-        }
-
-        try {
-            const token = localStorage.getItem('access_token');
-            if (!token) {
-                navigate('/');
-                return;
-            }
-
-            const API_BASE_URL = window.location.hostname === 'localhost'
-                ? 'http://127.0.0.1:8000'
-                : 'https://pcp-backend-f4a2.onrender.com';
-
-            await axios.delete(`${API_BASE_URL}/api/deleteprojectmember/`, {
-                headers: { Authorization: `Bearer ${token}` },
-                data: { project_id: projectId, email: memberEmail }
-            });
-
-            setMembers((prev) => prev.filter((member) => member.email !== memberEmail));
-            setError('Member deleted successfully.');
-            setTimeout(() => setError(''), 3000);
-        } catch (err) {
-            console.error(`Error deleting member ${memberEmail}:`, err);
-            setError('Failed to delete member');
-            setTimeout(() => setError(''), 3000);
-        }
-    };
+    useEffect(() => {
+  if (activeTab === 'tasks' && projectId) {
+    fetchTasks();
+  }
+}, [activeTab, projectId, navigate, fetchTasks]);
 
     // Handle task deletion
     const handleDelete = async (taskId) => {
