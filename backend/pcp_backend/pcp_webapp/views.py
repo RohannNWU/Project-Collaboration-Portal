@@ -146,6 +146,7 @@ class AddUserView(APIView):
 
             # Hash password and convert to string for storage
             hashed_password = bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
+            hashed_security_answer = bcrypt.hashpw(security_answer.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
 
             # Check if user already exists
             if User.objects.filter(email=user_email).exists():
@@ -158,7 +159,7 @@ class AddUserView(APIView):
                 last_name=lname,
                 password=hashed_password,
                 security_question=security_question,
-                security_answer=security_answer
+                security_answer=hashed_security_answer
             )
             return Response({'message': 'User added successfully', 'id': user.email}, status=status.HTTP_201_CREATED)
         except Exception as e:
@@ -2045,15 +2046,15 @@ class VerifySecurityAnswerView(APIView):
         
         if not email or not security_answer:
             return Response({'error': 'Email and security answer are required'}, status=status.HTTP_400_BAD_REQUEST)
-        
+
         try:
             user = User.objects.get(email=email)
-            if user.security_answer == security_answer:
-                logger.info(f"Security answer verified successfully for user {email}")
-                return Response({'message': 'Security answer is correct'}, status=status.HTTP_200_OK)
-            else:
+            if not bcrypt.checkpw(security_answer.encode('utf-8'), user.security_answer.encode('utf-8')):
                 logger.warning(f"Invalid security answer provided for user {email}")
                 return Response({'error': 'Invalid security answer'}, status=status.HTTP_401_UNAUTHORIZED)
+            else:
+                logger.info(f"Security answer verified successfully for user {email}")
+                return Response({'success': 'Security answer is correct'}, status=status.HTTP_200_OK)
         
         except User.DoesNotExist:
             logger.warning(f"Security answer verification attempted for non-existent email: {email}")
