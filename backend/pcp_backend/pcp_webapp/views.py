@@ -2031,7 +2031,7 @@ class GetUserDetailsView(APIView):
                 'last_name': user.last_name,
                 'security_question': user.security_question,
             }
-            return Response({'user_details': details}, status=status.HTTP_200_OK)
+            return Response({'success': 'User found', 'user_details': details}, status=status.HTTP_200_OK)
         except User.DoesNotExist:
             return Response({'error': 'User not found'}, status=status.HTTP_404_NOT_FOUND)
         except Exception as e:
