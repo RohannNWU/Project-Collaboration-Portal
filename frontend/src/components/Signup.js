@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 import styles from './Login.module.css';
-import { faEnvelope, faLock, faEye, faEyeSlash, faUser } from '@fortawesome/free-solid-svg-icons';
+import { faEnvelope, faLock, faEye, faEyeSlash, faUser, faUserSecret } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import LoginButton from './LoginButton';
 
@@ -10,6 +10,8 @@ const AddUser = () => {
   const [email, setEmail] = useState('');
   const [fname, setFname] = useState('');
   const [lname, setLname] = useState('');
+  const [secQuestion, setSecQuestion] = useState('');
+  const [secAnswer, setSecAnswer] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [message, setMessage] = useState('');
@@ -27,7 +29,9 @@ const AddUser = () => {
           email: email,
           fname: fname,
           lname: lname,
-          password: password
+          password: password,
+          security_question: secQuestion,
+          security_answer: secAnswer
         },
       );
       setMessage(response.data.message);
@@ -46,10 +50,6 @@ const AddUser = () => {
         <div className={styles.loginContent}>
           <div className={styles.branding}>
             <h1>Sign up for the<br />Project Collaboration Portal</h1>
-          </div>
-
-          <div className={styles.welcome}>
-            <p>Begin your collaboration workspace journey</p>
           </div>
 
           <form className={styles.loginForm} onSubmit={handleSubmit}>
@@ -91,6 +91,38 @@ const AddUser = () => {
                   placeholder="Enter your last name"
                   value={lname}
                   onChange={(e) => setLname(e.target.value)}
+                />
+              </div>
+            </div>
+
+            <div className={styles.formGroup}>
+              <label htmlFor="securityquestion">Security Questions</label>
+              <div className={styles.passwordInputContainer}>
+                <FontAwesomeIcon icon={faUserSecret} className={styles.inputIcon} />
+                <select
+                  id="secQuestion"
+                  onChange={(e) => setSecQuestion(e.target.value)}
+                >
+                  <option value="">Select ONE security question</option>
+                  <option value="What is your favourite car model?">1. What is your favorite car model?</option>
+                  <option value="Where is your favourite holiday destination?">2. Where is your favourite holiday destination?</option>
+                  <option value="What is your favourite snack?">3. What is your favourite snack?</option>
+                  <option value="Who is your favourite superhero?">4. Who is your favourite superhero?</option>
+                  <option value="What is your favourite name for a pet?">5. What is your favourite name for a pet?</option>
+                </select>
+              </div>
+            </div>
+
+            <div className={styles.formGroup}>
+              <label htmlFor="secAnswer">Security Question Answer</label>
+              <div className={styles.passwordInputContainer}>
+                <FontAwesomeIcon icon={faUserSecret} className={styles.inputIcon} />
+                <input
+                  type="text"
+                  id="secAnswer"
+                  placeholder="Enter your security answer"
+                  value={secAnswer}
+                  onChange={(e) => setSecAnswer(e.target.value)}
                 />
               </div>
             </div>

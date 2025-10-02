@@ -9,7 +9,7 @@ from pcp_webapp.views import (
     UpdateTaskView, DocumentUploadView, GetProjectTasksView, GetTaskDocumentsView,
     DeleteTaskView, GetProjectDataView, DownloadDocumentView, AddProjectUserView, 
     DeleteProjectUserView, DeleteDocumentView, ReviewTask, GetTaskMembersView,
-    GetProjectChatView, SendChatMessageView, GetCompletedTasksView, 
+    GetProjectChatView, SendChatMessageView, GetCompletedTasksView, GetContributionsView,
     UpdateProjectDetailsView, UpdateProjectFeedbackView,UpdateProfileView,
     CreateNotificationView, DeleteNotificationView, CompleteTaskView, GetFinalizedTasksView,
     GetTaskDetailsView, RemoveTaskMemberView, AddTaskMemberView, UploadDocumentView,
@@ -62,6 +62,7 @@ urlpatterns = [
     path('api/deleteprojectlink/', DeleteProjectLinkView.as_view(), name='deleteprojectlink'),
     path('api/getuserdetails/', GetUserDetailsView.as_view(), name='getuserdetails'),
     path('api/verifysecurityanswer/', VerifySecurityAnswerView.as_view(), name='verifysecurityanswer'),
+    path('api/getcontributions/', GetContributionsView.as_view(), name="getcontributions"),   
 ]
 
 # Serve media files during development
