@@ -14,6 +14,11 @@ const NewProjectModal = ({ onClose, onSuccess }) => {
     const [loading, setLoading] = useState(false);
     const navigate = useNavigate();
 
+    // Calculate tomorrow's date for the min attribute
+    const tomorrow = new Date();
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    const minDate = tomorrow.toISOString().split('T')[0]; // Format as YYYY-MM-DD
+
     useEffect(() => {
         const token = localStorage.getItem('access_token');
         if (!token) {
@@ -28,6 +33,7 @@ const NewProjectModal = ({ onClose, onSuccess }) => {
         })
             .then(response => {
                 setEmail(response.data.email);
+                setProjectMembers([response.data.email]); // Automatically add logged-in user's email
             })
             .catch(err => {
                 if (err.response && err.response.status === 401) {
@@ -37,22 +43,76 @@ const NewProjectModal = ({ onClose, onSuccess }) => {
             });
     }, [navigate]);
 
-    const handleInputChange = (event) => {
-        setMemberName(event.target.value);
+    const isValidEmail = (email) => {
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        return emailRegex.test(email);
     };
 
-    const handleAddMember = (e) => {
+    const handleInputChange = (event) => {
+        setMemberName(event.target.value);
+        setMessage(''); // Clear message when user starts typing
+    };
+
+    const handleAddMember = async (e) => {
         e.preventDefault();
-        if (memberName.trim()) {
-            setProjectMembers([memberName, ...project_members]);
-            setMemberName('');
+        const trimmedMemberName = memberName.trim();
+        if (!trimmedMemberName) {
+            setMessage('Please enter an email address');
+            return;
         }
+        if (!isValidEmail(trimmedMemberName)) {
+            setMessage('Please enter a valid email address');
+            return;
+        }
+        if (project_members.includes(trimmedMemberName)) {
+            setMessage('This email is already added');
+            return;
+        }
+
+        const API_BASE_URL = window.location.hostname === 'localhost'
+            ? 'http://127.0.0.1:8000'
+            : 'https://pcp-backend-f4a2.onrender.com';
+
+        try {
+            const response = await axios.post(
+                `${API_BASE_URL}/api/getuserdetails/`,
+                { email: trimmedMemberName }
+            );
+
+            if (response.data.success) {
+                setProjectMembers([...project_members, trimmedMemberName]);
+                setMemberName('');
+                setMessage('Member added successfully');
+                setTimeout(() => setMessage(''), 3000); // Clear success message after 3 seconds
+            }
+        } catch (error) {
+            setMessage(error.response?.data.error || 'Failed to validate email');
+        }
+    };
+
+    const handleRemoveMember = (index) => {
+        const memberToRemove = project_members[index];
+        if (memberToRemove === email) {
+            setMessage('Cannot remove the project owner');
+            setTimeout(() => setMessage(''), 3000);
+            return;
+        }
+        setProjectMembers(project_members.filter((_, i) => i !== index));
+        setMessage('Member removed successfully');
+        setTimeout(() => setMessage(''), 3000);
     };
 
     const createNewProject = async (event) => {
         event.preventDefault();
         setLoading(true);
-        const membersWithOwner = [email, ...project_members];
+
+        // Check if there are at least 2 project members
+        if (project_members.length < 2) {
+            setMessage('At least 2 project members are required');
+            setLoading(false);
+            return;
+        }
+
         const API_BASE_URL = window.location.hostname === 'localhost'
             ? 'http://127.0.0.1:8000'
             : 'https://pcp-backend-f4a2.onrender.com';
@@ -64,7 +124,7 @@ const NewProjectModal = ({ onClose, onSuccess }) => {
                     project_name: projectname,
                     project_description: project_description,
                     project_due_date: project_due_date,
-                    project_members: membersWithOwner
+                    project_members: project_members
                 },
                 {
                     headers: { Authorization: `Bearer ${localStorage.getItem('access_token')}` }
@@ -74,7 +134,6 @@ const NewProjectModal = ({ onClose, onSuccess }) => {
             if (onSuccess) {
                 onSuccess(); // Trigger dashboard refresh
             }
-            // Optionally close after a short delay to show success message
             setTimeout(() => {
                 onClose();
             }, 1500);
@@ -96,11 +155,11 @@ const NewProjectModal = ({ onClose, onSuccess }) => {
     if (!email) return null; // Wait for email to load
 
     return (
-        <div className={styles.modelOverlay} onClick={onClose}>
+        <div className={styles.modelOverlay} >
             <div className={styles.modelContent} onClick={(e) => e.stopPropagation()}>
                 <div className={styles.modelHeader}>
                     <h2 className={styles.modelTitle}>New Project for {email}</h2>
-                    <button className={styles.closeButton} onClick={onClose}>
+                    <button className={styles.closeButton}onClick={onClose}>
                         ×
                     </button>
                 </div>
@@ -137,6 +196,7 @@ const NewProjectModal = ({ onClose, onSuccess }) => {
                                 required
                                 className={styles.input}
                                 disabled={loading}
+                                min={minDate} // Restrict to tomorrow and onwards
                             />
                         </div>
                         <div className={styles.formGroup}>
@@ -144,7 +204,7 @@ const NewProjectModal = ({ onClose, onSuccess }) => {
                             <div style={{ display: 'flex', gap: '10px', marginBottom: '10px' }}>
                                 <input
                                     type="text"
-                                    placeholder="Enter member name"
+                                    placeholder="Enter member email"
                                     value={memberName}
                                     onChange={handleInputChange}
                                     className={styles.input}
@@ -164,16 +224,59 @@ const NewProjectModal = ({ onClose, onSuccess }) => {
                         </div>
                         <div className={styles.formGroup}>
                             <label className={styles.label}>Project Members</label>
-                            <textarea
-                                value={project_members.join(';\n')}
-                                disabled
-                                rows="6"
-                                className={styles.textarea}
-                                style={{ backgroundColor: '#f0f0f0' }}
-                            />
+                            <div
+                                style={{
+                                    border: '1px solid #d1d5db',
+                                    borderRadius: '0.375rem',
+                                    padding: '0.5rem',
+                                    maxHeight: '150px',
+                                    overflowY: 'auto',
+                                    backgroundColor: '#f0f0f0',
+                                    minHeight: '100px',
+                                }}
+                            >
+                                <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
+                                    {project_members.map((member, index) => (
+                                        <li
+                                            key={index}
+                                            style={{
+                                                display: 'flex',
+                                                justifyContent: 'space-between',
+                                                alignItems: 'center',
+                                                padding: '5px 10px',
+                                                borderBottom: '1px solid #eee',
+                                            }}
+                                        >
+                                            <span>{member}</span>
+                                            {member !== email && (
+                                                <span
+                                                    style={{
+                                                        color: 'red',
+                                                        cursor: 'pointer',
+                                                        fontSize: '0.875rem',
+                                                    }}
+                                                    onClick={() => handleRemoveMember(index)}
+                                                >
+                                                    (remove)
+                                                </span>
+                                            )}
+                                        </li>
+                                    ))}
+                                </ul>
+                                {project_members.length === 0 && (
+                                    <p style={{ textAlign: 'center', color: '#666', margin: '10px 0' }}>
+                                        No members added
+                                    </p>
+                                )}
+                            </div>
                         </div>
                         {message && (
-                            <p className={styles.TaskUpdateModel__errorMessage}>{message}</p>
+                            <p
+                                className={styles.TaskUpdateModel__errorMessage}
+                                style={{ color: message.includes('successfully') ? 'green' : 'red' }}
+                            >
+                                {message}
+                            </p>
                         )}
                     </form>
                 </div>

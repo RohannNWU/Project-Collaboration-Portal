@@ -1,4 +1,3 @@
-// DeleteProjectModal.js (updated to use project.project_id)
 import React, { useState } from 'react';
 import axios from 'axios';
 import styles from './Models.module.css'; // Adjust path as needed
@@ -25,7 +24,7 @@ const DeleteProjectModal = ({ project, onClose, onSuccess }) => {
       : 'https://pcp-backend-f4a2.onrender.com';
 
     try {
-        console.log("IDDDDD: " + project.project_id);
+      console.log("IDDDDD: " + project.project_id);
       await axios.delete(
         `${API_BASE_URL}/api/deleteproject/${project.project_id}/`,
         {
@@ -51,10 +50,17 @@ const DeleteProjectModal = ({ project, onClose, onSuccess }) => {
     onClose();
   };
 
+  // Prevent copy event on the confirmation message
+  const handleCopy = (e) => {
+    e.preventDefault();
+    setMessage('Copying is not allowed.');
+    setTimeout(() => setMessage(''), 3000);
+  };
+
   const isDeleteEnabled = inputValue === project.project_name;
 
   return (
-    <div className={styles.modelOverlay} onClick={onClose}>
+    <div className={styles.modelOverlay}>
       <div className={styles.modelContent} onClick={(e) => e.stopPropagation()}>
         <div className={styles.modelHeader}>
           <h2 className={styles.modelTitle}>
@@ -66,7 +72,11 @@ const DeleteProjectModal = ({ project, onClose, onSuccess }) => {
           </button>
         </div>
         <div className={styles.modelBody}>
-          <p style={{ fontSize: '16px', color: '#042454', marginBottom: '20px' }}>
+          <p 
+            style={{ fontSize: '16px', color: '#042454', marginBottom: '20px' }} 
+            className={styles.noSelect} 
+            onCopy={handleCopy}
+          >
             Are you sure you want to delete the project "<strong>{project.project_name}</strong>"? 
             This action cannot be undone.
           </p>
