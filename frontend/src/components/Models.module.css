@@ -514,3 +514,10 @@
   background: #b0bec5;
   cursor: not-allowed;
 }
+
+.noSelect {
+    user-select: none;
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+}

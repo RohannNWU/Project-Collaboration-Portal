@@ -2,8 +2,8 @@ import os
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
-from rest_framework_simplejwt.tokens import UntypedToken, AccessToken
-from rest_framework_simplejwt.exceptions import InvalidToken
+from rest_framework_simplejwt.tokens import UntypedToken, AccessToken 
+from rest_framework_simplejwt.exceptions import InvalidToken, TokenError
 from datetime import datetime, timedelta
 from .models import User, Project, UserProject, Task, User_Task, Document,ChatMessage, ProjectChat, ProjectLinks, Meeting
 from django.core.files.storage import default_storage
@@ -354,6 +354,7 @@ class CalendarView(APIView):
                     'id': user_project.project_id.project_id,
                     'name': user_project.project_id.project_name,
                     'description': user_project.project_id.project_description or '',
+                    'grade': user_project.project_id.grade,
                     'role': user_project.role
                 }
                 for user_project in user_projects
@@ -1970,7 +1971,7 @@ class AddMeetingView(APIView):
 
             # Parse date_time (assuming format 'YYYY-MM-DD HH:MM:SS')
             try:
-                date_time = datetime.strptime(date_time_str, '%Y-%m-%d %H:%M:%S')
+                date_time = datetime.strptime(date_time_str, '%Y-%m-%d %H:%M')
             except ValueError:
                 return Response({'error': 'Invalid date_time format. Expected YYYY-MM-DD HH:MM:SS'}, status=status.HTTP_400_BAD_REQUEST)
 
@@ -2155,3 +2156,45 @@ class GetContributionsView(APIView):
         except Exception as e:
             logger.error(f"Error getting contributions: {str(e)}")
             return Response({'error': 'Failed to get contributions'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+class GetUserMeetingsView(APIView):
+    def get(self, request):
+        auth_header = request.headers.get('Authorization')
+        if not auth_header or not auth_header.startswith('Bearer '):
+            return Response({'error': 'Authentication required'}, status=status.HTTP_401_UNAUTHORIZED)
+        
+        token = auth_header.split(' ')[1]
+        try:
+            # Validate token
+            payload = UntypedToken(token).payload
+            user_email = payload.get('user_email')
+            
+            # Fetch user
+            try:
+                user = User.objects.get(email=user_email)
+            except User.DoesNotExist:
+                return Response({'error': 'User not found'}, status=status.HTTP_404_NOT_FOUND)
+            
+            # Get user's projects
+            user_projects = UserProject.objects.filter(email=user).values_list('project_id__project_id', flat=True)
+            
+            # Get meetings for those projects
+            meetings = Meeting.objects.filter(project_id__in=user_projects).select_related('project_id').order_by('date_time')
+            
+            meetings_list = [
+                {
+                    'meeting_id': meeting.meeting_id,
+                    'meeting_title': meeting.meeting_title,
+                    'date_time': meeting.date_time.strftime('%Y-%m-%d %H:%M'),
+                    'project_name': meeting.project_id.project_name,
+                }
+                for meeting in meetings
+            ]
+            
+            return Response({'meetings': meetings_list}, status=status.HTTP_200_OK)
+        
+        except (InvalidToken, TokenError):
+            return Response({'error': 'Invalid token'}, status=status.HTTP_401_UNAUTHORIZED)
+        except Exception as e:
+            logger.error(f"Error fetching user meetings: {str(e)}")
+            return Response({'error': f'Failed to fetch meetings: {str(e)}'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)

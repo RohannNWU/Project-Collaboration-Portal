@@ -54,7 +54,19 @@ const Dashboard = () => {
         headers: { Authorization: `Bearer ${token}` }
       });
 
-      setCalendarEvents(calendarResponse.data.events || []);
+      const meetingsResponse = await axios.get(`${API_BASE_URL}/api/getusermeetings/`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+
+      const meetingsEvents = meetingsResponse.data.meetings.map(meeting => ({
+        type: 'meeting',
+        start: meeting.date_time.split(' ')[0],
+        name: meeting.meeting_title,
+        project: { name: meeting.project_name },
+        date_time: meeting.date_time
+      }));
+
+      setCalendarEvents([...(calendarResponse.data.events || []), ...meetingsEvents]);
 
       setError('');
     } catch (err) {
@@ -113,18 +125,38 @@ const Dashboard = () => {
       const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
       const today = new Date().toISOString().split('T')[0];
 
-      const dayProjects = calendarEvents.filter(e => e.type === 'project' && e.start === dateStr);
-      const dayTasks = calendarEvents.filter(e => e.type === 'task' && e.start === dateStr);
+      // Filter projects with no grade and no feedback
+      const dayProjects = calendarEvents.filter(e => 
+        e.type === 'project' && 
+        e.start === dateStr && 
+        (e.grade === undefined || e.grade === null || e.grade === '' || e.grade === '-') && 
+        (e.feedback === undefined || e.feedback === null || e.feedback === '')
+      );
+      
+      // Filter tasks with status "In Progress"
+      const dayTasks = calendarEvents.filter(e => 
+        e.type === 'task' && 
+        e.start === dateStr && 
+        e.status === 'In Progress'
+      );
+
+      // Filter meetings, excluding those in the past
+      const dayMeetings = calendarEvents.filter(e => 
+        e.type === 'meeting' && 
+        e.start === dateStr &&
+        e.start >= today
+      );
 
       daysArray.push({
         day,
         dateStr,
         projects: dayProjects,
         tasks: dayTasks,
+        meetings: dayMeetings,
         isToday: dateStr === today,
         isOverdue: dateStr < today && (dayProjects.length > 0 || dayTasks.length > 0),
-        hasFuture: dateStr > today && (dayProjects.length > 0 || dayTasks.length > 0),
-        totalItems: dayProjects.length + dayTasks.length
+        hasFuture: dateStr > today && (dayProjects.length > 0 || dayTasks.length > 0 || dayMeetings.length > 0),
+        totalItems: dayProjects.length + dayTasks.length + dayMeetings.length
       });
     }
 
@@ -224,7 +256,7 @@ const Dashboard = () => {
             <tbody>
               {projects.map((project, index) => (
                 <tr key={index}>
-                  <td className={styles.wrappableCell}>{project.project_name}</td> {/* Apply to Name cell */}
+                  <td className={styles.wrappableCell}>{project.project_name}</td>
                   <td>
                     <div className={styles.progressBar}>
                       <div
@@ -234,13 +266,13 @@ const Dashboard = () => {
                       <span className={styles.progressText}>{project.progress || 0}%</span>
                     </div>
                   </td>
-                  <td className={styles.wrappableCell}>{project.dueDate}</td> {/* If dates can be long */}
+                  <td className={styles.wrappableCell}>{project.dueDate}</td>
                   <td>
                     <button className={styles.openBtn} onClick={() => handleOpenDashboard(project)}>
                       Open
                     </button>
                   </td>
-                  <td className={styles.wrappableCell}>{project.role}</td> {/* Apply to Role if needed */}
+                  <td className={styles.wrappableCell}>{project.role}</td>
                   <td className={styles.wrappableCell}>{project.grade || '-'}</td>
                   <td>
                     {project.role === "Supervisor" && (
@@ -384,6 +416,23 @@ const Dashboard = () => {
                             )}
                           </div>
                         )}
+
+                        {dayData.meetings.length > 0 && (
+                          <div style={{ display: 'flex', justifyContent: 'flex-start', flexWrap: 'wrap' }}>
+                            {dayData.meetings.slice(0, 3).map((meeting, meetingIndex) => (
+                              <div
+                                key={meetingIndex}
+                                className={`${styles.calendarCellMeeting} ${isToday ? styles.calendarCellMeetingToday : ''}`}
+                                title={`Meeting: ${meeting.name}${meeting.project ? ` (Project: ${meeting.project.name})` : ''}`}
+                              />
+                            ))}
+                            {dayData.meetings.length > 3 && (
+                              <span className={`${styles.calendarCellExtra} ${isToday ? styles.calendarCellExtraToday : ''}`}>
+                                +{dayData.meetings.length - 3}
+                              </span>
+                            )}
+                          </div>
+                        )}
                       </>
                     )}
                   </div>
@@ -400,6 +449,10 @@ const Dashboard = () => {
                 <div className={styles.calendarLegendItem}>
                   <div className={styles.calendarLegendEvent}></div>
                   <span>Task</span>
+                </div>
+                <div className={styles.calendarLegendItem}>
+                  <div className={styles.calendarLegendMeeting}></div>
+                  <span>Meeting</span>
                 </div>
                 <div className={styles.calendarLegendItem}>
                   <div className={styles.calendarLegendToday}></div>
@@ -428,13 +481,28 @@ const Dashboard = () => {
                     {formatDateForDisplay(selectedDate)}
                   </div>
 
-                  {calendarEvents.filter(e => e.type === 'project' && e.start === selectedDate).length > 0 && (
+                  {calendarEvents.filter(e => 
+                    e.type === 'project' && 
+                    e.start === selectedDate && 
+                    (e.grade === undefined || e.grade === null || e.grade === '' || e.grade === '-') && 
+                    (e.feedback === undefined || e.feedback === null || e.feedback === '')
+                  ).length > 0 && (
                     <div style={{ marginBottom: '20px' }}>
                       <h4 className={styles.selectedDateProjectsHeader}>
-                        📁 Projects ({calendarEvents.filter(e => e.type === 'project' && e.start === selectedDate).length})
+                        📁 Projects ({calendarEvents.filter(e => 
+                          e.type === 'project' && 
+                          e.start === selectedDate && 
+                          (e.grade === undefined || e.grade === null || e.grade === '' || e.grade === '-') && 
+                          (e.feedback === undefined || e.feedback === null || e.feedback === '')
+                        ).length})
                       </h4>
                       <ul className={styles.selectedDateList}>
-                        {calendarEvents.filter(e => e.type === 'project' && e.start === selectedDate).map((project, index) => (
+                        {calendarEvents.filter(e => 
+                          e.type === 'project' && 
+                          e.start === selectedDate && 
+                          (e.grade === undefined || e.grade === null || e.grade === '' || e.grade === '-') && 
+                          (e.feedback === undefined || e.feedback === null || e.feedback === '')
+                        ).map((project, index) => (
                           <li
                             key={`proj-${index}`}
                             className={`${styles.selectedDateListItem} ${index % 2 === 0 ? '' : styles.selectedDateListItemAlt}`}
@@ -460,13 +528,13 @@ const Dashboard = () => {
                     </div>
                   )}
 
-                  {calendarEvents.filter(e => e.type === 'task' && e.start === selectedDate).length > 0 && (
-                    <div>
+                  {calendarEvents.filter(e => e.type === 'task' && e.start === selectedDate && e.status === 'In Progress').length > 0 && (
+                    <div style={{ marginBottom: '20px' }}>
                       <h4 className={styles.selectedDateEventsHeader}>
-                        🗓️ Tasks ({calendarEvents.filter(e => e.type === 'task' && e.start === selectedDate).length})
+                        🗓️ Tasks ({calendarEvents.filter(e => e.type === 'task' && e.start === selectedDate && e.status === 'In Progress').length})
                       </h4>
                       <ul className={styles.selectedDateList}>
-                        {calendarEvents.filter(e => e.type === 'task' && e.start === selectedDate).map((task, index) => (
+                        {calendarEvents.filter(e => e.type === 'task' && e.start === selectedDate && e.status === 'In Progress').map((task, index) => (
                           <li
                             key={`task-${index}`}
                             className={`${styles.selectedDateListItem} ${index % 2 === 0 ? '' : styles.selectedDateListItemAlt}`}
@@ -484,11 +552,43 @@ const Dashboard = () => {
                     </div>
                   )}
 
-                  {(calendarEvents.filter(e => e.start === selectedDate).length === 0) && (
+                  {calendarEvents.filter(e => e.type === 'meeting' && e.start === selectedDate && e.start >= new Date().toISOString().split('T')[0]).length > 0 && (
+                    <div>
+                      <h4 className={styles.selectedDateEventsHeader}>
+                        📅 Meetings ({calendarEvents.filter(e => e.type === 'meeting' && e.start === selectedDate && e.start >= new Date().toISOString().split('T')[0]).length})
+                      </h4>
+                      <ul className={styles.selectedDateList}>
+                        {calendarEvents.filter(e => e.type === 'meeting' && e.start === selectedDate && e.start >= new Date().toISOString().split('T')[0]).map((meeting, index) => (
+                          <li
+                            key={`meeting-${index}`}
+                            className={`${styles.selectedDateListItem} ${index % 2 === 0 ? '' : styles.selectedDateListItemAlt}`}
+                          >
+                            <div className={styles.selectedDateItemTitle}>
+                              <FontAwesomeIcon icon={faCalendar} style={{ color: '#228693' }} />
+                              {meeting.name}
+                            </div>
+                            <div className={styles.selectedDateItemMeta}>
+                              <span>Time: <span className={styles.selectedDateItemProgress}>{meeting.date_time.split(' ')[1]}</span></span>
+                              <span>Project: <span className={styles.selectedDateItemProgress}>{meeting.project ? meeting.project.name : 'No associated project'}</span></span>
+                            </div>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+
+                  {(calendarEvents.filter(e => 
+                    e.start === selectedDate && 
+                    ((e.type === 'project' && 
+                      (e.grade === undefined || e.grade === null || e.grade === '' || e.grade === '-') && 
+                      (e.feedback === undefined || e.feedback === null || e.feedback === '')) || 
+                     (e.type === 'task' && e.status === 'In Progress') ||
+                     (e.type === 'meeting' && e.start >= new Date().toISOString().split('T')[0]))
+                  ).length === 0) && (
                     <div className={styles.emptyState}>
                       <div className={styles.emptyStateTitle}>🎉 Great work!</div>
                       <div className={styles.emptyStateMessage}>
-                        No projects or tasks scheduled for {formatDateForDisplay(selectedDate)}
+                        No ungraded projects, in-progress tasks, or meetings scheduled for {formatDateForDisplay(selectedDate)}
                       </div>
                     </div>
                   )}
@@ -497,7 +597,7 @@ const Dashboard = () => {
                 <div className={styles.emptyState}>
                   <div className={styles.emptyStateTitle}>📅 Select a date</div>
                   <div className={styles.emptyStateInstructions}>
-                    Click on any date in the calendar to view projects and tasks scheduled for that day
+                    Click on any date in the calendar to view ungraded projects and in-progress tasks scheduled for that day
                   </div>
                 </div>
               )}
@@ -535,9 +635,12 @@ const Dashboard = () => {
           <ul className={styles.list}>
             {calendarEvents.slice(-3).reverse().map((event, index) => (
               <li key={index}>
-                <FontAwesomeIcon icon={event.type === 'project' ? faProjectDiagram : faTasks} style={{ color: '#228693' }} />
+                <FontAwesomeIcon 
+                  icon={event.type === 'project' ? faProjectDiagram : event.type === 'task' ? faTasks : faCalendar} 
+                  style={{ color: '#228693' }} 
+                />
                 {event.name}
-                {event.type === 'task' && event.project ? ` (Project: ${event.project.name})` : ''}
+                {(event.type === 'task' || event.type === 'meeting') && event.project ? ` (Project: ${event.project.name})` : ''}
               </li>
             ))}
             {calendarEvents.length === 0 && (
