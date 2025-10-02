@@ -8,8 +8,8 @@ class User(models.Model):
     first_name = models.CharField(max_length=50)
     last_name = models.CharField(max_length=50)
     password = models.CharField(max_length=255)
-    security_question = models.CharField(max_length=255, null=True, blank=True)
-    security_answer = models.CharField(max_length=255, null=True, blank=True)
+    security_question = models.CharField(max_length=255)
+    security_answer = models.CharField(max_length=255)
 
     class Meta:
         managed = True

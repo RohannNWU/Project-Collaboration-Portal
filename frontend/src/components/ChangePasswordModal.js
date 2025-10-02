@@ -62,7 +62,7 @@ const ResetPasswordModal = ({ isOpen, onClose, onSuccess }) => {
         : 'https://pcp-backend-f4a2.onrender.com';
 
       const response = await axios.post(
-        `${API_BASE_URL}/api/verify-email/`,
+        `${API_BASE_URL}/api/getuserdetails/`,
         { email: email.trim() },
         { headers: { 'Content-Type': 'application/json' } }
       );
@@ -70,7 +70,7 @@ const ResetPasswordModal = ({ isOpen, onClose, onSuccess }) => {
       console.log('Verify email response:', response);
 
       if (response.data?.success) {
-        setSecurityQuestion(response.data.question || 'Security question not provided');
+        setSecurityQuestion(response.data.user_details?.security_question || 'Security question not provided');
         setStage('security');
         setError('');
       } else {
@@ -116,10 +116,10 @@ const ResetPasswordModal = ({ isOpen, onClose, onSuccess }) => {
         : 'https://pcp-backend-f4a2.onrender.com';
 
       const response = await axios.post(
-        `${API_BASE_URL}/api/verify-security-answer/`,
+        `${API_BASE_URL}/api/verifysecurityanswer/`,
         {
           email: email.trim(),
-          answer: securityAnswer.trim(),
+          security_answer: securityAnswer.trim(),
         },
         { headers: { 'Content-Type': 'application/json' } }
       );
