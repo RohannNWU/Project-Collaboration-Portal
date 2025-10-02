@@ -1809,37 +1809,6 @@ class AddTaskMemberView(APIView):
         job.save()
         return Response({'message': 'Task member added successfully'}, status=status.HTTP_200_OK)
 
-# View for resetting/forgot password
-# This view allows updating the password for a user by providing email and new password.
-# No authentication token is required, as it's intended for use on the login page.
-class ResetPasswordView(APIView):
-    def post(self, request):
-        email = request.data.get('email')
-        new_password = request.data.get('password')
-        
-        if not email or not new_password:
-            return Response({'error': 'Email and new password are required'}, status=status.HTTP_400_BAD_REQUEST)
-        
-        try:
-            user = User.objects.get(email=email)
-            
-            # Hash the new password
-            hashed_password = bcrypt.hashpw(new_password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
-            user.password = hashed_password
-            user.save()
-            
-            logger.info(f"Password reset successfully for user {email}")
-            return Response({'message': 'Password reset successfully'}, status=status.HTTP_200_OK)
-        
-        except User.DoesNotExist:
-            logger.warning(f"Password reset attempted for non-existent email: {email}")
-            return Response({'error': 'User not found'}, status=status.HTTP_404_NOT_FOUND)
-        
-        except Exception as e:
-            logger.error(f"Error resetting password: {str(e)}")
-            return Response({'error': f'Failed to reset password: {str(e)}'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-
-
 #View that deletes a project          
 class DeleteProjectView(APIView):
     def delete(self, request, project_id):
@@ -2045,3 +2014,80 @@ class DeleteMeetingView(APIView):
         except Exception as e:
             logger.error(f"Error deleting meeting: {str(e)}")
             return Response({'error': f'Failed to delete meeting: {str(e)}'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+# View to get user details for password reset        
+class GetUserDetailsView(APIView):
+    def post(self, request):
+        email = request.data.get('email')
+        if not email:
+            return Response({'error': 'email is required'}, status=status.HTTP_400_BAD_REQUEST)
+        
+        try:
+            user = User.objects.get(email=email)
+            details = {
+                'first_name': user.first_name,
+                'last_name': user.last_name,
+                'security_question': user.security_question,
+            }
+            return Response({'user_details': details}, status=status.HTTP_200_OK)
+        except User.DoesNotExist:
+            return Response({'error': 'User not found'}, status=status.HTTP_404_NOT_FOUND)
+        except Exception as e:
+            logger.error(f"Error fetching user details: {str(e)}")
+            return Response({'error': f'Failed to fetch user details: {str(e)}'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+# View to verify security answer for password reset       
+class VerifySecurityAnswerView(APIView):
+    def post(self, request):
+        email = request.data.get('email')
+        security_answer = request.data.get('security_answer')
+        
+        if not email or not security_answer:
+            return Response({'error': 'Email and security answer are required'}, status=status.HTTP_400_BAD_REQUEST)
+        
+        try:
+            user = User.objects.get(email=email)
+            if user.security_answer == security_answer:
+                logger.info(f"Security answer verified successfully for user {email}")
+                return Response({'message': 'Security answer is correct'}, status=status.HTTP_200_OK)
+            else:
+                logger.warning(f"Invalid security answer provided for user {email}")
+                return Response({'error': 'Invalid security answer'}, status=status.HTTP_401_UNAUTHORIZED)
+        
+        except User.DoesNotExist:
+            logger.warning(f"Security answer verification attempted for non-existent email: {email}")
+            return Response({'error': 'User not found'}, status=status.HTTP_404_NOT_FOUND)
+        
+        except Exception as e:
+            logger.error(f"Error verifying security answer: {str(e)}")
+            return Response({'error': f'Failed to verify security answer: {str(e)}'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        
+# View for resetting/forgot password
+# This view allows updating the password for a user by providing email and new password.
+# No authentication token is required, as it's intended for use on the login page.
+class ResetPasswordView(APIView):
+    def post(self, request):
+        email = request.data.get('email')
+        new_password = request.data.get('password')
+        
+        if not email or not new_password:
+            return Response({'error': 'Email and new password are required'}, status=status.HTTP_400_BAD_REQUEST)
+        
+        try:
+            user = User.objects.get(email=email)
+            
+            # Hash the new password
+            hashed_password = bcrypt.hashpw(new_password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
+            user.password = hashed_password
+            user.save()
+            
+            logger.info(f"Password reset successfully for user {email}")
+            return Response({'message': 'Password reset successfully'}, status=status.HTTP_200_OK)
+        
+        except User.DoesNotExist:
+            logger.warning(f"Password reset attempted for non-existent email: {email}")
+            return Response({'error': 'User not found'}, status=status.HTTP_404_NOT_FOUND)
+        
+        except Exception as e:
+            logger.error(f"Error resetting password: {str(e)}")
+            return Response({'error': f'Failed to reset password: {str(e)}'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)        
