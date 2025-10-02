@@ -55,6 +55,12 @@
   border: 1px solid rgba(0, 0, 0, 0.1);
   border-radius: 4px;
 }
+.passwordInputContainer select {
+  width: 100%;
+  padding: 8px 40px;
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  border-radius: 4px;
+}
 .togglePassword {
   position: absolute;
   right: 10px;

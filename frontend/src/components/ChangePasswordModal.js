@@ -6,7 +6,10 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import styles from './Models.module.css';  // Reuse styles or create new CSS module
 
 const ResetPasswordModal = ({ isOpen, onClose, onSuccess }) => {
+  const [stage, setStage] = useState('email');
   const [email, setEmail] = useState('');
+  const [securityQuestion, setSecurityQuestion] = useState('');
+  const [securityAnswer, setSecurityAnswer] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [showNewPassword, setShowNewPassword] = useState(false);
@@ -17,7 +20,10 @@ const ResetPasswordModal = ({ isOpen, onClose, onSuccess }) => {
 
   useEffect(() => {
     if (isOpen) {
+      setStage('email');
       setEmail('');
+      setSecurityQuestion('');
+      setSecurityAnswer('');
       setNewPassword('');
       setConfirmPassword('');
       setShowNewPassword(false);
@@ -27,39 +33,145 @@ const ResetPasswordModal = ({ isOpen, onClose, onSuccess }) => {
     }
   }, [isOpen]);
 
-  const validateForm = () => {
-    if (!email.trim() || !newPassword || !confirmPassword) {
-      setError('All fields are required');
-      setTimeout(() => setError(''), 3000);
-      return false;
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+  const clearError = () => {
+    setTimeout(() => setError(''), 3000);
+  };
+
+  const handleVerifyEmail = async () => {
+    if (!email.trim()) {
+      setError('Email is required');
+      clearError();
+      return;
+    }
+
+    if (!emailRegex.test(email)) {
+      setError('Please enter a valid email address');
+      clearError();
+      return;
+    }
+
+    setLoading(true);
+    setError('');
+    setSuccessMessage('');
+
+    try {
+      const API_BASE_URL = window.location.hostname === 'localhost'
+        ? 'http://127.0.0.1:8000'
+        : 'https://pcp-backend-f4a2.onrender.com';
+
+      const response = await axios.post(
+        `${API_BASE_URL}/api/verify-email/`,
+        { email: email.trim() },
+        { headers: { 'Content-Type': 'application/json' } }
+      );
+
+      console.log('Verify email response:', response);
+
+      if (response.data?.success) {
+        setSecurityQuestion(response.data.question || 'Security question not provided');
+        setStage('security');
+        setError('');
+      } else {
+        setError(response.data?.error || 'Email not found');
+        clearError();
+      }
+    } catch (err) {
+      console.error('Error verifying email:', err);
+      console.error('Status:', err.response?.status);
+      console.error('Response data:', err.response?.data);
+
+      let errorMsg = 'Failed to verify email';
+      if (err.response?.status === 404) {
+        errorMsg = 'Email not found';
+      } else if (err.response?.status === 400) {
+        errorMsg = err.response.data?.error || 'Invalid email';
+      } else if (err.code === 'ERR_NETWORK') {
+        errorMsg = 'Network error—check your connection';
+      } else {
+        errorMsg = err.response?.data?.error || err.message || errorMsg;
+      }
+      setError(errorMsg);
+      clearError();
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleVerifyAnswer = async () => {
+    if (!securityAnswer.trim()) {
+      setError('Security answer is required');
+      clearError();
+      return;
+    }
+
+    setLoading(true);
+    setError('');
+    setSuccessMessage('');
+
+    try {
+      const API_BASE_URL = window.location.hostname === 'localhost'
+        ? 'http://127.0.0.1:8000'
+        : 'https://pcp-backend-f4a2.onrender.com';
+
+      const response = await axios.post(
+        `${API_BASE_URL}/api/verify-security-answer/`,
+        {
+          email: email.trim(),
+          answer: securityAnswer.trim(),
+        },
+        { headers: { 'Content-Type': 'application/json' } }
+      );
+
+      console.log('Verify answer response:', response);
+
+      if (response.data?.success) {
+        setStage('password');
+        setSecurityAnswer('');
+        setError('');
+      } else {
+        setError(response.data?.error || 'Incorrect security answer');
+        clearError();
+      }
+    } catch (err) {
+      console.error('Error verifying answer:', err);
+      console.error('Status:', err.response?.status);
+      console.error('Response data:', err.response?.data);
+
+      let errorMsg = 'Failed to verify security answer';
+      if (err.response?.status === 400) {
+        errorMsg = err.response.data?.error || 'Invalid answer';
+      } else if (err.code === 'ERR_NETWORK') {
+        errorMsg = 'Network error—check your connection';
+      } else {
+        errorMsg = err.response?.data?.error || err.message || errorMsg;
+      }
+      setError(errorMsg);
+      clearError();
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleResetPassword = async () => {
+    if (!newPassword || !confirmPassword) {
+      setError('Passwords are required');
+      clearError();
+      return;
     }
 
     if (newPassword !== confirmPassword) {
       setError('Passwords do not match');
-      setTimeout(() => setError(''), 3000);
-      return false;
+      clearError();
+      return;
     }
 
-    // Optional: Basic email validation
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(email)) {
-      setError('Please enter a valid email address');
-      setTimeout(() => setError(''), 3000);
-      return false;
-    }
-
-    // Optional: Password strength
     if (newPassword.length < 8) {
       setError('Password must be at least 8 characters long');
-      setTimeout(() => setError(''), 3000);
-      return false;
+      clearError();
+      return;
     }
-
-    return true;
-  };
-
-  const handleResetPassword = async () => {
-    if (!validateForm()) return;
 
     setLoading(true);
     setError('');
@@ -81,15 +193,12 @@ const ResetPasswordModal = ({ isOpen, onClose, onSuccess }) => {
         { headers: { 'Content-Type': 'application/json' } }
       );
 
-      // Log full response for debugging
       console.log('Full response:', response);
 
-      // Check for backend errors in response body (even on 200 OK)
       if (response.data?.error) {
         throw new Error(response.data.error);
       }
 
-      // Success
       setSuccessMessage('Password updated successfully!');
       onSuccess?.({ email });
       setTimeout(() => {
@@ -126,7 +235,18 @@ const ResetPasswordModal = ({ isOpen, onClose, onSuccess }) => {
     setShowNewPassword(!showNewPassword);
   };
 
+  const toggleConfirmPasswordVisibility = () => {
+    setShowConfirmPassword(!showConfirmPassword);
+  };
+
   if (!isOpen) return null;
+
+  const isEmailStage = stage === 'email';
+  const isSecurityStage = stage === 'security';
+  const isPasswordStage = stage === 'password';
+  const isResetDisabled = loading || !newPassword || !confirmPassword || newPassword !== confirmPassword;
+  const isVerifyEmailDisabled = loading || !email.trim() || !emailRegex.test(email);
+  const isVerifyAnswerDisabled = loading || !securityAnswer.trim();
 
   return (
     <div className={styles.modelOverlay} onClick={onClose}>
@@ -149,48 +269,81 @@ const ResetPasswordModal = ({ isOpen, onClose, onSuccess }) => {
               onChange={(e) => setEmail(e.target.value)}
               className={styles.input}
               placeholder="Enter your email address"
-              disabled={loading}
+              disabled={loading || !isEmailStage}
             />
           </div>
 
-          <div className={styles.formGroup}>
-            <label className={styles.label}>New Password</label>
-            <div className={styles.passwordInputContainer}>
-              <FontAwesomeIcon icon={faLock} className={styles.inputIcon} />
-              <input
-                type={showNewPassword ? 'text' : 'password'}
-                value={newPassword}
-                onChange={(e) => setNewPassword(e.target.value)}
-                className={styles.input}
-                placeholder="Enter new password"
-                disabled={loading}
-              />
-              <button
-                type="button"
-                onClick={toggleNewPasswordVisibility}
-                className={styles.togglePassword}
-                aria-label={showNewPassword ? 'Hide password' : 'Show password'}
-                disabled={loading}
-              >
-                <FontAwesomeIcon icon={showNewPassword ? faEyeSlash : faEye} />
-              </button>
-            </div>
-          </div>
+          {isSecurityStage && (
+            <>
+              <div className={styles.formGroup}>
+                <label className={styles.label}>Security Question</label>
+                <p className={styles.securityQuestionText}>{securityQuestion}</p>
+              </div>
+              <div className={styles.formGroup}>
+                <label className={styles.label}>Security Answer</label>
+                <input
+                  type="text"
+                  value={securityAnswer}
+                  onChange={(e) => setSecurityAnswer(e.target.value)}
+                  className={styles.input}
+                  placeholder="Enter your answer"
+                  disabled={loading}
+                />
+              </div>
+            </>
+          )}
 
-          <div className={styles.formGroup}>
-            <label className={styles.label}>Confirm New Password</label>
-            <div className={styles.passwordInputContainer}>
-              <FontAwesomeIcon icon={faLock} className={styles.inputIcon} />
-              <input
-                type={showConfirmPassword ? 'text' : 'password'}
-                value={confirmPassword}
-                onChange={(e) => setConfirmPassword(e.target.value)}
-                className={styles.input}
-                placeholder="Confirm new password"
-                disabled={loading}
-              />
-            </div>
-          </div>
+          {isPasswordStage && (
+            <>
+              <div className={styles.formGroup}>
+                <label className={styles.label}>New Password</label>
+                <div className={styles.passwordInputContainer}>
+                  <FontAwesomeIcon icon={faLock} className={styles.inputIcon} />
+                  <input
+                    type={showNewPassword ? 'text' : 'password'}
+                    value={newPassword}
+                    onChange={(e) => setNewPassword(e.target.value)}
+                    className={styles.input}
+                    placeholder="Enter new password"
+                    disabled={loading}
+                  />
+                  <button
+                    type="button"
+                    onClick={toggleNewPasswordVisibility}
+                    className={styles.togglePassword}
+                    aria-label={showNewPassword ? 'Hide password' : 'Show password'}
+                    disabled={loading}
+                  >
+                    <FontAwesomeIcon icon={showNewPassword ? faEyeSlash : faEye} />
+                  </button>
+                </div>
+              </div>
+
+              <div className={styles.formGroup}>
+                <label className={styles.label}>Confirm New Password</label>
+                <div className={styles.passwordInputContainer}>
+                  <FontAwesomeIcon icon={faLock} className={styles.inputIcon} />
+                  <input
+                    type={showConfirmPassword ? 'text' : 'password'}
+                    value={confirmPassword}
+                    onChange={(e) => setConfirmPassword(e.target.value)}
+                    className={styles.input}
+                    placeholder="Confirm new password"
+                    disabled={loading}
+                  />
+                  <button
+                    type="button"
+                    onClick={toggleConfirmPasswordVisibility}
+                    className={styles.togglePassword}
+                    aria-label={showConfirmPassword ? 'Hide password' : 'Show password'}
+                    disabled={loading}
+                  >
+                    <FontAwesomeIcon icon={showConfirmPassword ? faEyeSlash : faEye} />
+                  </button>
+                </div>
+              </div>
+            </>
+          )}
         </div>
 
         <div className={styles.modelFooter}>
@@ -202,14 +355,36 @@ const ResetPasswordModal = ({ isOpen, onClose, onSuccess }) => {
           >
             Cancel
           </button>
-          <button
-            type="button"
-            onClick={handleResetPassword}
-            className={styles.submitButton}
-            disabled={loading || !email.trim() || !newPassword || !confirmPassword}
-          >
-            {loading ? 'Updating...' : 'Change Password'}
-          </button>
+          {isEmailStage && (
+            <button
+              type="button"
+              onClick={handleVerifyEmail}
+              className={styles.submitButton}
+              disabled={isVerifyEmailDisabled}
+            >
+              {loading ? 'Verifying...' : 'Verify Email'}
+            </button>
+          )}
+          {isSecurityStage && (
+            <button
+              type="button"
+              onClick={handleVerifyAnswer}
+              className={styles.submitButton}
+              disabled={isVerifyAnswerDisabled}
+            >
+              {loading ? 'Verifying...' : 'Verify Answer'}
+            </button>
+          )}
+          {isPasswordStage && (
+            <button
+              type="button"
+              onClick={handleResetPassword}
+              className={styles.submitButton}
+              disabled={isResetDisabled}
+            >
+              {loading ? 'Resetting...' : 'Reset Password'}
+            </button>
+          )}
         </div>
       </div>
     </div>
