@@ -251,7 +251,7 @@ const TaskUpdateModel = ({ isOpen, onClose, projectId, taskId, onUpdate, initial
       ? 'http://127.0.0.1:8000'
       : 'https://pcp-backend-f4a2.onrender.com';
 
-    const response = await axios.get(
+    const response = await axios.post(
       `${API_BASE_URL}/api/gettaskdetails/?task_id=${taskId}`,
       { headers: { Authorization: `Bearer ${token}` } }
     );
