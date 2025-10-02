@@ -95,40 +95,40 @@ const GroupLeaderDashboard = () => {
     }, [navigate]);
 
     const fetchFinalSubmission = useCallback(async () => {
-  if (!projectId) return;
-  setLoadingTasks(true);
-  try {
-    const token = localStorage.getItem('access_token');
-    if (!token) {
-      navigate('/');
-      return;
-    }
+        if (!projectId) return;
+        setLoadingTasks(true);
+        try {
+            const token = localStorage.getItem('access_token');
+            if (!token) {
+                navigate('/');
+                return;
+            }
 
-    const API_BASE_URL = window.location.hostname === 'localhost'
-      ? 'http://127.0.0.1:8000'
-      : 'https://pcp-backend-f4a2.onrender.com';
+            const API_BASE_URL = window.location.hostname === 'localhost'
+                ? 'http://127.0.0.1:8000'
+                : 'https://pcp-backend-f4a2.onrender.com';
 
-    const response = await axios.get(`${API_BASE_URL}/api/getprojecttasks/?project_id=${projectId}`, {
-      headers: { Authorization: `Bearer ${token}` },
-    });
+            const response = await axios.get(`${API_BASE_URL}/api/getprojecttasks/?project_id=${projectId}`, {
+                headers: { Authorization: `Bearer ${token}` },
+            });
 
-    const allTasks = response.data.tasks || [];
-    const finalTaskData = allTasks.find(task => task.task_name === 'Final Submission');
-    setFinalTask(finalTaskData || null);
-    setTasks(allTasks); // Also update general tasks
+            const allTasks = response.data.tasks || [];
+            const finalTaskData = allTasks.find(task => task.task_name === 'Final Submission');
+            setFinalTask(finalTaskData || null);
+            setTasks(allTasks); // Also update general tasks
 
-    if (finalTaskData) {
-      await fetchDocuments(finalTaskData.task_id);
-      setFinalDocuments(documentsByTask[finalTaskData.task_id] || []);
-    }
-  } catch (err) {
-    console.error('Error fetching final submission:', err);
-    setError('Failed to fetch final submission');
-    setTimeout(() => setError(''), 3000);
-  } finally {
-    setLoadingTasks(false);
-  }
-}, [projectId, navigate, documentsByTask, fetchDocuments]);
+            if (finalTaskData) {
+                await fetchDocuments(finalTaskData.task_id);
+                setFinalDocuments(documentsByTask[finalTaskData.task_id] || []);
+            }
+        } catch (err) {
+            console.error('Error fetching final submission:', err);
+            setError('Failed to fetch final submission');
+            setTimeout(() => setError(''), 3000);
+        } finally {
+            setLoadingTasks(false);
+        }
+    }, [projectId, navigate, documentsByTask, fetchDocuments]);
 
     const handleUploadDocument = async (taskId) => {
         if (!uploadTitle.trim() || !uploadFile) return;
@@ -173,69 +173,69 @@ const GroupLeaderDashboard = () => {
     };
 
     useEffect(() => {
-  if (activeTab === 'final-submission' && projectId) {
-    fetchFinalSubmission();
-  }
-}, [activeTab, projectId, navigate, fetchFinalSubmission]);
+        if (activeTab === 'final-submission' && projectId) {
+            fetchFinalSubmission();
+        }
+    }, [activeTab, projectId, navigate, fetchFinalSubmission]);
 
     // Fetch chat messages function
     const fetchChat = useCallback(async () => {
-  setLoadingChat(true);
-  setError('');
-  try {
-    const token = localStorage.getItem('access_token');
-    if (!token) {
-      navigate('/');
-      return;
-    }
+        setLoadingChat(true);
+        setError('');
+        try {
+            const token = localStorage.getItem('access_token');
+            if (!token) {
+                navigate('/');
+                return;
+            }
 
-    const API_BASE_URL = window.location.hostname === 'localhost'
-      ? 'http://127.0.0.1:8000'
-      : 'https://pcp-backend-f4a2.onrender.com';
+            const API_BASE_URL = window.location.hostname === 'localhost'
+                ? 'http://127.0.0.1:8000'
+                : 'https://pcp-backend-f4a2.onrender.com';
 
-    const response = await axios.get(`${API_BASE_URL}/api/getprojectchat/?project_id=${projectId}`, {
-      headers: { Authorization: `Bearer ${token}` },
-    });
+            const response = await axios.get(`${API_BASE_URL}/api/getprojectchat/?project_id=${projectId}`, {
+                headers: { Authorization: `Bearer ${token}` },
+            });
 
-    const serverMessages = response.data.messages || [];
-    setChatMessages(prev => {
-      const nonTempMessages = prev.filter(msg => {
-        return !(msg.id && typeof msg.id === 'string' && msg.id.startsWith('temp-'));
-      });
-      if (JSON.stringify(nonTempMessages) !== JSON.stringify(serverMessages)) {
-        return serverMessages;
-      }
-      return prev;
-    });
-  } catch (err) {
-    console.error('Error fetching chat messages:', err);
-    if (err.response?.status === 400) {
-      setError('Project ID is required');
-      setTimeout(() => setError(''), 3000);
-    } else if (err.response?.status === 404) {
-      setError('Project not found');
-      setTimeout(() => setError(''), 3000);
-    } else if (err.response?.status === 403) {
-      setError('Access denied to this project');
-      setTimeout(() => setError(''), 3000);
-    } else if (err.response?.status === 401) {
-      localStorage.removeItem('access_token');
-      navigate('/');
-    } else {
-      setError('Failed to fetch chat messages');
-      setTimeout(() => setError(''), 3000);
-    }
-  } finally {
-    setLoadingChat(false);
-  }
-}, [projectId, navigate]); // Memoize with dependencies
+            const serverMessages = response.data.messages || [];
+            setChatMessages(prev => {
+                const nonTempMessages = prev.filter(msg => {
+                    return !(msg.id && typeof msg.id === 'string' && msg.id.startsWith('temp-'));
+                });
+                if (JSON.stringify(nonTempMessages) !== JSON.stringify(serverMessages)) {
+                    return serverMessages;
+                }
+                return prev;
+            });
+        } catch (err) {
+            console.error('Error fetching chat messages:', err);
+            if (err.response?.status === 400) {
+                setError('Project ID is required');
+                setTimeout(() => setError(''), 3000);
+            } else if (err.response?.status === 404) {
+                setError('Project not found');
+                setTimeout(() => setError(''), 3000);
+            } else if (err.response?.status === 403) {
+                setError('Access denied to this project');
+                setTimeout(() => setError(''), 3000);
+            } else if (err.response?.status === 401) {
+                localStorage.removeItem('access_token');
+                navigate('/');
+            } else {
+                setError('Failed to fetch chat messages');
+                setTimeout(() => setError(''), 3000);
+            }
+        } finally {
+            setLoadingChat(false);
+        }
+    }, [projectId, navigate]); // Memoize with dependencies
 
-// Update the useEffect for chat (line 68-72)
-useEffect(() => {
-  if (activeTab === 'chat' && projectId) {
-    fetchChat();
-  }
-}, [activeTab, projectId, navigate, fetchChat]);
+    // Update the useEffect for chat (line 68-72)
+    useEffect(() => {
+        if (activeTab === 'chat' && projectId) {
+            fetchChat();
+        }
+    }, [activeTab, projectId, navigate, fetchChat]);
 
     // Handle sending chat message
     const handleSendMessage = async () => {
@@ -318,7 +318,7 @@ useEffect(() => {
     }, [projectId, navigate]);
 
     // Fetch project data when Project Description tab is clicked
-    
+
 
     const handleAddNewTask = (id) => {
         setShowModal(true);
@@ -363,10 +363,10 @@ useEffect(() => {
         }
     }, [projectId, navigate]);
     useEffect(() => {
-  if (activeTab === 'project-description' && projectId) {
-    fetchProjectData();
-  }
-}, [activeTab, projectId, navigate, fetchProjectData]);
+        if (activeTab === 'project-description' && projectId) {
+            fetchProjectData();
+        }
+    }, [activeTab, projectId, navigate, fetchProjectData]);
 
     const handleTaskUpdate = async ({ taskId, taskName, taskDescription, dueDate }) => {
         try {
@@ -382,7 +382,7 @@ useEffect(() => {
     };
 
     // Fetch tasks when Tasks tab is clicked
-    
+
 
     useEffect(() => {
         if (activeTab === 'review_tasks' && projectId) {
@@ -430,7 +430,7 @@ useEffect(() => {
     }, [activeTab, projectId, navigate]);
 
     // Fetch documents for a specific task
-    
+
 
     const handleCompleteTask = async (taskId) => {
         try {
@@ -444,7 +444,7 @@ useEffect(() => {
                 ? 'http://127.0.0.1:8000'
                 : 'https://pcp-backend-f4a2.onrender.com';
 
-            await axios.post(`${API_BASE_URL}/api/completetask/`, { task_id: taskId }, {
+            await axios.post(`${API_BASE_URL}/api/completetask/`, { task_id: taskId }, { task_status: 'Completed' }, {
                 headers: { Authorization: `Bearer ${token}` },
             });
 
@@ -559,7 +559,7 @@ useEffect(() => {
         }
     };
 
-    const fetchUserTaskAssignments = useCallback(async() => {
+    const fetchUserTaskAssignments = useCallback(async () => {
         try {
             const token = localStorage.getItem('access_token');
             if (!token) {
@@ -628,10 +628,10 @@ useEffect(() => {
     }, [projectId, navigate, fetchUserTaskAssignments]);
 
     useEffect(() => {
-  if (activeTab === 'tasks' && projectId) {
-    fetchTasks();
-  }
-}, [activeTab, projectId, navigate, fetchTasks]);
+        if (activeTab === 'tasks' && projectId) {
+            fetchTasks();
+        }
+    }, [activeTab, projectId, navigate, fetchTasks]);
 
     // Handle task deletion
     const handleDelete = async (taskId) => {
@@ -1073,14 +1073,14 @@ useEffect(() => {
                     <div className={styles.detailSection}>
                         <h3 className={styles.detailHeading}>Important Links</h3>
                         <p className={styles.detailText}>{'No sharepoint links provided.'}</p>
-                            <button className={styles.addTaskButton}>Add new Links</button>
+                        <button className={styles.addTaskButton}>Add new Links</button>
                     </div>
-                        <button
-                            className={styles.addTaskButton}
-                            onClick={() => handleAddNewTask()}
-                        >
-                            Add Task
-                        </button>
+                    <button
+                        className={styles.addTaskButton}
+                        onClick={() => handleAddNewTask()}
+                    >
+                        Add Task
+                    </button>
                     {showModal && (
                         <AddTaskModal
                             isOpen={showModal}
@@ -1294,23 +1294,23 @@ useEffect(() => {
                             })()}
                         </div>
                     )}
-                        <div className={styles.chatInputContainer}>
-                            <input
-                                type="text"
-                                placeholder="Type your message..."
-                                value={messageInput}
-                                onChange={(e) => setMessageInput(e.target.value)}
-                                onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
-                                className={styles.chatInput}
-                            />
-                            <button
-                                onClick={handleSendMessage}
-                                disabled={!messageInput.trim()}
-                                className={`${styles.sendButton} ${!messageInput.trim() ? styles.sendButtonDisabled : ''}`}
-                            >
-                                Send
-                            </button>
-                        </div>
+                    <div className={styles.chatInputContainer}>
+                        <input
+                            type="text"
+                            placeholder="Type your message..."
+                            value={messageInput}
+                            onChange={(e) => setMessageInput(e.target.value)}
+                            onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
+                            className={styles.chatInput}
+                        />
+                        <button
+                            onClick={handleSendMessage}
+                            disabled={!messageInput.trim()}
+                            className={`${styles.sendButton} ${!messageInput.trim() ? styles.sendButtonDisabled : ''}`}
+                        >
+                            Send
+                        </button>
+                    </div>
                 </div>
             ),
         },
