@@ -5,7 +5,7 @@ from rest_framework import status
 from rest_framework_simplejwt.tokens import UntypedToken, AccessToken
 from rest_framework_simplejwt.exceptions import InvalidToken
 from datetime import datetime, timedelta
-from .models import User, Project, UserProject, Task, User_Task, Document,ChatMessage, ProjectChat
+from .models import User, Project, UserProject, Task, User_Task, Document,ChatMessage, ProjectChat, ProjectLinks, Meeting
 from django.core.files.storage import default_storage
 from django.core.files.uploadedfile import UploadedFile
 from django.core.files.base import ContentFile
@@ -22,6 +22,7 @@ import bcrypt
 import logging
 import mimetypes
 from django.utils import timezone
+
 
 logger = logging.getLogger(__name__)
 
@@ -135,13 +136,16 @@ class AddUserView(APIView):
             fname = request.data.get('fname')
             lname = request.data.get('lname')
             password = request.data.get('password')
+            security_question = request.data.get('security_question')
+            security_answer = request.data.get('security_answer')
 
             # Validate inputs
-            if not all([user_email, fname, lname, password]):
-                return Response({'error': 'All fields (email address, first name, last name, password) are required'}, status=status.HTTP_400_BAD_REQUEST)
+            if not all([user_email, fname, lname, password, security_question, security_answer]):
+                return Response({'error': 'All fields (email address, first name, last name, password, security question and answer) are required'}, status=status.HTTP_400_BAD_REQUEST)
 
             # Hash password and convert to string for storage
             hashed_password = bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
+
             # Check if user already exists
             if User.objects.filter(email=user_email).exists():
                 return Response({'error': 'User with this email already exists'}, status=status.HTTP_400_BAD_REQUEST)
@@ -151,7 +155,9 @@ class AddUserView(APIView):
                 email=user_email,
                 first_name=fname,
                 last_name=lname,
-                password=hashed_password
+                password=hashed_password,
+                security_question=security_question,
+                security_answer=security_answer
             )
             return Response({'message': 'User added successfully', 'id': user.email}, status=status.HTTP_201_CREATED)
         except Exception as e:
@@ -1897,3 +1903,145 @@ class ChangeRoleView(APIView):
         except Exception as e:
             logger.error(f"Error changing role: {str(e)}")
             return Response({'error': f'Failed to change role: {str(e)}'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        
+
+# View to add a project link
+class AddProjectLinkView(APIView):
+    def post(self, request):
+        user = get_user_from_token(request)
+        if not user:
+            logger.error("Authentication failed: No valid user token")
+            return Response({'error': 'Authentication required'}, status=status.HTTP_401_UNAUTHORIZED)
+
+        project_id = request.data.get('project_id')
+        link_url = request.data.get('link')  # Assuming 'link' is the key for link_url as per user description
+
+        if not project_id or not link_url:
+            return Response({'error': 'project_id and link are required'}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            project = Project.objects.get(project_id=project_id)
+            
+            # Create the link
+            link = ProjectLinks.objects.create(
+                project=project,
+                link_url=link_url
+            )
+            
+            logger.info(f"Link added to project {project_id} by {user.email}")
+            return Response({
+                'message': 'Link added successfully',
+                'link_id': link.link_id
+            }, status=status.HTTP_201_CREATED)
+        
+        except Project.DoesNotExist:
+            logger.error(f"Project not found: project_id={project_id}")
+            return Response({'error': 'Project not found'}, status=status.HTTP_404_NOT_FOUND)
+        
+        except Exception as e:
+            logger.error(f"Error adding project link: {str(e)}")
+            return Response({'error': f'Failed to add link: {str(e)}'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+# View to delete a project link
+class DeleteProjectLinkView(APIView):
+    def post(self, request):
+        user = get_user_from_token(request)
+        if not user:
+            logger.error("Authentication failed: No valid user token")
+            return Response({'error': 'Authentication required'}, status=status.HTTP_401_UNAUTHORIZED)
+
+        project_id = request.data.get('project_id')
+        link_id = request.data.get('link_id')  # Assuming 'Link_id' is sent as 'link_id'
+
+        if not project_id or not link_id:
+            return Response({'error': 'project_id and link_id are required'}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            project = Project.objects.get(project_id=project_id)
+            
+
+            # Fetch and delete the link, ensuring it belongs to the project
+            try:
+                link = ProjectLinks.objects.get(link_id=link_id, project=project)
+                link.delete()
+                logger.info(f"Link {link_id} deleted from project {project_id} by {user.email}")
+                return Response({'message': 'Link deleted successfully'}, status=status.HTTP_200_OK)
+            except ProjectLinks.DoesNotExist:
+                logger.error(f"Link {link_id} not found in project {project_id}")
+                return Response({'error': 'Link not found in this project'}, status=status.HTTP_404_NOT_FOUND)
+        
+        except Project.DoesNotExist:
+            logger.error(f"Project not found: project_id={project_id}")
+            return Response({'error': 'Project not found'}, status=status.HTTP_404_NOT_FOUND)
+        
+        except Exception as e:
+            logger.error(f"Error deleting project link: {str(e)}")
+            return Response({'error': f'Failed to delete link: {str(e)}'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+#View to add a meeting
+class AddMeetingView(APIView):
+    def post(self, request):
+        user = get_user_from_token(request)
+        if not user:
+            logger.error("Authentication failed: No valid user token")
+            return Response({'error': 'Authentication required'}, status=status.HTTP_401_UNAUTHORIZED)
+
+        project_id = request.data.get('project_id')
+        meeting_title = request.data.get('meeting_title')
+        date_time_str = request.data.get('date_time')  # Assuming frontend sends date_time as string
+
+        if not all([project_id, meeting_title, date_time_str]):
+            return Response({'error': 'project_id, meeting_title, and date_time are required'}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            project = Project.objects.get(project_id=project_id)
+
+
+            # Parse date_time (assuming format 'YYYY-MM-DD HH:MM:SS')
+            try:
+                date_time = datetime.strptime(date_time_str, '%Y-%m-%d %H:%M:%S')
+            except ValueError:
+                return Response({'error': 'Invalid date_time format. Expected YYYY-MM-DD HH:MM:SS'}, status=status.HTTP_400_BAD_REQUEST)
+
+            # Create the meeting
+            meeting = Meeting.objects.create(
+                project_id=project,
+                meeting_title=meeting_title,
+                date_time=date_time
+            )
+            
+            logger.info(f"Meeting {meeting.meeting_id} added for project {project_id} by {user.email}")
+            return Response({'message': 'Meeting added successfully', 'meeting_id': meeting.meeting_id}, status=status.HTTP_201_CREATED)
+        
+        except Project.DoesNotExist:
+            logger.error(f"Project not found: project_id={project_id}")
+            return Response({'error': 'Project not found'}, status=status.HTTP_404_NOT_FOUND)
+        
+        except Exception as e:
+            logger.error(f"Error adding meeting: {str(e)}")
+            return Response({'error': f'Failed to add meeting: {str(e)}'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+#View to delete a meeting
+class DeleteMeetingView(APIView):
+    def delete(self, request, meeting_id):
+        user = get_user_from_token(request)
+        if not user:
+            logger.error("Authentication failed: No valid user token")
+            return Response({'error': 'Authentication required'}, status=status.HTTP_401_UNAUTHORIZED)
+
+        try:
+            meeting = Meeting.objects.get(meeting_id=meeting_id)
+            project = meeting.project_id
+
+            meeting.delete()
+            
+            logger.info(f"Meeting {meeting_id} deleted by {user.email}")
+            return Response({'message': 'Meeting deleted successfully'}, status=status.HTTP_200_OK)
+        
+        except Meeting.DoesNotExist:
+            logger.error(f"Meeting not found: meeting_id={meeting_id}")
+            return Response({'error': 'Meeting not found'}, status=status.HTTP_404_NOT_FOUND)
+        
+        except Exception as e:
+            logger.error(f"Error deleting meeting: {str(e)}")
+            return Response({'error': f'Failed to delete meeting: {str(e)}'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)

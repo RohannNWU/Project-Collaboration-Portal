@@ -28,6 +28,7 @@ INSTALLED_APPS = [
     'rest_framework',
     'corsheaders',
     'pcp_webapp',
+    'django_cleanup',  # Automatically deletes old files on model update/delete
 ]
 
 MIDDLEWARE = [

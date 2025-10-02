@@ -8,6 +8,8 @@ class User(models.Model):
     first_name = models.CharField(max_length=50)
     last_name = models.CharField(max_length=50)
     password = models.CharField(max_length=255)
+    security_question = models.CharField(max_length=255, null=True, blank=True)
+    security_answer = models.CharField(max_length=255, null=True, blank=True)
 
     class Meta:
         managed = True
@@ -243,3 +245,26 @@ class UserNotification(models.Model):
 
     def __str__(self):
         return f"Notification {self.notif_id} for {self.email} - Read: {self.is_read}"
+
+class ProjectLinks(models.Model):
+    link_id = models.AutoField(primary_key=True)
+    project = models.ForeignKey(Project, on_delete=models.CASCADE, related_name='links')
+    link_url = models.URLField(max_length=500)
+
+    class Meta:
+        managed = True
+
+    def __str__(self):
+        return f"Link for {self.project.project_name}: {self.link_url}"
+    
+class Meeting(models.Model):
+    meeting_id = models.AutoField(primary_key=True)
+    project_id = models.ForeignKey(Project, on_delete=models.CASCADE, related_name='meetings')
+    meeting_title = models.CharField(max_length=200)    
+    date_time = models.DateTimeField()
+    
+    class Meta:
+        managed = True
+    
+    def __str__(self):
+        return f"Meeting {self.meeting_title} for Project {self.project_id.project_name} on {self.date_time}"
