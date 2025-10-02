@@ -767,74 +767,76 @@ const SupervisorDashboard = () => {
           ) : (
             <div className={styles.taskContainer}>
               <div className={styles.taskList}>
-                {tasks.map((task) => (
-                  <div
-                    key={task.task_id}
-                    className={styles.taskItem}
-                    onMouseEnter={(e) => {
-                      e.currentTarget.classList.add(styles.taskItemHover);
-                    }}
-                    onMouseLeave={(e) => {
-                      e.currentTarget.classList.remove(styles.taskItemHover);
-                    }}
-                  >
-                    <div className={styles.taskHeader}>
-                      <div className={styles.taskInfo}>
-                        <p className={styles.taskName}>{task.task_name}</p>
-                        <p className={styles.taskDescription}>{task.task_description}</p>
-                        <p className={styles.taskMeta}>
-                          Due: {task.task_due_date} | Status: {task.task_status} | Priority: {task.task_priority}
-                        </p>
-                        {task.task_status !== 'Finalized' && (
-                          <button className={styles.deleteButton} onClick={() => handleDelete(task.task_id)} disabled={isProjectGraded}>
-                            Delete Task
-                          </button>
-                        )}
+                {tasks
+                  .filter((task) => task.task_name !== 'Final Submission')
+                  .map((task) => (
+                    <div
+                      key={task.task_id}
+                      className={styles.taskItem}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.classList.add(styles.taskItemHover);
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.classList.remove(styles.taskItemHover);
+                      }}
+                    >
+                      <div className={styles.taskHeader}>
+                        <div className={styles.taskInfo}>
+                          <p className={styles.taskName}>{task.task_name}</p>
+                          <p className={styles.taskDescription}>{task.task_description}</p>
+                          <p className={styles.taskMeta}>
+                            Due: {task.task_due_date} | Status: {task.task_status} | Priority: {task.task_priority}
+                          </p>
+                          {task.task_status !== 'Finalized' && (
+                            <button className={styles.deleteButton} onClick={() => handleDelete(task.task_id)} disabled={isProjectGraded}>
+                              Delete Task
+                            </button>
+                          )}
+                        </div>
+                        <div
+                          className={`${styles.dropdownToggle} ${expandedTasks[task.task_id] ? styles.dropdownToggleActive : ''}`}
+                          onClick={() => toggleTaskDropdown(task.task_id)}
+                        >
+                          ▼
+                        </div>
                       </div>
-                      <div
-                        className={`${styles.dropdownToggle} ${expandedTasks[task.task_id] ? styles.dropdownToggleActive : ''}`}
-                        onClick={() => toggleTaskDropdown(task.task_id)}
-                      >
-                        ▼
-                      </div>
-                    </div>
-                    {expandedTasks[task.task_id] && (
-                      <div className={styles.taskDocuments}>
-                        <h4 className={styles.documentsHeading}>Documents</h4>
-                        {loadingDocuments[task.task_id] ? (
-                          <p className={styles.documentsLoading}>Loading documents...</p>
-                        ) : documentsByTask[task.task_id]?.length > 0 ? (
-                          <ul className={styles.documentList}>
-                            {documentsByTask[task.task_id].map((doc) => (
-                              <li
-                                key={doc.document_id}
-                                className={styles.documentItem}
-                                onMouseEnter={(e) => {
-                                  e.currentTarget.classList.add(styles.documentItemHover);
-                                }}
-                                onMouseLeave={(e) => {
-                                  e.currentTarget.classList.remove(styles.documentItemHover);
-                                }}
-                              >
-                                <span className={styles.documentTitle}>
-                                  {doc.document_title}
-                                </span>
-                                <button
-                                  onClick={() => handleDownload(doc.document_id, doc.document_title)}
-                                  className={styles.downloadButton}
+                      {expandedTasks[task.task_id] && (
+                        <div className={styles.taskDocuments}>
+                          <h4 className={styles.documentsHeading}>Documents</h4>
+                          {loadingDocuments[task.task_id] ? (
+                            <p className={styles.documentsLoading}>Loading documents...</p>
+                          ) : documentsByTask[task.task_id]?.length > 0 ? (
+                            <ul className={styles.documentList}>
+                              {documentsByTask[task.task_id].map((doc) => (
+                                <li
+                                  key={doc.document_id}
+                                  className={styles.documentItem}
+                                  onMouseEnter={(e) => {
+                                    e.currentTarget.classList.add(styles.documentItemHover);
+                                  }}
+                                  onMouseLeave={(e) => {
+                                    e.currentTarget.classList.remove(styles.documentItemHover);
+                                  }}
                                 >
-                                  Download
-                                </button>
-                              </li>
-                            ))}
-                          </ul>
-                        ) : (
-                          <p className={styles.noDocuments}>No documents available.</p>
-                        )}
-                      </div>
-                    )}
-                  </div>
-                ))}
+                                  <span className={styles.documentTitle}>
+                                    {doc.document_title}
+                                  </span>
+                                  <button
+                                    onClick={() => handleDownload(doc.document_id, doc.document_title)}
+                                    className={styles.downloadButton}
+                                  >
+                                    Download
+                                  </button>
+                                </li>
+                              ))}
+                            </ul>
+                          ) : (
+                            <p className={styles.noDocuments}>No documents available.</p>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  ))}
               </div>
             </div>
           )}
@@ -893,7 +895,7 @@ const SupervisorDashboard = () => {
                   <ul>
                     {userContributions.map((contributor, index) => (
                       <li key={contributor.email || index}>  {/* Use email as key for uniqueness */}
-                        {contributor.first_name} {contributor.last_name} ({contributor.email})
+                        {contributor.first_name} {contributor.last_name} - ({contributor.email})
                       </li>
                     ))}
                   </ul>
