@@ -347,7 +347,7 @@ const StudentDashboard = () => {
         ? 'http://127.0.0.1:8000'
         : 'https://pcp-backend-f4a2.onrender.com';
 
-      await axios.post(`${API_BASE_URL}/api/completetask/`, { task_id: taskId }, {
+      await axios.post(`${API_BASE_URL}/api/completetask/`, { task_id: taskId, task_status: "Completed" }, {
         headers: { Authorization: `Bearer ${token}` },
       });
 

@@ -1717,11 +1717,13 @@ class DeleteNotificationView(APIView):
 class CompleteTaskView(APIView):
     def post(self, request):
         user = get_user_from_token(request)
+        
         if not user:
             logger.error("Authentication failed: No valid user token")
             return Response({'error': 'Authentication required'}, status=status.HTTP_401_UNAUTHORIZED)
 
         task_id = request.data.get('task_id')
+        task_status = request.data.get('task_status')
         if not task_id:
             return Response({'error': 'task_id is required'}, status=status.HTTP_400_BAD_REQUEST)
 
@@ -1733,7 +1735,7 @@ class CompleteTaskView(APIView):
                 logger.error(f"User {user.email} is not assigned to task {task_id}")
                 return Response({'error': 'You are not assigned to this task'}, status=status.HTTP_403_FORBIDDEN)
 
-            task.task_status = 'Finalized'
+            task.task_status = task_status
             task.save()
             
             logger.info(f"Task {task_id} marked as completed by {user.email}")
