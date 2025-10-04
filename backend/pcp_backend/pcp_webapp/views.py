@@ -1599,40 +1599,35 @@ class UpdateProjectFeedbackView(APIView):
 #View that updates user profile
 class UpdateProfileView(APIView):
     def post(self, request):
-        # Authenticate user from token
         user = get_user_from_token(request)
         if not user:
             logger.error("Authentication failed: No valid user token")
             return Response({'error': 'Authentication required'}, status=status.HTTP_401_UNAUTHORIZED)
+
+        first_name = request.data.get('first_name')
+        last_name = request.data.get('last_name')
+        security_question = request.data.get('security_question')
+        security_answer = request.data.get('security_answer')
         
-        # Extract fields from request data
-        first_name = request.data.get('fname')
-        last_name = request.data.get('lname')
-        password = request.data.get('password')
-        
-        # Ensure at least one field is provided
-        if not any([first_name, last_name, password]):
-            return Response({'error': 'At least one field to update (fname, lname, password) is required'}, status=status.HTTP_400_BAD_REQUEST)
-        
+        # At least one field must be provided to update
         try:
-            # Update fields if provided
             if first_name:
                 user.first_name = first_name
             if last_name:
                 user.last_name = last_name
-            if password:
-                hashed_password = bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
-                user.password = hashed_password
-            
-            user.save()
-            
-            logger.info(f"Profile updated for user {user.email}")
-            return Response({'message': 'Profile updated successfully'}, status=status.HTTP_200_OK)
-        
-        except Exception as e:
-            logger.error(f"Error updating profile: {str(e)}")
-            return Response({'error': f'Failed to update profile: {str(e)}'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+            if security_question:
+                user.security_question = security_question
+            if security_answer:
+                hashed_security_answer = bcrypt.hashpw(security_answer.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
+                user.security_answer = hashed_security_answer
 
+            user.save()
+            logger.info(f"Profile updated successfully for user {user.email}")
+            return Response({'message': 'Profile updated successfully'}, status=status.HTTP_200_OK)
+
+        except Exception as e:
+            logger.error(f"Error updating profile for {user.email}: {str(e)}")
+            return Response({'error': f'Failed to update profile: {str(e)}'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 #Create notification for multiple users
 #Frontend must send token and in the body a list of emails, title and message
