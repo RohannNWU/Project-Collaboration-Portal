@@ -69,7 +69,7 @@ DATABASES = {
         'NAME': 'pcpdb_8lsj',
         'USER': 'pcpdbadmin',
         'PASSWORD': 'KHv9rQ4pjZ0YxsNLTRPYCnJqpxXBBMEg',  # Replace with your actual password
-        'HOST': 'dpg-d3ghnvvfte5s73c5kllg-a.frankfurt-postgres.render.com/pcpdb_8lsj',
+        'HOST': 'dpg-d3ghnvvfte5s73c5kllg-a.frankfurt-postgres.render.com',
         'PORT': '5432',
     }
 }
