@@ -169,9 +169,9 @@ const StudentDashboard = () => {
         const serverMessages = response.data.messages || [];
         const currentMessageCount = serverMessages.length;
 
-        if (currentMessageCount !== prevMessageCountRef.current) {
-          await fetchChat();
+        if (currentMessageCount !== prevMessageCountRef.current) {  
           prevMessageCountRef.current = currentMessageCount;
+          await fetchChat();
         }
       } catch (err) {
         console.error('Error polling chat messages:', err);
@@ -231,7 +231,6 @@ const StudentDashboard = () => {
         headers: { Authorization: `Bearer ${token}` },
       });
 
-      fetchChat();
     } catch (err) {
       console.error('Error sending chat message:', err);
       setChatMessages(prev => prev.filter(msg => msg.id !== tempMessage.id));
