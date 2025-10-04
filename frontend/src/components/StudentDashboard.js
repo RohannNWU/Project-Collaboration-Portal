@@ -24,6 +24,7 @@ const StudentDashboard = () => {
   const navigate = useNavigate();
   const { projectId } = location.state || {};
   const chatContainerRef = useRef(null);
+  const prevMessageCountRef = useRef(0);
 
   // Helper function for CHAT
   function getGradientColors(senderName) {
@@ -97,9 +98,6 @@ const StudentDashboard = () => {
     }
   }, [projectId, navigate]);
 
-  // Fetch chat messages when Chat tab is clicked
-  
-
   // Fetch chat messages function
   const fetchChat = useCallback(async () => {
     setLoadingChat(true);
@@ -148,11 +146,48 @@ const StudentDashboard = () => {
     }
   }, [projectId, navigate]);
 
+  // Polling for chat messages every 5 seconds when Chat tab is active
   useEffect(() => {
-  if (activeTab === 'chat' && projectId) {
-    fetchChat();
-  }
-}, [activeTab, projectId, navigate, fetchChat]);
+    if (activeTab !== 'chat' || !projectId || isProjectGraded) return;
+
+    const pollChatMessages = async () => {
+      try {
+        const token = localStorage.getItem('access_token');
+        if (!token) {
+          navigate('/');
+          return;
+        }
+
+        const API_BASE_URL = window.location.hostname === 'localhost'
+          ? 'http://127.0.0.1:8000'
+          : 'https://pcp-backend-f4a2.onrender.com';
+
+        const response = await axios.get(`${API_BASE_URL}/api/getprojectchat/?project_id=${projectId}`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+
+        const serverMessages = response.data.messages || [];
+        const currentMessageCount = serverMessages.length;
+
+        if (currentMessageCount !== prevMessageCountRef.current) {
+          await fetchChat();
+          prevMessageCountRef.current = currentMessageCount;
+        }
+      } catch (err) {
+        console.error('Error polling chat messages:', err);
+        // Handle errors silently to avoid disrupting user experience
+      }
+    };
+
+    // Initial fetch to set the baseline message count
+    pollChatMessages();
+
+    // Set up polling interval
+    const intervalId = setInterval(pollChatMessages, 5000);
+
+    // Clean up interval on unmount or when dependencies change
+    return () => clearInterval(intervalId);
+  }, [activeTab, projectId, fetchChat, isProjectGraded, navigate]);
 
   // Handle sending chat message
   const handleSendMessage = async () => {
@@ -290,8 +325,6 @@ const StudentDashboard = () => {
     }
   }, [projectId, navigate, fetchUserTaskAssignments]);
 
-  
-
   // Fetch members when Members tab is clicked
   useEffect(() => {
     if (activeTab === 'members' && projectId) {
@@ -399,15 +432,6 @@ const StudentDashboard = () => {
       setLoadingDocuments((prev) => ({ ...prev, [taskId]: false }));
     }
   };
-
-  // Fetch user task assignments
-  
-
-  useEffect(() => {
-  if (activeTab === 'tasks' && projectId) {
-    fetchTasks();
-  }
-}, [activeTab, projectId, navigate, fetchTasks]);
 
   // Handle file upload
   const handleFileUpload = async (taskId, file) => {
@@ -856,9 +880,9 @@ const StudentDashboard = () => {
               })()}
             </div>
           )}
-          {projectData && projectData.grade && projectData.feedback ? null : ( // Use isProjectGraded here
-  <div className={styles.chatInputContainer}>
-    <input
+          {projectData && projectData.grade && projectData.feedback ? null : (
+            <div className={styles.chatInputContainer}>
+              <input
                 type="text"
                 placeholder="Type your message..."
                 value={messageInput}
