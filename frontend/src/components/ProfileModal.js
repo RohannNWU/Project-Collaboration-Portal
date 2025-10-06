@@ -31,6 +31,7 @@ const ProfileModal = ({ onClose, onSuccess, email: initialEmail }) => {
         setFirstName(response.data.user_details.first_name || '');
         setLastName(response.data.user_details.last_name || '');
         setSecurityQuestion(response.data.user_details.security_question || '');
+        setSecurityAnswer(response.data.user_details.security_answer || '');
       } catch (err) {
         console.error('Error fetching profile data:', err);
         setError('Failed to load profile data');
@@ -42,12 +43,12 @@ const ProfileModal = ({ onClose, onSuccess, email: initialEmail }) => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (newPassword !== confirmPassword) {
+    if (newPassword && newPassword !== confirmPassword) {
       setError('Passwords do not match');
       return;
     }
-    if (!firstName || !lastName || !securityQuestion || !securityAnswer) {
-      setError('Please fill in all fields');
+    if (!firstName || !lastName || !securityQuestion) {
+      setError('Please fill in all required fields');
       return;
     }
 
@@ -59,12 +60,18 @@ const ProfileModal = ({ onClose, onSuccess, email: initialEmail }) => {
         first_name: firstName,
         last_name: lastName,
         security_question: securityQuestion,
-        security_answer: securityAnswer,
-        password: newPassword || undefined, // Only send if provided
       };
 
+      if (securityAnswer) {
+        updateData.security_answer = securityAnswer;
+      }
+
+      if (newPassword) {
+        updateData.password = newPassword;
+      }
+
       // Assuming update endpoint /api/update-profile/
-      await axios.put(`${API_BASE_URL}/api/update-profile/`, updateData, {
+      await axios.post(`${API_BASE_URL}/api/updateprofile/`, updateData, {
         headers: { Authorization: `Bearer ${token}` }
       });
 
@@ -92,7 +99,7 @@ const ProfileModal = ({ onClose, onSuccess, email: initialEmail }) => {
             <input type="email" value={initialEmail} readOnly className={styles.readOnlyInput} />
           </div>
           <div className={styles.fieldGroup}>
-            <label>First Name</label>
+            <label>First Name *</label>
             <input
               type="text"
               value={firstName}
@@ -101,7 +108,7 @@ const ProfileModal = ({ onClose, onSuccess, email: initialEmail }) => {
             />
           </div>
           <div className={styles.fieldGroup}>
-            <label>Last Name</label>
+            <label>Last Name *</label>
             <input
               type="text"
               value={lastName}
@@ -110,7 +117,7 @@ const ProfileModal = ({ onClose, onSuccess, email: initialEmail }) => {
             />
           </div>
           <div className={styles.fieldGroup}>
-            <label>Security Question</label>
+            <label>Security Question *</label>
             <input
               type="text"
               value={securityQuestion}
@@ -120,12 +127,12 @@ const ProfileModal = ({ onClose, onSuccess, email: initialEmail }) => {
             />
           </div>
           <div className={styles.fieldGroup}>
-            <label>Security Answer</label>
+            <label>Security Answer (optional)</label>
             <input
               type="text"
               value={securityAnswer}
               onChange={(e) => setSecurityAnswer(e.target.value)}
-              required
+              placeholder="Leave blank to keep current"
             />
           </div>
           <div className={styles.fieldGroup}>
