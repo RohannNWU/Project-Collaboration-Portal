@@ -9,6 +9,9 @@ const StudentDashboard = () => {
   const [tasks, setTasks] = useState([]);
   const [members, setMembers] = useState([]);
   const [documentsByTask, setDocumentsByTask] = useState({});
+  const [expandedSections, setExpandedSections] = useState({ myTasks: false, projectTasks: false, links: false });
+  const [myTasks, setMyTasks] = useState([]);
+  const [projectTasks, setProjectTasks] = useState([]);
   const [expandedTasks, setExpandedTasks] = useState({});
   const [userTaskAssignments, setUserTaskAssignments] = useState({});
   const [chatMessages, setChatMessages] = useState([]);
@@ -18,6 +21,7 @@ const StudentDashboard = () => {
   const [loadingMembers, setLoadingMembers] = useState(false);
   const [loadingDocuments, setLoadingDocuments] = useState({});
   const [loadingChat, setLoadingChat] = useState(false);
+  const [links, setProjectLinks] = useState([]);
   const [error, setError] = useState('');
   const isProjectGraded = projectData?.grade && projectData?.feedback;
   const location = useLocation();
@@ -47,6 +51,9 @@ const StudentDashboard = () => {
     const index = Math.abs(hash) % colors.length;
     return colors[index];
   }
+
+  const toggleSectionExpansion = (section) => setExpandedSections(prev => ({ ...prev, [section]: !prev[section] }));
+
 
   // Effect to scroll to the latest message when chatMessages update
   useEffect(() => {
@@ -148,46 +155,10 @@ const StudentDashboard = () => {
 
   // Polling for chat messages every 5 seconds when Chat tab is active
   useEffect(() => {
-    if (activeTab !== 'chat' || !projectId || isProjectGraded) return;
-
-    const pollChatMessages = async () => {
-      try {
-        const token = localStorage.getItem('access_token');
-        if (!token) {
-          navigate('/');
-          return;
-        }
-
-        const API_BASE_URL = window.location.hostname === 'localhost'
-          ? 'http://127.0.0.1:8000'
-          : 'https://pcp-backend-f4a2.onrender.com';
-
-        const response = await axios.get(`${API_BASE_URL}/api/getprojectchat/?project_id=${projectId}`, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-
-        const serverMessages = response.data.messages || [];
-        const currentMessageCount = serverMessages.length;
-
-        if (currentMessageCount !== prevMessageCountRef.current) {  
-          prevMessageCountRef.current = currentMessageCount;
-          await fetchChat();
-        }
-      } catch (err) {
-        console.error('Error polling chat messages:', err);
-        // Handle errors silently to avoid disrupting user experience
-      }
-    };
-
-    // Initial fetch to set the baseline message count
-    pollChatMessages();
-
-    // Set up polling interval
-    const intervalId = setInterval(pollChatMessages, 5000);
-
-    // Clean up interval on unmount or when dependencies change
-    return () => clearInterval(intervalId);
-  }, [activeTab, projectId, fetchChat, isProjectGraded, navigate]);
+    if (activeTab === 'chat' && projectId) {
+      fetchChat();
+    }
+  }, [activeTab, projectId, navigate, fetchChat]);
 
   // Handle sending chat message
   const handleSendMessage = async () => {
@@ -250,6 +221,25 @@ const StudentDashboard = () => {
       }
     }
   };
+
+  const fetchLinks = useCallback(async () => {
+    try {
+      const API_BASE_URL = window.location.hostname === 'localhost'
+        ? 'http://127.0.0.1:8000'
+        : 'https://pcp-backend-f4a2.onrender.com';
+
+      const response = await axios.post(`${API_BASE_URL}/api/getprojectlinks/`, {projectId});
+      setProjectLinks(response.data.links || []);
+    } catch (err) {
+      console.error('Error fetching links:', err);
+    }
+  }, [projectId, setProjectLinks]);
+
+  useEffect(() => {
+    if (activeTab === 'tasks' && projectId) {
+      fetchLinks();
+    }
+  }, [activeTab, projectId, fetchLinks]);
 
   // Redirect if no projectId
   useEffect(() => {
@@ -431,6 +421,21 @@ const StudentDashboard = () => {
       setLoadingDocuments((prev) => ({ ...prev, [taskId]: false }));
     }
   };
+
+  // Fetch user task assignments
+
+  useEffect(() => {
+    if (activeTab === 'tasks' && projectId) {
+      fetchTasks();
+    }
+  }, [activeTab, projectId, fetchTasks]);
+
+  useEffect(() => {
+    const myTasksList = tasks.filter(task => userTaskAssignments[task.task_id] && task.task_name !== "Final Submission");
+    const projectTasksList = tasks.filter(task => !userTaskAssignments[task.task_id] && task.task_name !== "Final Submission");
+    setMyTasks(myTasksList);
+    setProjectTasks(projectTasksList);
+  }, [tasks, userTaskAssignments]);
 
   // Handle file upload
   const handleFileUpload = async (taskId, file) => {
@@ -656,124 +661,300 @@ const StudentDashboard = () => {
       label: 'Tasks',
       content: (
         <div className={styles.tabContent}>
-          <h2 className={styles.tabHeading}>Project Tasks</h2>
-          {error && (
-            <div className={styles.errorMessage}>
-              {error}
+          {/* My Tasks Section */}
+          <div className={styles.section}>
+            <div
+              className={`${styles.sectionHeader} ${expandedSections.myTasks ? styles.sectionHeaderExpanded : ''}`}
+              onClick={() => toggleSectionExpansion('myTasks')}
+            >
+              <h2 className={styles.sectionHeading}>My Tasks</h2>
+              <span className={`${styles.dropdownToggle} ${expandedSections.myTasks ? styles.dropdownToggleActive : ''}`}>
+                ▼
+              </span>
             </div>
-          )}
-          {loadingTasks ? (
-            <div className={styles.loadingMessage}>
-              Loading tasks...
-            </div>
-          ) : tasks.length === 0 ? (
-            <div className={styles.noDataMessage}>
-              No tasks available for this project.
-            </div>
-          ) : (
-            <div className={styles.taskList}>
-              {tasks.map((task) => (
-                <div
-                  key={task.task_id}
-                  className={styles.taskItem}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.classList.add(styles.taskItemHover);
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.classList.remove(styles.taskItemHover);
-                  }}
-                >
-                  <div
-                    className={`${styles.taskHeader} ${expandedTasks[task.task_id] ? styles.taskHeaderExpanded : ''}`}
-                    onClick={() => toggleTaskExpansion(task.task_id)}
-                  >
-                    <div className={styles.taskInfo}>
-                      <h4 className={styles.taskName}>{task.task_name}</h4>
-                      <p className={styles.taskMeta}>
-                        Due: {task.task_due_date} | Status: {task.task_status} | Priority: {task.task_priority}
-                      </p>
-                    </div>
-                    <div className={styles.taskActions}>
-                      {userTaskAssignments[task.task_id] && task.task_status !== 'Completed' && task.task_status !== 'Finalized' && (
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleCompleteTask(task.task_id);
-                          }}
-                          className={styles.deleteButton}
-                        >
-                          Mark as Complete
-                        </button>
-                      )}
-                      <span className={`${styles.dropdownToggle} ${expandedTasks[task.task_id] ? styles.dropdownToggleActive : ''}`}>
-                        ▼
-                      </span>
-                    </div>
+            {expandedSections.myTasks && (
+              <div className={styles.sectionContent}>
+                {loadingTasks ? (
+                  <div className={styles.loadingMessage}>
+                    Loading tasks...
                   </div>
-                  {expandedTasks[task.task_id] && (
-                    <div className={styles.taskDetails}>
-                      <p className={styles.taskDescription}>{task.task_description || 'No description available.'}</p>
-                      {userTaskAssignments[task.task_id] && task.task_status !== 'Completed' && task.task_status !== 'Finalized' && (
-                        <div className={styles.uploadContainer}>
-                          <label
-                            htmlFor={`file-upload-${task.task_id}`}
-                            className={styles.uploadButton}
-                          >
-                            Upload Document
-                          </label>
-                          <input
-                            id={`file-upload-${task.task_id}`}
-                            type="file"
-                            className={styles.fileInput}
-                            onChange={(e) => handleFileSelect(task.task_id, e)}
-                          />
-                        </div>
-                      )}
-                      <h4 className={styles.documentsHeading}>Documents</h4>
-                      {loadingDocuments[task.task_id] ? (
-                        <p className={styles.documentsLoading}>Loading documents...</p>
-                      ) : documentsByTask[task.task_id]?.length > 0 ? (
-                        <ul className={styles.documentList}>
-                          {documentsByTask[task.task_id].map((doc) => (
-                            <li
-                              key={doc.document_id}
-                              className={styles.documentItem}
-                              onMouseEnter={(e) => {
-                                e.currentTarget.classList.add(styles.documentItemHover);
-                              }}
-                              onMouseLeave={(e) => {
-                                e.currentTarget.classList.remove(styles.documentItemHover);
-                              }}
-                            >
-                              <div className={styles.documentInfo}>
-                                <span className={styles.documentTitle}>{doc.document_title}</span>
-                                {userTaskAssignments[task.task_id] && task.task_status !== 'Completed' && task.task_status !== 'Finalized' && (
-                                  <span
-                                    onClick={() => handleDeleteDocument(doc.document_id, task.task_id)}
-                                    className={styles.removeDocument}
-                                  >
-                                    (remove)
-                                  </span>
-                                )}
-                              </div>
+                ) : myTasks.length === 0 ? (
+                  <div className={styles.noDataMessage}>
+                    No tasks assigned to you.
+                  </div>
+                ) : (
+                  <div className={styles.taskList}>
+                    {myTasks.map((task) => (
+                      <div
+                        key={task.task_id}
+                        className={styles.taskItem}
+                        onMouseEnter={(e) => {
+                          e.currentTarget.classList.add(styles.taskItemHover);
+                        }}
+                        onMouseLeave={(e) => {
+                          e.currentTarget.classList.remove(styles.taskItemHover);
+                        }}
+                      >
+                        <div
+                          className={`${styles.taskHeader} ${expandedTasks[task.task_id] ? styles.taskHeaderExpanded : ''}`}
+                          onClick={() => toggleTaskExpansion(task.task_id)}
+                        >
+                          <div className={styles.taskInfo}>
+                            <h4 className={styles.taskName}>{task.task_name}</h4>
+                            <p className={styles.taskDescription}>{task.task_description || 'No description available.'}</p>
+                            <p className={styles.taskMeta}>
+                              <strong>Due:</strong> {task.task_due_date} | <strong>Status:</strong> {task.task_status} | <strong>Priority:</strong> {task.task_priority}
+                            </p>
+                          </div>
+                          <div className={styles.taskActions}>
+                            {userTaskAssignments[task.task_id] && task.task_status !== 'Completed' && task.task_status !== 'Finalized' && (
                               <button
-                                onClick={() => handleDownload(doc.document_id, doc.document_title)}
-                                className={styles.downloadButton}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleCompleteTask(task.task_id);
+                                }}
+                                className={styles.deleteButton}
                               >
-                                Download
+                                Mark as Complete
                               </button>
-                            </li>
-                          ))}
-                        </ul>
-                      ) : (
-                        <p className={styles.noDocuments}>No documents available.</p>
-                      )}
+                            )}
+                            <span className={`${styles.dropdownToggle} ${expandedTasks[task.task_id] ? styles.dropdownToggleActive : ''}`}>
+                              ▼
+                            </span>
+                          </div>
+                        </div>
+                        {expandedTasks[task.task_id] && (
+                          <div className={styles.taskDetails}>
+                            {userTaskAssignments[task.task_id] && task.task_status !== 'Completed' && task.task_status !== 'Finalized' && (
+                              <div className={styles.uploadContainer}>
+                                <label
+                                  htmlFor={`file-upload-${task.task_id}`}
+                                  className={styles.uploadButton}
+                                >
+                                  Upload Document
+                                </label>
+                                <input
+                                  id={`file-upload-${task.task_id}`}
+                                  type="file"
+                                  className={styles.fileInput}
+                                  onChange={(e) => handleFileSelect(task.task_id, e)}
+                                />
+                              </div>
+                            )}
+                            <h4 className={styles.documentsHeading}>Documents</h4>
+                            {loadingDocuments[task.task_id] ? (
+                              <p className={styles.documentsLoading}>Loading documents...</p>
+                            ) : documentsByTask[task.task_id]?.length > 0 ? (
+                              <ul className={styles.documentList}>
+                                {documentsByTask[task.task_id].map((doc) => (
+                                  <li
+                                    key={doc.document_id}
+                                    className={styles.documentItem}
+                                    onMouseEnter={(e) => {
+                                      e.currentTarget.classList.add(styles.documentItemHover);
+                                    }}
+                                    onMouseLeave={(e) => {
+                                      e.currentTarget.classList.remove(styles.documentItemHover);
+                                    }}
+                                  >
+                                    <div className={styles.documentInfo}>
+                                      <span className={styles.documentTitle}>{doc.document_title}</span>
+                                      {userTaskAssignments[task.task_id] && task.task_status !== 'Completed' && task.task_status !== 'Finalized' && (
+                                        <span
+                                          onClick={() => handleDeleteDocument(doc.document_id, task.task_id)}
+                                          className={styles.removeDocument}
+                                        >
+                                          (remove)
+                                        </span>
+                                      )}
+                                    </div>
+                                    <button
+                                      onClick={() => handleDownload(doc.document_id, doc.document_title)}
+                                      className={styles.downloadButton}
+                                    >
+                                      Download
+                                    </button>
+                                  </li>
+                                ))}
+                              </ul>
+                            ) : (
+                              <p className={styles.noDocuments}>No documents available.</p>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+
+          {/* Project Tasks Section */}
+          <div className={styles.section}>
+            <div
+              className={`${styles.sectionHeader} ${expandedSections.projectTasks ? styles.sectionHeaderExpanded : ''}`}
+              onClick={() => toggleSectionExpansion('projectTasks')}
+            >
+              <h2 className={styles.sectionHeading}>Project Tasks</h2>
+              <span className={`${styles.dropdownToggle} ${expandedSections.projectTasks ? styles.dropdownToggleActive : ''}`}>
+                ▼
+              </span>
+            </div>
+            {expandedSections.projectTasks && (
+              <div className={styles.sectionContent}>
+                {error && (
+                  <div className={styles.errorMessage}>
+                    {error}
+                  </div>
+                )}
+                {loadingTasks ? (
+                  <div className={styles.loadingMessage}>
+                    Loading tasks...
+                  </div>
+                ) : projectTasks.length === 0 ? (
+                  <div className={styles.noDataMessage}>
+                    No other tasks available for this project.
+                  </div>
+                ) : (
+                  <div className={styles.taskList}>
+                    {projectTasks.map((task) => (
+                      <div
+                        key={task.task_id}
+                        className={styles.taskItem}
+                        onMouseEnter={(e) => {
+                          e.currentTarget.classList.add(styles.taskItemHover);
+                        }}
+                        onMouseLeave={(e) => {
+                          e.currentTarget.classList.remove(styles.taskItemHover);
+                        }}
+                      >
+                        <div
+                          className={`${styles.taskHeader} ${expandedTasks[task.task_id] ? styles.taskHeaderExpanded : ''}`}
+                          onClick={() => toggleTaskExpansion(task.task_id)}
+                        >
+                          <div className={styles.taskInfo}>
+                            <h4 className={styles.taskName}>{task.task_name}</h4>
+                            <p className={styles.taskDescription}>{task.task_description || 'No description available.'}</p>
+                            <p className={styles.taskMeta}>
+                              Due: {task.task_due_date} | Status: {task.task_status} | Priority: {task.task_priority}
+                            </p>
+                          </div>
+                          <div className={styles.taskActions}>
+                            {userTaskAssignments[task.task_id] && task.task_status !== 'Completed' && task.task_status !== 'Finalized' && (
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleCompleteTask(task.task_id);
+                                }}
+                                className={styles.deleteButton}
+                              >
+                                Mark as Complete
+                              </button>
+                            )}
+                            <span className={`${styles.dropdownToggle} ${expandedTasks[task.task_id] ? styles.dropdownToggleActive : ''}`}>
+                              ▼
+                            </span>
+                          </div>
+                        </div>
+                        {expandedTasks[task.task_id] && (
+                          <div className={styles.taskDetails}>
+                            {userTaskAssignments[task.task_id] && task.task_status !== 'Completed' && task.task_status !== 'Finalized' && (
+                              <div className={styles.uploadContainer}>
+                                <label
+                                  htmlFor={`file-upload-${task.task_id}`}
+                                  className={styles.uploadButton}
+                                >
+                                  Upload Document
+                                </label>
+                                <input
+                                  id={`file-upload-${task.task_id}`}
+                                  type="file"
+                                  className={styles.fileInput}
+                                  onChange={(e) => handleFileSelect(task.task_id, e)}
+                                />
+                              </div>
+                            )}
+                            <h4 className={styles.documentsHeading}>Documents</h4>
+                            {loadingDocuments[task.task_id] ? (
+                              <p className={styles.documentsLoading}>Loading documents...</p>
+                            ) : documentsByTask[task.task_id]?.length > 0 ? (
+                              <ul className={styles.documentList}>
+                                {documentsByTask[task.task_id].map((doc) => (
+                                  <li
+                                    key={doc.document_id}
+                                    className={styles.documentItem}
+                                    onMouseEnter={(e) => {
+                                      e.currentTarget.classList.add(styles.documentItemHover);
+                                    }}
+                                    onMouseLeave={(e) => {
+                                      e.currentTarget.classList.remove(styles.documentItemHover);
+                                    }}
+                                  >
+                                    <div className={styles.documentInfo}>
+                                      <span className={styles.documentTitle}>{doc.document_title}</span>
+                                      {userTaskAssignments[task.task_id] && task.task_status !== 'Completed' && task.task_status !== 'Finalized' && (
+                                        <span
+                                          onClick={() => handleDeleteDocument(doc.document_id, task.task_id)}
+                                          className={styles.removeDocument}
+                                        >
+                                          (remove)
+                                        </span>
+                                      )}
+                                    </div>
+                                    <button
+                                      onClick={() => handleDownload(doc.document_id, doc.document_title)}
+                                      className={styles.downloadButton}
+                                    >
+                                      Download
+                                    </button>
+                                  </li>
+                                ))}
+                              </ul>
+                            ) : (
+                              <p className={styles.noDocuments}>No documents available.</p>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+
+          {/* Important Links for Project Section */}
+          <div className={styles.section}>
+            <div
+              className={`${styles.sectionHeader} ${expandedSections.links ? styles.sectionHeaderExpanded : ''}`}
+              onClick={() => toggleSectionExpansion('links')}
+            >
+              <h2 className={styles.sectionHeading}>Important Links for the Project</h2>
+              <span className={`${styles.dropdownToggle} ${expandedSections.links ? styles.dropdownToggleActive : ''}`}>
+                ▼
+              </span>
+            </div>
+            {expandedSections.links && (
+              <div className={styles.sectionContent}>
+                <div className={styles.linksList}>
+                  {links && links.length > 0 ? (
+                    <ul>
+                      {links.map((link) => (
+                        <li key={link.id} className={styles.linkItem}>
+                          <a href={link.link_url} target="_blank" rel="noopener noreferrer">{link.link_name || link.link_url}</a>
+                        </li>
+                      ))}
+                    </ul>
+                  ) : (
+                    <div className={styles.noDataMessage}>
+                      No links available.
                     </div>
                   )}
                 </div>
-              ))}
-            </div>
-          )}
+              </div>
+            )}
+          </div>
         </div>
       ),
     },
@@ -879,7 +1060,7 @@ const StudentDashboard = () => {
               })()}
             </div>
           )}
-          {projectData && projectData.grade && projectData.feedback ? null : (
+          {projectData && projectData.grade && projectData.feedback ? null : ( // Use isProjectGraded here
             <div className={styles.chatInputContainer}>
               <input
                 type="text"

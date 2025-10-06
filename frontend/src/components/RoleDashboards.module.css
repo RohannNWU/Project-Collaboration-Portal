@@ -229,10 +229,12 @@
   gap: 0.5rem;
 }
 
+/* Base styles for the toggle arrow */
 .dropdownToggle {
-  font-size: 1.25rem;
-  color: #6b7280;
-  transition: transform 0.2s ease;
+  display: inline-block;
+  font-size: 18px;
+  transition: transform 0.3s ease-in-out;
+  cursor: pointer;
 }
 
 .dropdownToggleActive {
@@ -752,7 +754,7 @@
   padding: 0.75rem;
   background-color: white;
   border-radius: 0.25rem;
-  border: 1px solid #d1d5db;
+  border: 2px solid black;
   transition: all 0.2s ease;
   display: flex;
   align-items: center;
