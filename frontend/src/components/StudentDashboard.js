@@ -615,11 +615,11 @@ useEffect(() => {
     });
   };
   
-//Role management helpers
-const [userRole, setUserRole] = useState(null);
-const [roleLoading, setRoleLoading] = useState(false);
+ //Role management helpers
+ const [userRole, setUserRole] = useState(null);
+ const [roleLoading, setRoleLoading] = useState(false);
 
-const getApiBase = () =>
+ const getApiBase = () =>
   window.location.hostname === 'localhost'
     ? 'http://127.0.0.1:8000'
     : 'https://pcp-backend-f4a2.onrender.com';

@@ -26,6 +26,12 @@ const SupervisorDashboard = () => {
   const [contributionsError, setContributionsError] = useState('');
   const [isProjectGraded, setIsProjectGraded] = useState(false);
   const [showGradeModel, setShowGradeModel] = useState(false);
+  const [loadingChat] = useState(false);
+  const [userContributions, setUserContributions] = useState([]);
+  const [loadingContributions, setLoadingContributions] = useState(false);
+  const [contributionsError, setContributionsError] = useState('');
+  const [isProjectGraded, setIsProjectGraded] = useState(false);
+  const [showGradeModel, setShowGradeModel] = useState(false);
   const [error, setError] = useState('');
   const location = useLocation();
   const navigate = useNavigate();
@@ -38,6 +44,7 @@ const SupervisorDashboard = () => {
   const [finalDocuments, setFinalDocuments] = useState([]);
   const [showAddMemberModal, setShowAddMemberModal] = useState(false);
   const [expandedSections, setExpandedSections] = useState({ links: false });
+  const [loading, setLoading] = useState(false);
   const isTempId = (id) => typeof id === 'string' && id.startsWith('temp-');
   const toggleSectionExpansion = (section) => setExpandedSections(prev => ({ ...prev, [section]: !prev[section] }));
 
@@ -80,7 +87,7 @@ const SupervisorDashboard = () => {
     }
   }, [chatMessages]);
 
-  const fetchUserContributions = useCallback(async () => {
+ const fetchUserContributions = useCallback(async () => {
     setError('');
     setLoadingContributions(true);
     try {
@@ -314,6 +321,108 @@ const SupervisorDashboard = () => {
       setTimeout(() => setError(''), 3000);
     }
   };
+
+  // Fetch documents for a specific task
+  const fetchDocuments = useCallback(async (taskId) => {
+    setLoadingDocuments((prev) => ({ ...prev, [taskId]: true }));
+    try {
+      const token = localStorage.getItem('access_token');
+      if (!token) {
+        navigate('/');
+        return;
+      }
+
+      const API_BASE_URL = window.location.hostname === 'localhost'
+        ? 'http://127.0.0.1:8000'
+        : 'https://pcp-backend-f4a2.onrender.com';
+
+      const response = await axios.get(`${API_BASE_URL}/api/gettaskdocuments/?task_id=${taskId}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      setDocumentsByTask((prev) => ({
+        ...prev,
+        [taskId]: response.data.documents || [],
+      }));
+    } catch (err) {
+      console.error(`Error fetching documents for task ${taskId}:`, err);
+      setError('Failed to fetch documents');
+      setTimeout(() => setError(''), 3000);
+    } finally {
+      setLoadingDocuments((prev) => ({ ...prev, [taskId]: false }));
+    }
+  }, [navigate]);
+
+  // Sample fetch for contributions (add this function)
+  const fetchContributions = useCallback(async (projectId) => {
+    setLoadingContributions(true);
+    setContributionsError('');
+    try {
+      const token = localStorage.getItem('access_token');
+      if (!token) return;
+      const API_BASE_URL = window.location.hostname === 'localhost'
+        ? 'http://127.0.0.1:8000'
+        : 'https://pcp-backend-f4a2.onrender.com';
+
+      const response = await axios.get(`${API_BASE_URL}/api/getcontributions/`, {
+        params: { projectId },
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      setUserContributions(response.data.contributors || []);
+      setIsProjectGraded(response.data.is_graded || false);  // Assuming API returns this
+    } catch (err) {
+      console.error('Error fetching contributions:', err);
+      setContributionsError('Failed to load contributions');
+    } finally {
+      setLoadingContributions(false);
+    }
+  }, []);
+
+  // Updated fetchFinalSubmission (add case-insensitivity)
+  const fetchFinalSubmission = useCallback(async () => {
+    if (!projectId) return;
+    setLoadingTasks(true);
+    const token = localStorage.getItem('access_token');
+    if (!token) {
+      navigate('/');
+      setLoadingTasks(false);
+      return;
+    }
+    try {
+      const config = getApiConfig(token);
+      const response = await axios.get(`${config.baseURL}/api/getprojecttasks/?project_id=${projectId}`, { ...config });
+      const allTasks = response.data.tasks || [];
+      const finalTaskData = allTasks.find(task => task.task_name?.toLowerCase() === 'final submission');  // Case-insensitive
+      setFinalTask(finalTaskData || null);
+      setTasks(allTasks);  // If needed for other tabs
+
+      if (finalTaskData) {
+        const docs = await fetchDocuments(finalTaskData.task_id);
+        setFinalDocuments(docs);
+      } else {
+        setFinalDocuments([]);
+      }
+
+      // Fetch contributions and grade status (sample API; adjust endpoint)
+      await fetchContributions(projectId);
+    } catch (err) {
+      console.error('Error fetching final submission:', err);
+      setError('Failed to fetch final submission');
+      setTimeout(() => setError(''), 3000);
+      setFinalDocuments([]);
+    } finally {
+      setLoadingTasks(false);
+    }
+  }, [projectId, navigate, fetchDocuments, fetchContributions]);
+
+
+
+  // Updated useEffect to trigger on new tab ID
+  useEffect(() => {
+    if ((activeTab === 'final-submission' || activeTab === 'review_project') && projectId) {
+      fetchFinalSubmission();
+    }
+  }, [activeTab, projectId, fetchFinalSubmission]);
 
   // Handle Project Details Modal Submit
   const handleProjectDetailsSubmit = async ({ name, description, due_date }) => {
@@ -852,7 +961,6 @@ const SupervisorDashboard = () => {
           console.error('Error running protected handler:', err);
         }
       }
-      // Redirect others
       else if (normalizedRole === 'student') {
         navigate('/studentdashboard', { state: { projectId } });
       } else if (normalizedRole === 'group leader' || normalizedRole === 'groupleader') {
