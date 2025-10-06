@@ -20,7 +20,7 @@ const StudentDashboard = () => {
   const [loadingTasks, setLoadingTasks] = useState(false);
   const [loadingMembers, setLoadingMembers] = useState(false);
   const [loadingDocuments, setLoadingDocuments] = useState({});
-  const [loadingChat, setLoadingChat] = useState(false);
+  const [loadingChat] = useState(false);
   const [links, setProjectLinks] = useState([]);
   const [error, setError] = useState('');
   const isProjectGraded = projectData?.grade && projectData?.feedback;
