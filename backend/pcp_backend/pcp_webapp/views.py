@@ -2012,7 +2012,7 @@ class DeleteMeetingView(APIView):
 # View to get user details for password reset        
 class GetUserDetailsView(APIView):
     def post(self, request):
-        email = request.data.get('email')
+        email = request.data.get('initialEmail')
         if not email:
             return Response({'error': 'email is required'}, status=status.HTTP_400_BAD_REQUEST)
         
