@@ -207,7 +207,7 @@ class AddProjectView(APIView):
                     task_name='Final Submission',
                     task_description='Upload the final project documents here for supervisor review.',
                     task_due_date=project.due_date,
-                    task_status='Pending',
+                    task_status='In Progress',
                     task_priority='High',
                     project_id=project
                 )
@@ -1782,7 +1782,6 @@ class GetTaskDetailsView(APIView):
             'task_description': task.task_description,
             'task_due_date': task.task_due_date
         }
-        print(task_details)
         return Response({'task_details': task_details}, status=status.HTTP_200_OK)
 
 #View that removes a member from a task
