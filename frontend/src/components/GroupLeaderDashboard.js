@@ -39,7 +39,10 @@ const GroupLeaderDashboard = () => {
     const [uploadFile, setUploadFile] = useState(null);
     const [uploading, setUploading] = useState(false);
     const [showLinkModal, setShowLinkModal] = useState(false);
+    const isTempId = (id) => typeof id === 'string' && id.startsWith('temp-');
 
+
+  if (projectId);
     // Helper function for CHAT
     function getGradientColors(senderName) {
         const colors = [
@@ -232,131 +235,121 @@ const GroupLeaderDashboard = () => {
     }, [activeTab, projectId, fetchFinalSubmission]);
 
     // Fetch chat messages function
-    const fetchChat = useCallback(async () => {
-        setLoadingChat(true);
-        setError('');
-        try {
-            const token = localStorage.getItem('access_token');
-            if (!token) {
-                navigate('/');
-                return;
-            }
+   const fetchChat = useCallback(async () => {
+  setError('');
+  try {
+    const token = localStorage.getItem('access_token');
+    if (!token) {
+      navigate('/');
+      return;
+    }
 
-            const API_BASE_URL = window.location.hostname === 'localhost'
-                ? 'http://127.0.0.1:8000'
-                : 'https://pcp-backend-f4a2.onrender.com';
+    const API_BASE_URL =
+      window.location.hostname === 'localhost'
+        ? 'http://127.0.0.1:8000'
+        : 'https://pcp-backend-f4a2.onrender.com';
 
-            const response = await axios.get(`${API_BASE_URL}/api/getprojectchat/?project_id=${projectId}`, {
-                headers: { Authorization: `Bearer ${token}` },
-            });
+    const response = await axios.get(
+      `${API_BASE_URL}/api/getprojectchat/?project_id=${projectId}`,
+      { headers: { Authorization: `Bearer ${token}` } }
+    );
 
-            const serverMessages = response.data.messages || [];
-            setChatMessages(prev => {
-                const nonTempMessages = prev.filter(msg => {
-                    return !(msg.id && typeof msg.id === 'string' && msg.id.startsWith('temp-'));
-                });
-                if (JSON.stringify(nonTempMessages) !== JSON.stringify(serverMessages)) {
-                    return serverMessages;
-                }
-                return prev;
-            });
-        } catch (err) {
-            console.error('Error fetching chat messages:', err);
-            if (err.response?.status === 400) {
-                setError('Project ID is required');
-                setTimeout(() => setError(''), 3000);
-            } else if (err.response?.status === 404) {
-                setError('Project not found');
-                setTimeout(() => setError(''), 3000);
-            } else if (err.response?.status === 403) {
-                setError('Access denied to this project');
-                setTimeout(() => setError(''), 3000);
-            } else if (err.response?.status === 401) {
-                localStorage.removeItem('access_token');
-                navigate('/');
-            } else {
-                setError('Failed to fetch chat messages');
-                setTimeout(() => setError(''), 3000);
-            }
-        } finally {
-            setLoadingChat(false);
-        }
-    }, [projectId, navigate]); // Memoize with dependencies
+    const serverMessages = response.data.messages || [];
 
-    // Update the useEffect for chat (line 68-72)
-    useEffect(() => {
-        if (activeTab === 'chat' && projectId) {
-            fetchChat();
-        }
-    }, [activeTab, projectId, navigate, fetchChat]);
+    setChatMessages(prev => {
+      // filter out local temp messages in prev
+      const prevFiltered = prev.filter(msg => !isTempId(msg?.id));
+
+      // update only if lengths differ (lightweight check)
+      if (serverMessages.length !== prevFiltered.length) {
+        return serverMessages;
+      }
+      return prev;
+    });
+  } catch (err) {
+    console.error('Error fetching chat messages:', err);
+    if (err.response?.status === 401) {
+      localStorage.removeItem('access_token');
+      navigate('/');
+    } else {
+      setError('Failed to fetch chat messages');
+      setTimeout(() => setError(''), 3000);
+    }
+  }
+}, [projectId, navigate]);
+
+
+useEffect(() => {
+  if (activeTab === 'chat' && projectId) {
+    // Immediate fetch
+    fetchChat();
+
+    // Poll every 5s
+    const intervalId = setInterval(() => {
+      fetchChat();
+    }, 5000);
+
+    return () => clearInterval(intervalId);
+  }
+}, [activeTab, projectId, fetchChat]);
+
 
     // Handle sending chat message
     const handleSendMessage = async () => {
-        if (!messageInput.trim()) return;
+  if (!messageInput.trim()) return;
 
-        const messageContent = messageInput.trim();
-        const tempMessage = {
-            id: `temp-${Date.now()}`,
-            content: messageContent,
-            sender_name: 'You',
-            role: 'Student',
-            sent_at: new Date().toLocaleString('en-GB', {
-                year: 'numeric',
-                month: '2-digit',
-                day: '2-digit',
-                hour: '2-digit',
-                minute: '2-digit',
-                second: '2-digit',
-                hour12: false
-            }).replace(/(\d{2})\/(\d{2})\/(\d{4}), (\d{2}:\d{2}:\d{2})/, '$3-$2-$1 $4')
-        };
+  const messageContent = messageInput.trim();
+  const tempId = `temp-${Date.now()}`;
+  const tempMessage = {
+    id: tempId,
+    content: messageContent,
+    sender_name: 'You',
+    role: userRole || 'Group Leader',
+    sent_at: new Date().toLocaleString('en-GB', {
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit',
+      hour12: false,
+    }).replace(/(\d{2})\/(\d{2})\/(\d{4}), (\d{2}:\d{2}:\d{2})/, '$3-$2-$1 $4'),
+  };
 
-        setChatMessages(prev => [...prev, tempMessage]);
-        setMessageInput('');
+  // show temp message immediately
+  setChatMessages(prev => [...prev, tempMessage]);
+  setMessageInput('');
 
-        try {
-            const token = localStorage.getItem('access_token');
-            if (!token) {
-                navigate('/');
-                return;
-            }
+  try {
+    const token = localStorage.getItem('access_token');
+    if (!token) {
+      navigate('/');
+      return;
+    }
 
-            const API_BASE_URL = window.location.hostname === 'localhost'
-                ? 'http://127.0.0.1:8000'
-                : 'https://pcp-backend-f4a2.onrender.com';
+    const API_BASE_URL =
+      window.location.hostname === 'localhost'
+        ? 'http://127.0.0.1:8000'
+        : 'https://pcp-backend-f4a2.onrender.com';
 
-            await axios.post(`${API_BASE_URL}/api/sendchatmessage/`, {
-                project_id: projectId,
-                content: messageContent
-            }, {
-                headers: { Authorization: `Bearer ${token}` },
-            });
+    await axios.post(
+      `${API_BASE_URL}/api/sendchatmessage/`,
+      { project_id: projectId, content: messageContent },
+      { headers: { Authorization: `Bearer ${token}` } }
+    );
 
-            fetchChat();
-        } catch (err) {
-            console.error('Error sending chat message:', err);
-            setChatMessages(prev => prev.filter(msg => msg.id !== tempMessage.id));
-            setMessageInput(messageContent);
+    // fetch updated messages from server
+    fetchChat();
+  } catch (err) {
+    console.error('Error sending chat message:', err);
+    // remove temp message if send failed
+    setChatMessages(prev => prev.filter(msg => msg?.id !== tempId));
+    setMessageInput(messageContent);
+    setError('Failed to send message');
+    setTimeout(() => setError(''), 3000);
+  }
+};
 
-            if (err.response?.status === 400) {
-                setError('Invalid input');
-                setTimeout(() => setError(''), 3000);
-            } else if (err.response?.status === 404) {
-                setError('Project not found');
-                setTimeout(() => setError(''), 3000);
-            } else if (err.response?.status === 403) {
-                setError('Access denied to this project');
-                setTimeout(() => setError(''), 3000);
-            } else if (err.response?.status === 401) {
-                localStorage.removeItem('access_token');
-                setTimeout(() => setError(''), 3000);
-                navigate('/');
-            } else {
-                setError('Failed to send message');
-                setTimeout(() => setError(''), 3000);
-            }
-        }
-    };
     useEffect(() => {
         if (activeTab === 'chat' && projectId) {
             fetchChat();
@@ -979,6 +972,119 @@ const GroupLeaderDashboard = () => {
             return { ...prev, [taskId]: !isExpanded };
         });
     };
+    
+//Role management helpers
+const [userRole, setUserRole] = useState(null);
+const [roleLoading, setRoleLoading] = useState(false);
+
+const getApiBase = () =>
+  window.location.hostname === 'localhost'
+    ? 'http://127.0.0.1:8000'
+    : 'https://pcp-backend-f4a2.onrender.com';
+
+ const fetchUserRole = useCallback(async () => {
+  try {
+    setRoleLoading(true);
+    setError('');
+    const token = localStorage.getItem('access_token');
+    if (!token) {
+      navigate('/');
+      return null;
+    }
+
+    // Decode JWT to get user's email
+    const base64Url = token.split('.')[1];
+    const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+    const payload = JSON.parse(window.atob(base64));
+    const userEmail = payload.email || payload.user_email || payload.sub;
+
+    if (!userEmail) {
+      console.error('Could not extract email from token');
+      setError('Failed to verify user role');
+      return null;
+    }
+
+    const response = await axios.post(
+      `${getApiBase()}/api/getmembers/`,
+      { projectId },
+      { headers: { Authorization: `Bearer ${token}` } }
+    );
+
+    const members = response.data.members || [];
+    const currentUser = members.find((m) => m.email === userEmail);
+
+    if (!currentUser) {
+      console.warn('User not found in project members');
+      setError('Failed to verify user role');
+      return null;
+    }
+
+    // Normalize role (lowercase for comparison)
+    const newRole = currentUser.role?.trim();
+    const oldRole = userRole?.trim();
+
+    // Alert if role changed
+    if (oldRole && newRole && oldRole !== newRole) {
+      alert('Your role changed for this project.');
+    }
+
+    setUserRole(newRole);
+    return newRole;
+  } catch (err) {
+    console.error('Error fetching user role:', err);
+    if (err.response?.status === 401) {
+      localStorage.removeItem('access_token');
+      navigate('/');
+    } else {
+      setError('Failed to verify user role');
+    }
+    setUserRole(null);
+    return null;
+  } finally {
+    setRoleLoading(false);
+  }
+}, [navigate, projectId, userRole]);
+
+
+// Ensure the user is a Student before executing handler.
+const ensureGroupLeader = useCallback(
+  async (handler) => {
+    if (typeof handler !== 'function') {
+      console.warn('ensureGroupLeader expects a function as the handler');
+      return;
+    }
+
+    let roleToCheck = userRole;
+
+    // If we don't know the role yet, fetch it first
+    if (!roleToCheck && !roleLoading) {
+      roleToCheck = await fetchUserRole();
+    }
+
+    if (!roleToCheck) {
+      setError('Failed to verify user role');
+      return;
+    }
+
+    // Normalize capitalization
+    const normalizedRole = roleToCheck.trim().toLowerCase();
+
+    if (normalizedRole === 'groupleader' || normalizedRole === 'group leader') {
+      try {
+        return await handler();
+      } catch (err) {
+        console.error('Error running protected handler:', err);
+      }
+    } else if (normalizedRole === 'supervisor') {
+      navigate('/supervisordashboard', { state: { projectId } });
+    } else if (normalizedRole === 'student') {
+      navigate('/studentdashboard', { state: { projectId } });
+    } else {
+      setError('Failed to verify user role');
+    }
+  },
+  [userRole, roleLoading, fetchUserRole, navigate, projectId]
+);
 
     const tabs = [
         {
@@ -1042,7 +1148,7 @@ const GroupLeaderDashboard = () => {
                     <div className={styles.section}>
                         <div
                             className={`${styles.sectionHeader} ${expandedSections.myTasks ? styles.sectionHeaderExpanded : ''}`}
-                            onClick={() => toggleSectionExpansion('myTasks')}
+                            onClick={() => ensureGroupLeader(() =>toggleSectionExpansion('myTasks'))}
                         >
                             <h2 className={styles.sectionHeading}>My Tasks</h2>
                             <span className={`${styles.dropdownToggle} ${expandedSections.myTasks ? styles.dropdownToggleActive : ''}`}>
@@ -1074,7 +1180,7 @@ const GroupLeaderDashboard = () => {
                                             >
                                                 <div
                                                     className={`${styles.taskHeader} ${expandedTasks[task.task_id] ? styles.taskHeaderExpanded : ''}`}
-                                                    onClick={() => toggleTaskExpansion(task.task_id)}
+                                                    onClick={() => ensureGroupLeader(() =>toggleTaskExpansion(task.task_id))}
                                                 >
                                                     <div className={styles.taskInfo}>
                                                         <h4 className={styles.taskName}>{task.task_name}</h4>
@@ -1083,7 +1189,7 @@ const GroupLeaderDashboard = () => {
                                                         </p>
                                                         {
                                                             task.task_status === 'In Progress' && (
-                                                                <button className={styles.deleteButton} onClick={() => handleDelete(task.task_id)}>Delete Task</button>
+                                                                <button className={styles.deleteButton} onClick={() => ensureGroupLeader(() =>handleDelete(task.task_id))}>Delete Task</button>
                                                             )
                                                         }
                                                         {
@@ -1091,10 +1197,12 @@ const GroupLeaderDashboard = () => {
                                                                 <button
                                                                     className={styles.addTaskButton}
                                                                     onClick={(e) => {
-                                                                        e.stopPropagation(); // Prevent triggering toggleTaskExpansion
-                                                                        setSelectedTaskId(task.task_id); // Set the task ID
-                                                                        setShowTaskUpdateModel(true); // Open the model
-                                                                    }}
+                                                                      e.stopPropagation(); // Still prevent propagation
+                                                                      ensureGroupLeader(() => {
+                                                                         setSelectedTaskId(task.task_id);
+                                                                         setShowTaskUpdateModel(true);
+                                                                                                    });
+                                                                                               }}
                                                                 >
                                                                     Update Task Details
                                                                 </button>
@@ -1106,7 +1214,8 @@ const GroupLeaderDashboard = () => {
                                                             <button
                                                                 onClick={(e) => {
                                                                     e.stopPropagation();
-                                                                    handleCompleteTask(task.task_id, 'Completed');
+                                                                    ensureGroupLeader(() =>{
+                                                                    handleCompleteTask(task.task_id, 'Completed')});
                                                                 }}
                                                                 className={styles.deleteButton}
                                                             >
@@ -1157,7 +1266,7 @@ const GroupLeaderDashboard = () => {
                                                                             <span className={styles.documentTitle}>{doc.document_title}</span>
                                                                             {userTaskAssignments[task.task_id] && (
                                                                                 <span
-                                                                                    onClick={() => handleDeleteDocument(doc.document_id, task.task_id)}
+                                                                                    onClick={() => ensureGroupLeader(() =>handleDeleteDocument(doc.document_id, task.task_id))}
                                                                                     className={styles.removeDocument}
                                                                                 >
                                                                                     (remove)
@@ -1165,7 +1274,7 @@ const GroupLeaderDashboard = () => {
                                                                             )}
                                                                         </div>
                                                                         <button
-                                                                            onClick={() => handleDownload(doc.document_id, doc.document_title)}
+                                                                            onClick={() => ensureGroupLeader(() =>handleDownload(doc.document_id, doc.document_title))}
                                                                             className={styles.downloadButton}
                                                                         >
                                                                             Download
@@ -1190,7 +1299,7 @@ const GroupLeaderDashboard = () => {
                     <div className={styles.section}>
                         <div
                             className={`${styles.sectionHeader} ${expandedSections.projectTasks ? styles.sectionHeaderExpanded : ''}`}
-                            onClick={() => toggleSectionExpansion('projectTasks')}
+                            onClick={() => ensureGroupLeader(() =>toggleSectionExpansion('projectTasks'))}
                         >
                             <h2 className={styles.sectionHeading}>Project Tasks</h2>
                             <span className={`${styles.dropdownToggle} ${expandedSections.projectTasks ? styles.dropdownToggleActive : ''}`}>
@@ -1227,7 +1336,7 @@ const GroupLeaderDashboard = () => {
                                             >
                                                 <div
                                                     className={`${styles.taskHeader} ${expandedTasks[task.task_id] ? styles.taskHeaderExpanded : ''}`}
-                                                    onClick={() => toggleTaskExpansion(task.task_id)}
+                                                    onClick={() => ensureGroupLeader(() =>toggleTaskExpansion(task.task_id))}
                                                 >
                                                     <div className={styles.taskInfo}>
                                                         <h4 className={styles.taskName}>{task.task_name}</h4>
@@ -1236,7 +1345,7 @@ const GroupLeaderDashboard = () => {
                                                         </p>
                                                         {
                                                             task.task_status === 'In Progress' && (
-                                                                <button className={styles.deleteButton} onClick={() => handleDelete(task.task_id)}>Delete Task</button>
+                                                                <button className={styles.deleteButton} onClick={() =>ensureGroupLeader(() => handleDelete(task.task_id))}>Delete Task</button>
                                                             )
                                                         }
                                                         {
@@ -1245,8 +1354,9 @@ const GroupLeaderDashboard = () => {
                                                                     className={styles.addTaskButton}
                                                                     onClick={(e) => {
                                                                         e.stopPropagation(); // Prevent triggering toggleTaskExpansion
+                                                                        ensureGroupLeader(() =>{
                                                                         setSelectedTaskId(task.task_id); // Set the task ID
-                                                                        setShowTaskUpdateModel(true); // Open the model
+                                                                        setShowTaskUpdateModel(true)}); // Open the model
                                                                     }}
                                                                 >
                                                                     Update Task Details
@@ -1259,7 +1369,8 @@ const GroupLeaderDashboard = () => {
                                                             <button
                                                                 onClick={(e) => {
                                                                     e.stopPropagation();
-                                                                    handleCompleteTask(task.task_id, 'Completed');
+                                                                    ensureGroupLeader(() =>{
+                                                                    handleCompleteTask(task.task_id, 'Completed')});
                                                                 }}
                                                                 className={styles.deleteButton}
                                                             >
@@ -1310,7 +1421,7 @@ const GroupLeaderDashboard = () => {
                                                                             <span className={styles.documentTitle}>{doc.document_title}</span>
                                                                             {userTaskAssignments[task.task_id] && (
                                                                                 <span
-                                                                                    onClick={() => handleDeleteDocument(doc.document_id, task.task_id)}
+                                                                                    onClick={() => ensureGroupLeader(() =>handleDeleteDocument(doc.document_id, task.task_id))}
                                                                                     className={styles.removeDocument}
                                                                                 >
                                                                                     (remove)
@@ -1318,7 +1429,7 @@ const GroupLeaderDashboard = () => {
                                                                             )}
                                                                         </div>
                                                                         <button
-                                                                            onClick={() => handleDownload(doc.document_id, doc.document_title)}
+                                                                            onClick={() => ensureGroupLeader(() =>handleDownload(doc.document_id, doc.document_title))}
                                                                             className={styles.downloadButton}
                                                                         >
                                                                             Download
@@ -1343,7 +1454,7 @@ const GroupLeaderDashboard = () => {
                     <div className={styles.section}>
                         <div
                             className={`${styles.sectionHeader} ${expandedSections.links ? styles.sectionHeaderExpanded : ''}`}
-                            onClick={() => toggleSectionExpansion('links')}
+                            onClick={() => ensureGroupLeader(() =>toggleSectionExpansion('links'))}
                         >
                             <h2 className={styles.sectionHeading}>Important Links for the Project</h2>
                             <span className={`${styles.dropdownToggle} ${expandedSections.links ? styles.dropdownToggleActive : ''}`}>
@@ -1362,7 +1473,7 @@ const GroupLeaderDashboard = () => {
                                             <li key={link.link_id} className={styles.linkItem}>
                                                 <a href={link.link_url} target="_blank" rel="noopener noreferrer">{link.link_name || link.link_url}</a>
                                                 <span
-                                                    onClick={() => handleDeleteLink(link.link_id, link.project_id)}
+                                                    onClick={() => ensureGroupLeader(() =>handleDeleteLink(link.link_id, link.project_id))}
                                                     className={styles.removeDocument}
                                                 >
                                                     (remove)
@@ -1373,7 +1484,7 @@ const GroupLeaderDashboard = () => {
                                 )}
                                 <button
                                     className={styles.addTaskButton}
-                                    onClick={() => setShowLinkModal(true)}
+                                    onClick={() => ensureGroupLeader(() =>setShowLinkModal(true))}
                                 >
                                     Add Link
                                 </button>
@@ -1381,7 +1492,7 @@ const GroupLeaderDashboard = () => {
                         )}
                         <button
                             className={styles.addTaskButton}
-                            onClick={() => handleAddNewTask()}
+                            onClick={() => ensureGroupLeader(() =>handleAddNewTask())}
                         >Add New Task</button>
                     </div>
                     {showLinkModal && (
@@ -1459,12 +1570,12 @@ const GroupLeaderDashboard = () => {
                                                         'N/A'
                                                     )}
                                                 </p>
-                                                <button className={styles.rejectButton} onClick={() => handleReject(task.task_id)}>Reject and Send back</button>
-                                                <button className={styles.approveButton} onClick={() => handleApprove(task.task_id)}>Approve and Finalize</button>
+                                                <button className={styles.rejectButton} onClick={() => ensureGroupLeader(() =>handleReject(task.task_id))}>Reject and Send back</button>
+                                                <button className={styles.approveButton} onClick={() => ensureGroupLeader(() =>handleApprove(task.task_id))}>Approve and Finalize</button>
                                             </div>
                                             <div
                                                 className={`${styles.dropdownToggle} ${expandedTasks[task.task_id] ? styles.dropdownToggleActive : ''}`}
-                                                onClick={() => toggleTaskDropdown(task.task_id)}
+                                                onClick={() => ensureGroupLeader(() =>toggleTaskDropdown(task.task_id))}
                                             >
                                                 ▼
                                             </div>
@@ -1491,7 +1602,7 @@ const GroupLeaderDashboard = () => {
                                                                     {doc.document_title}
                                                                 </span>
                                                                 <button
-                                                                    onClick={() => handleDownload(doc.document_id, doc.document_title)}
+                                                                    onClick={() => ensureGroupLeader(() =>handleDownload(doc.document_id, doc.document_title))}
                                                                     className={styles.downloadButton}
                                                                 >
                                                                     Download
@@ -1618,7 +1729,7 @@ const GroupLeaderDashboard = () => {
                             className={styles.chatInput}
                         />
                         <button
-                            onClick={handleSendMessage}
+                            onClick={() => ensureGroupLeader(handleSendMessage)}
                             disabled={!messageInput.trim()}
                             className={`${styles.sendButton} ${!messageInput.trim() ? styles.sendButtonDisabled : ''}`}
                         >
@@ -1671,7 +1782,7 @@ const GroupLeaderDashboard = () => {
                                                 />
                                             </div>
                                             <button
-                                                onClick={() => handleUploadDocument(finalTask.task_id)}
+                                                onClick={() => ensureGroupLeader(() =>handleUploadDocument(finalTask.task_id))}
                                                 disabled={!uploadFile || uploading || finalTask.task_status === 'Finalized'}
                                                 className={styles.uploadButton}
                                             >
@@ -1698,7 +1809,7 @@ const GroupLeaderDashboard = () => {
                                                             <span>{doc.document_title || `Document ${index + 1}`}</span>
                                                             {finalTask.task_status !== 'Finalized' && (
                                                                 <span
-                                                                    onClick={() => handleDeleteDocument(doc.document_id, finalTask.task_id)}
+                                                                    onClick={() => ensureGroupLeader(() =>handleDeleteDocument(doc.document_id, finalTask.task_id))}
                                                                     className={styles.removeDocument}
                                                                 >
                                                                     (remove)
@@ -1706,7 +1817,7 @@ const GroupLeaderDashboard = () => {
                                                             )}
                                                         </div>
                                                         <button
-                                                            onClick={() => handleDownload(doc.document_id, doc.document_title)}
+                                                            onClick={() => ensureGroupLeader(() =>handleDownload(doc.document_id, doc.document_title))}
                                                             className={styles.downloadButton}
                                                         >
                                                             Download
@@ -1722,7 +1833,7 @@ const GroupLeaderDashboard = () => {
                                     {finalTask.task_status === 'In Progress' && (
                                         <button
                                             className={styles.uploadButton}
-                                            onClick={() => handleCompleteTask(finalTask.task_id, 'Finalized')}
+                                            onClick={() => ensureGroupLeader(() =>handleCompleteTask(finalTask.task_id, 'Finalized'))}
                                             disabled={!allOtherTasksFinalized || finalDocuments.length === 0}
                                         >
                                             Submit Project
@@ -1797,7 +1908,7 @@ const GroupLeaderDashboard = () => {
                         {tabs.map((tab, index) => (
                             <button
                                 key={tab.id}
-                                onClick={() => setActiveTab(tab.id)}
+                                onClick={() => ensureGroupLeader(() =>setActiveTab(tab.id))}
                                 className={`${styles.tabButton} ${activeTab === tab.id ? styles.tabButtonActive : ''}`}
                                 style={{ borderRight: index < tabs.length - 1 ? '1px solid #4b5563' : 'none' }}
                                 onMouseEnter={(e) => {
