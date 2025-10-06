@@ -1,0 +1,100 @@
+from django.db import models
+from django.contrib.auth import get_user_model
+from django.contrib.postgres.constraints import ExclusionConstraint
+from django.contrib.postgres.fields import CITextField  # might use this later for case-insensitive stuff
+
+User = get_user_model()
+
+# Keeping event types centralized so we don't hardcode them all over the place
+class NotificationType(models.TextChoices):
+    TASK_ASSIGNED = "TaskAssigned"
+    TASK_UPDATED = "TaskUpdated"
+    TASK_COMPLETED = "TaskCompleted"
+    DOCUMENT_UPLOADED = "DocumentUploaded"
+    DOCUMENT_EDITED = "DocumentEdited"
+    MEETING_SCHEDULED = "MeetingScheduled"
+    DEADLINE_UPDATED = "DeadlineUpdated"
+    GRADE_RELEASED = "GradeReleased"
+    SYSTEM_ANNOUNCEMENT = "SystemAnnouncement"
+    DUE_SOON_REMINDER = "DueSoonReminder"
+    OVERDUE_REMINDER = "OverdueReminder"
+
+
+# Priorities — might want to sync this with frontend severity levels later
+class NotificationPriority(models.IntegerChoices):
+    LOW = 0
+    NORMAL = 1
+    HIGH = 2
+    CRITICAL = 3
+
+
+# This model stores per-user notification events; mainly for read/unread tracking and deduplication
+class Notification(models.Model):
+    id = models.BigAutoField(primary_key=True)
+
+    project_id = models.CharField(max_length=64)  # not always used directly, but helpful for backtracking
+
+    task_id = models.CharField(max_length=64, null=True, blank=True)  # optional linkage
+    document_id = models.CharField(max_length=64, null=True, blank=True)
+
+    event_type = models.CharField(
+        max_length=32,
+        choices=NotificationType.choices
+    )
+
+    # Urgency level — default is "normal" if nothing is set explicitly
+    priority = models.IntegerField(
+        choices=NotificationPriority.choices,
+        default=NotificationPriority.NORMAL
+    )
+
+    # Notification display content
+    title = models.CharField(max_length=255)
+    message = models.TextField()  # full message body, might include markdown or links
+
+    # User it's for
+    recipient = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        related_name='notifications'
+    )
+
+    # Who triggered this? e.g., if someone assigned a task
+    actor = models.ForeignKey(
+        User,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name='acted_notifications'
+    )
+
+    # Optional: link to a relevant resource, like a task page
+    action_url = models.URLField(null=True, blank=True)
+
+    # Deduplication — allows frontend/backend to avoid spamming the same user multiple times
+    idempotency_key = models.CharField(max_length=128, null=True, blank=True)
+
+    created_at = models.DateTimeField(auto_now_add=True)  # when it was created
+    read_at = models.DateTimeField(null=True, blank=True)  # when user read it, if ever
+
+    class Meta:
+        ordering = ['-created_at']  # show newest first
+
+        indexes = [
+            # Speed up "inbox" lookups
+            models.Index(fields=['recipient', 'created_at']),
+            models.Index(fields=['recipient', 'event_type']),
+        ]
+
+        constraints = [
+            # Only enforce uniqueness if we *have* a key (optional dedupe)
+            models.UniqueConstraint(
+                fields=['recipient', 'idempotency_key'],
+                condition=models.Q(idempotency_key__isnull=False),
+                name='unique_recipient_idempotency_when_present'
+            )
+        ]
+
+    def __str__(self):
+        # Just for easier admin/debug display
+        return f"{self.title} → {self.recipient}"

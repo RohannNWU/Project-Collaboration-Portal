@@ -1,0 +1,53 @@
+from typing import Iterable, List, Tuple
+
+from django.contrib.auth import get_user_model
+from .models import ProjectMember, TaskAssignee  # assuming these are defined elsewhere
+
+User = get_user_model()
+
+
+def get_project_members(project_id: str) -> List[Tuple[str, str]]:
+    """
+    Grab all members tied to a given project ID.
+    
+    Returns: List of (user_id, role) like:
+        [("abc123", "Student"), ("def456", "GroupLeader"), ...]
+    
+    NOTE: Might want to cache this later if used in bulk.
+    """
+    try:
+        results = ProjectMember.objects.filter(project_id=project_id).select_related('user')
+        return [(str(pm.user.id), pm.role) for pm in results]
+    except Exception as e:
+        # fallback if something goes sideways (DB glitch?)
+        return []
+
+
+def is_assignee(task_id: str, user_id: str) -> bool:
+    """
+    Simple check — is this user listed as a task assignee?
+    
+    (Used to target task-related notifications.)
+    """
+    if not task_id:
+        return False  # nothing to assign to
+
+    # Could optimize with exists() + select_for_update if perf is an issue later
+    return TaskAssignee.objects.filter(task_id=task_id, user_id=user_id).exists()
+
+
+def get_user_email(user_id: str) -> str | None:
+    """
+    Lookup helper — given a user ID, return their email.
+    
+    Will return None if the user is inactive or email is missing.
+    """
+    try:
+        user = User.objects.get(id=user_id)
+        if not user.is_active:
+            return None  # don't email dormant users
+
+        return user.email or None  # could default to "" but let's keep it strict
+    except User.DoesNotExist:
+        # dev note: this should be rare, maybe log later
+        return None
