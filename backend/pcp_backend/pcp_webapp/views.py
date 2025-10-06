@@ -1608,6 +1608,7 @@ class UpdateProfileView(APIView):
         last_name = request.data.get('last_name')
         security_question = request.data.get('security_question')
         security_answer = request.data.get('security_answer')
+        password = request.data.get('password')
         
         # At least one field must be provided to update
         try:
@@ -1620,6 +1621,9 @@ class UpdateProfileView(APIView):
             if security_answer:
                 hashed_security_answer = bcrypt.hashpw(security_answer.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
                 user.security_answer = hashed_security_answer
+            if password:
+                hashed_password = bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
+                user.password = hashed_password
 
             user.save()
             logger.info(f"Profile updated successfully for user {user.email}")

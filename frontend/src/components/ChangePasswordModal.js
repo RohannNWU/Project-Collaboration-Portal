@@ -7,7 +7,7 @@ import styles from './Models.module.css';  // Reuse styles or create new CSS mod
 
 const ResetPasswordModal = ({ isOpen, onClose, onSuccess }) => {
   const [stage, setStage] = useState('email');
-  const [email, setEmail] = useState('');
+  const [initialEmail, setEmail] = useState('');
   const [securityQuestion, setSecurityQuestion] = useState('');
   const [securityAnswer, setSecurityAnswer] = useState('');
   const [newPassword, setNewPassword] = useState('');
@@ -40,13 +40,13 @@ const ResetPasswordModal = ({ isOpen, onClose, onSuccess }) => {
   };
 
   const handleVerifyEmail = async () => {
-    if (!email.trim()) {
+    if (!initialEmail.trim()) {
       setError('Email is required');
       clearError();
       return;
     }
 
-    if (!emailRegex.test(email)) {
+    if (!emailRegex.test(initialEmail)) {
       setError('Please enter a valid email address');
       clearError();
       return;
@@ -61,13 +61,7 @@ const ResetPasswordModal = ({ isOpen, onClose, onSuccess }) => {
         ? 'http://127.0.0.1:8000'
         : 'https://pcp-backend-f4a2.onrender.com';
 
-      const response = await axios.post(
-        `${API_BASE_URL}/api/getuserdetails/`,
-        { email: email.trim() },
-        { headers: { 'Content-Type': 'application/json' } }
-      );
-
-      console.log('Verify email response:', response);
+      const response = await axios.post(`${API_BASE_URL}/api/getuserdetails/`, { initialEmail });
 
       if (response.data?.success) {
         setSecurityQuestion(response.data.user_details?.security_question || 'Security question not provided');
@@ -118,7 +112,7 @@ const ResetPasswordModal = ({ isOpen, onClose, onSuccess }) => {
       const response = await axios.post(
         `${API_BASE_URL}/api/verifysecurityanswer/`,
         {
-          email: email.trim(),
+          email: initialEmail.trim(),
           security_answer: securityAnswer.trim(),
         },
         { headers: { 'Content-Type': 'application/json' } }
@@ -182,12 +176,12 @@ const ResetPasswordModal = ({ isOpen, onClose, onSuccess }) => {
         ? 'http://127.0.0.1:8000'
         : 'https://pcp-backend-f4a2.onrender.com';
 
-      console.log('Updating password for:', { email: email.trim() });
+      console.log('Updating password for:', { email: initialEmail.trim() });
 
       const response = await axios.post(
         `${API_BASE_URL}/api/resetpassword/`,
         {
-          email: email.trim(),
+          email: initialEmail.trim(),
           password: newPassword,
         },
         { headers: { 'Content-Type': 'application/json' } }
@@ -200,7 +194,7 @@ const ResetPasswordModal = ({ isOpen, onClose, onSuccess }) => {
       }
 
       setSuccessMessage('Password updated successfully!');
-      onSuccess?.({ email });
+      onSuccess?.({ initialEmail });
       setTimeout(() => {
         setSuccessMessage('');
         onClose();
@@ -245,7 +239,7 @@ const ResetPasswordModal = ({ isOpen, onClose, onSuccess }) => {
   const isSecurityStage = stage === 'security';
   const isPasswordStage = stage === 'password';
   const isResetDisabled = loading || !newPassword || !confirmPassword || newPassword !== confirmPassword;
-  const isVerifyEmailDisabled = loading || !email.trim() || !emailRegex.test(email);
+  const isVerifyEmailDisabled = loading || !initialEmail.trim() || !emailRegex.test(initialEmail);
   const isVerifyAnswerDisabled = loading || !securityAnswer.trim();
 
   return (
@@ -265,7 +259,7 @@ const ResetPasswordModal = ({ isOpen, onClose, onSuccess }) => {
             <label className={styles.label}>Email Address</label>
             <input
               type="email"
-              value={email}
+              value={initialEmail}
               onChange={(e) => setEmail(e.target.value)}
               className={styles.input}
               placeholder="Enter your email address"
