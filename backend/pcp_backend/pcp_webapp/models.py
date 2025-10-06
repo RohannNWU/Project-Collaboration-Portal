@@ -250,6 +250,7 @@ class ProjectLinks(models.Model):
     link_id = models.AutoField(primary_key=True)
     project = models.ForeignKey(Project, on_delete=models.CASCADE, related_name='links')
     link_url = models.URLField(max_length=500)
+    link_name = models.CharField(max_length=100)
 
     class Meta:
         managed = True
