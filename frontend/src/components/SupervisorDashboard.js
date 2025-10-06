@@ -20,12 +20,12 @@ const SupervisorDashboard = () => {
   const [loadingTasks, setLoadingTasks] = useState(false);
   const [loadingMembers, setLoadingMembers] = useState(false);
   const [loadingDocuments, setLoadingDocuments] = useState({});
-  const [loadingChat] = useState(false);
   const [userContributions, setUserContributions] = useState([]);
   const [loadingContributions, setLoadingContributions] = useState(false);
   const [contributionsError, setContributionsError] = useState('');
   const [isProjectGraded, setIsProjectGraded] = useState(false);
   const [showGradeModel, setShowGradeModel] = useState(false);
+  const [loadingChat] = useState(false);
   const [error, setError] = useState('');
   const location = useLocation();
   const navigate = useNavigate();
@@ -37,8 +37,9 @@ const SupervisorDashboard = () => {
   const [finalTask, setFinalTask] = useState(null);
   const [finalDocuments, setFinalDocuments] = useState([]);
   const [showAddMemberModal, setShowAddMemberModal] = useState(false);
-  const [loading, setLoading] = useState(false);
+  const [expandedSections, setExpandedSections] = useState({ links: false });
   const isTempId = (id) => typeof id === 'string' && id.startsWith('temp-');
+  const toggleSectionExpansion = (section) => setExpandedSections(prev => ({ ...prev, [section]: !prev[section] }));
 
   // Helper function for CHAT
   function getGradientColors(senderName) {
@@ -79,9 +80,9 @@ const SupervisorDashboard = () => {
     }
   }, [chatMessages]);
 
- const fetchUserContributions = useCallback(async () => {
+  const fetchUserContributions = useCallback(async () => {
     setError('');
-    setLoading(true);
+    setLoadingContributions(true);
     try {
       const token = localStorage.getItem('access_token');
       if (!token) {
@@ -115,9 +116,9 @@ const SupervisorDashboard = () => {
       }
       setUserContributions([]);  // Clear on error
     } finally {
-      setLoading(false);
+      setLoadingContributions(false);
     }
-  }, [projectId, navigate, setLoading]);
+  }, [projectId, navigate]);
 
   useEffect(() => {
     if (activeTab === 'review_project' && projectId) {
@@ -260,6 +261,7 @@ const SupervisorDashboard = () => {
       });
 
       setProjectData(response.data.project_data || {});
+      setIsProjectGraded(!!response.data.project_data?.grade && response.data.project_data?.grade !== '');
     } catch (err) {
       console.error('Error fetching project data:', err);
       if (err.response?.status === 400) {
@@ -406,8 +408,6 @@ const SupervisorDashboard = () => {
     }
   }, [projectId, navigate, fetchDocuments, fetchContributions]);
 
-
-
   // Updated useEffect to trigger on new tab ID
   useEffect(() => {
     if ((activeTab === 'final-submission' || activeTab === 'review_project') && projectId) {
@@ -523,9 +523,8 @@ const SupervisorDashboard = () => {
     }
   }, [activeTab, projectId, navigate]);
 
-    // Fetch completed tasks when Review Project tab is clicked
   useEffect(() => {
-    if (activeTab === 'review_project' && projectId) {  // Keep id as 'review_project' for simplicity
+    if (activeTab === 'review_project' && projectId) {
       const fetchCompletedTasks = async () => {
         setLoadingTasks(true);
         setError('');
@@ -540,19 +539,46 @@ const SupervisorDashboard = () => {
             ? 'http://127.0.0.1:8000'
             : 'https://pcp-backend-f4a2.onrender.com';
 
-          const response = await axios.get(`${API_BASE_URL}/api/getcompletedtasks/?project_id=${projectId}`, {
+          // Use getprojecttasks to get all tasks and filter for finalized final submission
+          const response = await axios.get(`${API_BASE_URL}/api/getprojecttasks/?project_id=${projectId}`, {
             headers: { Authorization: `Bearer ${token}` },
           });
 
-          const allCompletedTasks = response.data.tasks || [];
-          const finalTaskData = allCompletedTasks.find(task => task.task_name === 'Final Submission');
+          const allTasks = response.data.tasks || [];
+          // Filter for tasks that are finalized and match final submission name (case-insensitive)
+          const finalizedTasks = allTasks.filter(task =>
+            task.task_status === 'Finalized' &&
+            task.task_name?.toLowerCase().includes('final submission')
+          );
+          const finalTaskData = finalizedTasks.find(task =>
+            task.task_name?.toLowerCase() === 'final submission'
+          ) || finalizedTasks[0]; // Fallback to first finalized if exact not found
           setFinalTask(finalTaskData || null);
-          setTasks(allCompletedTasks);
+          setTasks(finalizedTasks); // Set only finalized tasks
 
+          if (finalTaskData) {
+            const docs = await fetchDocuments(finalTaskData.task_id);
+            setFinalDocuments(docs);
+          } else {
+            setFinalDocuments([]);
+          }
 
         } catch (err) {
           console.error('Error fetching completed tasks:', err);
-          // ... existing error handling
+          if (err.response?.status === 400) {
+            setError('Project ID is required');
+            setTimeout(() => setError(''), 3000);
+          } else if (err.response?.status === 404) {
+            setError('Project not found');
+            setTimeout(() => setError(''), 3000);
+          } else if (err.response?.status === 401) {
+            localStorage.removeItem('access_token');
+            navigate('/');
+          } else {
+            setError('Failed to fetch completed tasks');
+            setTimeout(() => setError(''), 3000);
+          }
+          setFinalDocuments([]);
         } finally {
           setLoadingTasks(false);
         }
@@ -560,7 +586,7 @@ const SupervisorDashboard = () => {
 
       fetchCompletedTasks();
     }
-  }, [activeTab, projectId, navigate]);
+  }, [activeTab, projectId, navigate, fetchDocuments]);
 
   useEffect(() => {
     if (finalTask) {
@@ -899,10 +925,22 @@ const SupervisorDashboard = () => {
               )}
             </div>
           )}
-          <div className={styles.detailSection}>
-            <h3 className={styles.detailHeading}>Important Links</h3>
-            <p className={styles.detailText}>{'No sharepoint links provided.'}</p>
-            <button className={styles.backButton}>Add new Links</button>
+          <div className={styles.section}>
+            <div
+              className={`${styles.sectionHeader} ${expandedSections.links ? styles.sectionHeaderExpanded : ''}`}
+              onClick={() => ensureSupervisor(() => toggleSectionExpansion('links'))}
+            >
+              <h3 className={styles.sectionHeading}>Important Links</h3>
+              <span className={`${styles.dropdownToggle} ${expandedSections.links ? styles.dropdownToggleActive : ''}`}>
+                ▼
+              </span>
+            </div>
+            {expandedSections.links && (
+              <div className={styles.sectionContent}>
+                <p className={styles.detailText}>{'No links provided.'}</p>
+                {!isProjectGraded && <button className={styles.backButton}>Add new Links</button>}
+              </div>
+            )}
           </div>
         </div>
       ),
@@ -1022,11 +1060,11 @@ const SupervisorDashboard = () => {
               {/* Documents List */}
               <div className={styles.documentsSection}>
                 <h4>Final Submission Documents</h4>
-                {finalDocuments.length === 0 ? (
+                {(finalDocuments || []).length === 0 ? (
                   <p className={styles.noDocuments}>No documents available.</p>
                 ) : (
                   <ul className={styles.documentList}>
-                    {finalDocuments.map((doc) => (
+                    {(finalDocuments || []).map((doc) => (
                       <li key={doc.document_id} className={styles.documentItem}>
                         <span className={styles.documentTitle}>{doc.document_title}</span>
                         <button
@@ -1042,15 +1080,15 @@ const SupervisorDashboard = () => {
               </div>
               <div>
                 <h3>Contributions</h3>
-                {loadingContributions ? (  // Assuming separate loading state; add if needed
+                {loadingContributions ? (
                   <p>Loading contributions...</p>
-                ) : contributionsError ? (  // Assuming separate error state
+                ) : contributionsError ? (
                   <p className={styles.errorMessage}>{contributionsError}</p>
-                )  : !Array.isArray(userContributions) || userContributions.length === 0 ?(
+                ) : (userContributions || []).length === 0 ? (
                   <p>No contributors found.</p>
                 ) : (
                   <ul>
-                    {userContributions.map((contributor, index) => (
+                    {(userContributions || []).map((contributor, index) => (
                       <li key={contributor.email || index}>
                         {contributor.first_name} {contributor.last_name} - ({contributor.email})
                       </li>

@@ -3,13 +3,13 @@ import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import {
-  faCheckCircle, faUser, faSignOutAlt, faProjectDiagram,
+  faUser, faSignOutAlt, faProjectDiagram,
   faChevronLeft, faChevronRight, faCalendar, faTasks,
   faPlus, faTrash
 } from '@fortawesome/free-solid-svg-icons';
 import NewProjectModal from './NewProjectModal';
 import DeleteProjectModal from './DeleteProjectModal';
-import MyTasksModal from './MyTasksModal';
+import ProfileModal from './ProfileModal';
 import styles from './Dashboard.module.css';
 
 const Dashboard = () => {
@@ -24,7 +24,7 @@ const Dashboard = () => {
   const [showNewProjectModal, setShowNewProjectModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [selectedProject, setSelectedProject] = useState(null);
-  const [showMyTasksModal, setShowMyTasksModal] = useState(false);
+  const [showProfileModal, setShowProfileModal] = useState(false);
   const navigate = useNavigate();
 
   const months = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
@@ -126,23 +126,23 @@ const Dashboard = () => {
       const today = new Date().toISOString().split('T')[0];
 
       // Filter projects with no grade and no feedback
-      const dayProjects = calendarEvents.filter(e => 
-        e.type === 'project' && 
-        e.start === dateStr && 
-        (e.grade === undefined || e.grade === null || e.grade === '' || e.grade === '-') && 
+      const dayProjects = calendarEvents.filter(e =>
+        e.type === 'project' &&
+        e.start === dateStr &&
+        (e.grade === undefined || e.grade === null || e.grade === '' || e.grade === '-') &&
         (e.feedback === undefined || e.feedback === null || e.feedback === '')
       );
-      
+
       // Filter tasks with status "In Progress"
-      const dayTasks = calendarEvents.filter(e => 
-        e.type === 'task' && 
-        e.start === dateStr && 
+      const dayTasks = calendarEvents.filter(e =>
+        e.type === 'task' &&
+        e.start === dateStr &&
         e.status === 'In Progress'
       );
 
       // Filter meetings, excluding those in the past
-      const dayMeetings = calendarEvents.filter(e => 
-        e.type === 'meeting' && 
+      const dayMeetings = calendarEvents.filter(e =>
+        e.type === 'meeting' &&
         e.start === dateStr &&
         e.start >= today
       );
@@ -205,15 +205,7 @@ const Dashboard = () => {
         </div>
 
         <nav className={styles.nav}>
-          <button className={styles.navBtn} onClick={() => setShowMyTasksModal(true)}>
-            <FontAwesomeIcon icon={faCheckCircle} /> My Tasks
-          </button>
-          <MyTasksModal
-            isOpen={showMyTasksModal}
-            onClose={() => setShowMyTasksModal(false)}
-            email={email}
-          />
-          <button className={styles.navBtn}><FontAwesomeIcon icon={faUser} /> Profile</button>
+          <button className={styles.navBtn} onClick={() => setShowProfileModal(true)}><FontAwesomeIcon icon={faUser} /> Profile</button>
           <button className={styles.navBtn} onClick={logout}><FontAwesomeIcon icon={faSignOutAlt} /> Logout</button>
         </nav>
       </aside>
@@ -301,6 +293,16 @@ const Dashboard = () => {
                       onSuccess={() => {
                         fetchDashboardData(); // Refresh projects list
                       }}
+                    />
+                  )}
+                  {showProfileModal && (
+                    <ProfileModal
+                      onClose={() => setShowProfileModal(false)}
+                      onSuccess={() => {
+                        fetchDashboardData();
+                        setShowProfileModal(false);
+                      }}
+                      email={email}
                     />
                   )}
                 </tr>
@@ -481,52 +483,52 @@ const Dashboard = () => {
                     {formatDateForDisplay(selectedDate)}
                   </div>
 
-                  {calendarEvents.filter(e => 
-                    e.type === 'project' && 
-                    e.start === selectedDate && 
-                    (e.grade === undefined || e.grade === null || e.grade === '' || e.grade === '-') && 
+                  {calendarEvents.filter(e =>
+                    e.type === 'project' &&
+                    e.start === selectedDate &&
+                    (e.grade === undefined || e.grade === null || e.grade === '' || e.grade === '-') &&
                     (e.feedback === undefined || e.feedback === null || e.feedback === '')
                   ).length > 0 && (
-                    <div style={{ marginBottom: '20px' }}>
-                      <h4 className={styles.selectedDateProjectsHeader}>
-                        📁 Projects ({calendarEvents.filter(e => 
-                          e.type === 'project' && 
-                          e.start === selectedDate && 
-                          (e.grade === undefined || e.grade === null || e.grade === '' || e.grade === '-') && 
-                          (e.feedback === undefined || e.feedback === null || e.feedback === '')
-                        ).length})
-                      </h4>
-                      <ul className={styles.selectedDateList}>
-                        {calendarEvents.filter(e => 
-                          e.type === 'project' && 
-                          e.start === selectedDate && 
-                          (e.grade === undefined || e.grade === null || e.grade === '' || e.grade === '-') && 
-                          (e.feedback === undefined || e.feedback === null || e.feedback === '')
-                        ).map((project, index) => (
-                          <li
-                            key={`proj-${index}`}
-                            className={`${styles.selectedDateListItem} ${index % 2 === 0 ? '' : styles.selectedDateListItemAlt}`}
-                          >
-                            <div className={styles.selectedDateItemTitle}>
-                              <FontAwesomeIcon icon={faProjectDiagram} style={{ color: '#228693' }} />
-                              {project.name}
-                            </div>
-                            <div className={styles.selectedDateItemMeta}>
-                              <span>Role: <span className={project.role.toLowerCase() === 'supervisor' ? styles.selectedDateItemRoleSupervisor : styles.selectedDateItemRoleOther}>{project.role}</span></span>
-                              {project.description && (
-                                <span className={styles.selectedDateItemDescription}>
-                                  {project.description.length > 50
-                                    ? `${project.description.substring(0, 50)}...`
-                                    : project.description
-                                  }
-                                </span>
-                              )}
-                            </div>
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-                  )}
+                      <div style={{ marginBottom: '20px' }}>
+                        <h4 className={styles.selectedDateProjectsHeader}>
+                          📁 Projects ({calendarEvents.filter(e =>
+                            e.type === 'project' &&
+                            e.start === selectedDate &&
+                            (e.grade === undefined || e.grade === null || e.grade === '' || e.grade === '-') &&
+                            (e.feedback === undefined || e.feedback === null || e.feedback === '')
+                          ).length})
+                        </h4>
+                        <ul className={styles.selectedDateList}>
+                          {calendarEvents.filter(e =>
+                            e.type === 'project' &&
+                            e.start === selectedDate &&
+                            (e.grade === undefined || e.grade === null || e.grade === '' || e.grade === '-') &&
+                            (e.feedback === undefined || e.feedback === null || e.feedback === '')
+                          ).map((project, index) => (
+                            <li
+                              key={`proj-${index}`}
+                              className={`${styles.selectedDateListItem} ${index % 2 === 0 ? '' : styles.selectedDateListItemAlt}`}
+                            >
+                              <div className={styles.selectedDateItemTitle}>
+                                <FontAwesomeIcon icon={faProjectDiagram} style={{ color: '#228693' }} />
+                                {project.name}
+                              </div>
+                              <div className={styles.selectedDateItemMeta}>
+                                <span>Role: <span className={project.role.toLowerCase() === 'supervisor' ? styles.selectedDateItemRoleSupervisor : styles.selectedDateItemRoleOther}>{project.role}</span></span>
+                                {project.description && (
+                                  <span className={styles.selectedDateItemDescription}>
+                                    {project.description.length > 50
+                                      ? `${project.description.substring(0, 50)}...`
+                                      : project.description
+                                    }
+                                  </span>
+                                )}
+                              </div>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
 
                   {calendarEvents.filter(e => e.type === 'task' && e.start === selectedDate && e.status === 'In Progress').length > 0 && (
                     <div style={{ marginBottom: '20px' }}>
@@ -577,21 +579,21 @@ const Dashboard = () => {
                     </div>
                   )}
 
-                  {(calendarEvents.filter(e => 
-                    e.start === selectedDate && 
-                    ((e.type === 'project' && 
-                      (e.grade === undefined || e.grade === null || e.grade === '' || e.grade === '-') && 
-                      (e.feedback === undefined || e.feedback === null || e.feedback === '')) || 
-                     (e.type === 'task' && e.status === 'In Progress') ||
-                     (e.type === 'meeting' && e.start >= new Date().toISOString().split('T')[0]))
+                  {(calendarEvents.filter(e =>
+                    e.start === selectedDate &&
+                    ((e.type === 'project' &&
+                      (e.grade === undefined || e.grade === null || e.grade === '' || e.grade === '-') &&
+                      (e.feedback === undefined || e.feedback === null || e.feedback === '')) ||
+                      (e.type === 'task' && e.status === 'In Progress') ||
+                      (e.type === 'meeting' && e.start >= new Date().toISOString().split('T')[0]))
                   ).length === 0) && (
-                    <div className={styles.emptyState}>
-                      <div className={styles.emptyStateTitle}>🎉 Great work!</div>
-                      <div className={styles.emptyStateMessage}>
-                        No ungraded projects, in-progress tasks, or meetings scheduled for {formatDateForDisplay(selectedDate)}
+                      <div className={styles.emptyState}>
+                        <div className={styles.emptyStateTitle}>🎉 Great work!</div>
+                        <div className={styles.emptyStateMessage}>
+                          No ungraded projects, in-progress tasks, or meetings scheduled for {formatDateForDisplay(selectedDate)}
+                        </div>
                       </div>
-                    </div>
-                  )}
+                    )}
                 </div>
               ) : (
                 <div className={styles.emptyState}>
@@ -635,9 +637,9 @@ const Dashboard = () => {
           <ul className={styles.list}>
             {calendarEvents.slice(-3).reverse().map((event, index) => (
               <li key={index}>
-                <FontAwesomeIcon 
-                  icon={event.type === 'project' ? faProjectDiagram : event.type === 'task' ? faTasks : faCalendar} 
-                  style={{ color: '#228693' }} 
+                <FontAwesomeIcon
+                  icon={event.type === 'project' ? faProjectDiagram : event.type === 'task' ? faTasks : faCalendar}
+                  style={{ color: '#228693' }}
                 />
                 {event.name}
                 {(event.type === 'task' || event.type === 'meeting') && event.project ? ` (Project: ${event.project.name})` : ''}
