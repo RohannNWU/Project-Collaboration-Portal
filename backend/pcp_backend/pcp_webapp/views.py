@@ -23,6 +23,7 @@ import logging
 import mimetypes
 from django.utils import timezone
 from django.db.models import Count
+from zoneinfo import ZoneInfo
 
 
 logger = logging.getLogger(__name__)
@@ -1429,7 +1430,7 @@ class GetProjectChatView(APIView):
                     'sender_email': msg.email.email,
                     'sender_name': f"{msg.email.first_name} {msg.email.last_name}",
                     'content': msg.content,
-                    'sent_at': msg.sent_at.strftime('%Y-%m-%d %H:%M:%S'),  # Human-readable format
+                    'sent_at': msg.sent_at.astimezone(ZoneInfo('Africa/Johannesburg')).strftime('%Y-%m-%d %H:%M:%S'),  # Converted to SAST
                     'role': msg.Role  # Include the Role field from the updated model
                 }
                 for msg in messages
