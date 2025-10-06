@@ -182,6 +182,7 @@ useEffect(() => {
       minute: '2-digit',
       second: '2-digit',
       hour12: false,
+      timeZone: 'Africa/Johannesburg'
     }).replace(/(\d{2})\/(\d{2})\/(\d{4}), (\d{2}:\d{2}:\d{2})/, '$3-$2-$1 $4'),
   };
 
