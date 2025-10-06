@@ -211,8 +211,8 @@ const GroupLeaderDashboard = () => {
             });
 
             setUploadFile(null);
-            await fetchDocuments(taskId); // Refresh documents
-            setFinalDocuments(documentsByTask[taskId] || []);
+            const updatedDocs = await fetchDocuments(taskId); // Refresh documents
+            setFinalDocuments(updatedDocs);
             setError('Document uploaded successfully!');
             setTimeout(() => setError(''), 3000);
             fetchFinalSubmission();
@@ -370,9 +370,6 @@ const GroupLeaderDashboard = () => {
         }
     }, [projectId, navigate]);
 
-    // Fetch project data when Project Description tab is clicked
-
-
     const handleAddNewTask = (id) => {
         setShowModal(true);
     };
@@ -502,6 +499,7 @@ const GroupLeaderDashboard = () => {
             });
 
             fetchTasks();
+            fetchFinalSubmission();
             await fetchUserTaskAssignments();
             setTimeout(() => setError(''), 3000);
         } catch (err) {
@@ -556,7 +554,10 @@ const GroupLeaderDashboard = () => {
                 headers: { Authorization: `Bearer ${token}` },
             });
 
-            fetchDocuments(taskId);
+            const updatedDocs = await fetchDocuments(taskId);
+            if (taskId === finalTask?.task_id) {
+                setFinalDocuments(updatedDocs);
+            }
             setError('Document deleted successfully.');
             setTimeout(() => setError(''), 3000);
         } catch (err) {
@@ -1639,77 +1640,100 @@ const GroupLeaderDashboard = () => {
                     ) : !finalTask ? (
                         <div className={styles.noDataMessage}>No Final Submission task found. Contact supervisor.</div>
                     ) : (
-                        <div>
-                            <div className={styles.taskInfo}>
-                                <h3>{finalTask.task_name}</h3>
-                                <p><strong>Description:</strong> {finalTask.task_description}</p>
-                                <p><strong>Due Date:</strong> {finalTask.task_due_date}</p>
-                                <p><strong>Status:</strong> {finalTask.task_status}</p>
-                            </div>
-                            {/* Upload Form - Consistent with Tasks */}
-                            <div className={styles.uploadSection}>
-                                <h4>Upload Documents</h4>
-                                <div className={styles.formGroup}>
-                                    <div className={styles.uploadContainer}>
-                                        <label
-                                            htmlFor="file-upload-final"
-                                            className={styles.uploadButton}
-                                        >
-                                            Upload Document
-                                        </label>
-                                        <input
-                                            id="file-upload-final"
-                                            type="file"
-                                            className={styles.fileInput}
-                                            onChange={handleFileSelectFinal}
-                                            disabled={uploading}
-                                        />
+                        (() => {
+                            const otherTasks = tasks.filter(task => task.task_id !== finalTask.task_id);
+                            const allOtherTasksFinalized = otherTasks.length > 0 ? otherTasks.every(task => task.task_status === 'Finalized') : true;
+                            return (
+                                <div>
+                                    <div className={styles.taskInfo}>
+                                        <h3>{finalTask.task_name}</h3>
+                                        <p><strong>Description:</strong> {finalTask.task_description}</p>
+                                        <p><strong>Due Date:</strong> {finalTask.task_due_date}</p>
+                                        <p><strong>Status:</strong> {finalTask.task_status}</p>
                                     </div>
-                                    <button
-                                        onClick={() => handleUploadDocument(finalTask.task_id)}
-                                        disabled={!uploadFile || uploading || finalTask.task_status === 'Finalized'}
-                                        className={styles.submitButton}
-                                    >
-                                        {uploading ? 'Uploading...' : 'Upload'}
-                                    </button>
-                                </div>
-                            </div>
-
-                            {/* Uploaded Documents Section */}
-                            <div className={styles.uploadedSection}>
-                                <h4>Uploaded Project Documents</h4>
-                                {finalDocuments.length > 0 ? (
-                                    <ul className={styles.documentList}>
-                                        {finalDocuments.map((doc, index) => (
-                                            <li key={doc.document_id || index} className={styles.documentItem}>
-                                                <span>{doc.document_title || `Document ${index + 1}`}</span>
-                                                <button
-                                                    onClick={() => handleDownload(doc.document_id, doc.document_title)}
-                                                    className={styles.downloadButton}
+                                    {/* Upload Form - Consistent with Tasks */}
+                                    <div className={styles.uploadSection}>
+                                        <h4>Upload Documents</h4>
+                                        <div className={styles.formGroup}>
+                                            <div className={styles.uploadContainer}>
+                                                <label
+                                                    htmlFor="file-upload-final"
+                                                    className={`${styles.uploadButton} ${finalTask.task_status === 'Finalized' ? styles.disabled : ''}`}
                                                 >
-                                                    Download
-                                                </button>
-                                            </li>
-                                        ))}
-                                    </ul>
-                                ) : (
-                                    <p className={styles.noDataMessage}>No documents uploaded yet.</p>
-                                )}
-                            </div>
+                                                    Upload Document
+                                                </label>
+                                                <input
+                                                    id="file-upload-final"
+                                                    type="file"
+                                                    className={styles.fileInput}
+                                                    onChange={handleFileSelectFinal}
+                                                    disabled={uploading || finalTask.task_status === 'Finalized'}
+                                                />
+                                            </div>
+                                            <button
+                                                onClick={() => handleUploadDocument(finalTask.task_id)}
+                                                disabled={!uploadFile || uploading || finalTask.task_status === 'Finalized'}
+                                                className={styles.uploadButton}
+                                            >
+                                                {uploading ? 'Uploading...' : 'Upload'}
+                                            </button>
+                                        </div>
+                                    </div>
 
-                            {finalTask.task_status !== 'Finalized' && (
-                                <button
-                                    className={styles.submitButton}
-                                    onClick={() => handleCompleteTask(finalTask.task_id, 'Finalized')}
-                                    disabled={finalDocuments.length === 0}
-                                >
-                                    Submit Project
-                                </button>
-                            )}
-                            {finalTask.task_status === 'Finalized' && (
-                                <p className={styles.successMessage}>Project submitted! Awaiting supervisor review.</p>
-                            )}
-                        </div>
+                                    {/* Uploaded Documents Section */}
+                                    <div className={styles.uploadedSection}>
+                                        <h4>Uploaded Project Documents</h4>
+                                        {finalDocuments.length > 0 ? (
+                                            <ul className={styles.documentList}>
+                                                {finalDocuments.map((doc, index) => (
+                                                    <li key={doc.document_id || index} className={styles.documentItem}
+                                                        onMouseEnter={(e) => {
+                                                            e.currentTarget.classList.add(styles.documentItemHover);
+                                                        }}
+                                                        onMouseLeave={(e) => {
+                                                            e.currentTarget.classList.remove(styles.documentItemHover);
+                                                        }}
+                                                    >
+                                                        <div className={styles.documentInfo}>
+                                                            <span>{doc.document_title || `Document ${index + 1}`}</span>
+                                                            {finalTask.task_status !== 'Finalized' && (
+                                                                <span
+                                                                    onClick={() => handleDeleteDocument(doc.document_id, finalTask.task_id)}
+                                                                    className={styles.removeDocument}
+                                                                >
+                                                                    (remove)
+                                                                </span>
+                                                            )}
+                                                        </div>
+                                                        <button
+                                                            onClick={() => handleDownload(doc.document_id, doc.document_title)}
+                                                            className={styles.downloadButton}
+                                                        >
+                                                            Download
+                                                        </button>
+                                                    </li>
+                                                ))}
+                                            </ul>
+                                        ) : (
+                                            <p className={styles.noDataMessage}>No documents uploaded yet.</p>
+                                        )}
+                                    </div>
+
+                                    {finalTask.task_status === 'In Progress' && (
+                                        <button
+                                            className={styles.uploadButton}
+                                            onClick={() => handleCompleteTask(finalTask.task_id, 'Finalized')}
+                                            disabled={!allOtherTasksFinalized || finalDocuments.length === 0}
+                                        >
+                                            Submit Project
+                                        </button>
+                                    )}
+                                    {finalTask.task_status === 'Finalized' && (
+                                        <p className={styles.successMessage}>Project submitted! Awaiting supervisor review.</p>
+                                    )}
+                                </div>
+                            );
+                        })()
                     )}
                 </div>
             ),

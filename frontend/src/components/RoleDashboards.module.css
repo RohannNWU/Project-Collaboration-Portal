@@ -355,6 +355,12 @@
   font-size: 0.875rem;
   display: inline-block;
   transition: background-color 0.2s;
+  border: 2px solid black;
+}
+
+.disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 
 .uploadButton:focus {
@@ -363,6 +369,11 @@
 
 .uploadButton:hover {
   background-color: #83C8D1;
+}
+
+.uploadButton:disabled {
+  background-color: transparent;
+  cursor: not-allowed;
 }
 
 .fileInput {

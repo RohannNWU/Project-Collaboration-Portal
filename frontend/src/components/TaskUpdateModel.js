@@ -12,39 +12,46 @@ const formatDateToYYYYMMDD = (dateStr) => {
   return dateStr;
 };
 
-const TaskDetails = ({ taskName, setTaskName, taskDescription, setTaskDescription, dueDate, setDueDate }) => (
-  <div className={styles.TaskUpdateModel__modelBody}>
-    <div className={styles.TaskUpdateModel__formGroup}>
-      <label className={styles.TaskUpdateModel__label}>Task Name</label>
-      <input
-        type="text"
-        value={taskName}
-        onChange={(e) => setTaskName(e.target.value)}
-        className={styles.TaskUpdateModel__input}
-        placeholder="Enter task name"
-      />
+const TaskDetails = ({ taskName, setTaskName, taskDescription, setTaskDescription, dueDate, setDueDate, projectDueDate }) => {
+  const today = new Date().toISOString().split('T')[0];
+  const maxDate = projectDueDate ? new Date(projectDueDate).toISOString().split('T')[0] : '';
+
+  return (
+    <div className={styles.TaskUpdateModel__modelBody}>
+      <div className={styles.TaskUpdateModel__formGroup}>
+        <label className={styles.TaskUpdateModel__label}>Task Name</label>
+        <input
+          type="text"
+          value={taskName}
+          onChange={(e) => setTaskName(e.target.value)}
+          className={styles.TaskUpdateModel__input}
+          placeholder="Enter task name"
+        />
+      </div>
+      <div className={styles.TaskUpdateModel__formGroup}>
+        <label className={styles.TaskUpdateModel__label}>Task Description</label>
+        <textarea
+          value={taskDescription}
+          onChange={(e) => setTaskDescription(e.target.value)}
+          className={styles.TaskUpdateModel__textarea}
+          placeholder="Enter task description"
+          rows="4"
+        />
+      </div>
+      <div className={styles.TaskUpdateModel__formGroup}>
+        <label className={styles.TaskUpdateModel__label}>Due Date</label>
+        <input
+          type="date"
+          value={dueDate}
+          onChange={(e) => setDueDate(e.target.value)}
+          className={styles.TaskUpdateModel__input}
+          min={today}
+          max={maxDate}
+        />
+      </div>
     </div>
-    <div className={styles.TaskUpdateModel__formGroup}>
-      <label className={styles.TaskUpdateModel__label}>Task Description</label>
-      <textarea
-        value={taskDescription}
-        onChange={(e) => setTaskDescription(e.target.value)}
-        className={styles.TaskUpdateModel__textarea}
-        placeholder="Enter task description"
-        rows="4"
-      />
-    </div>
-    <div className={styles.TaskUpdateModel__formGroup}>
-      <label className={styles.TaskUpdateModel__label}>Due Date</label>
-      <input
-        type="date"
-        value={dueDate}
-        onChange={(e) => setDueDate(e.target.value)}
-        className={styles.TaskUpdateModel__input}
-      />
-    </div>
-  </div>
-);
+  );
+};
 
 const ProjectMembers = ({ projectMembers, taskMembers, onAddMember }) => {
   const [selectedMemberEmail, setSelectedMemberEmail] = useState('');
@@ -84,7 +91,7 @@ const ProjectMembers = ({ projectMembers, taskMembers, onAddMember }) => {
           type="button"
           onClick={() => onAddMember(selectedMemberEmail)}
           className={styles.TaskUpdateModel__submitButton}
-          style={{marginTop: '20px'}}
+          style={{ marginTop: '20px' }}
           disabled={!selectedMemberEmail}
         >
           Add Member
@@ -122,7 +129,7 @@ const TaskMembers = ({ taskMembers, onRemoveMember }) => {
           type="button"
           onClick={() => onRemoveMember(selectedMemberEmail)}
           className={styles.TaskUpdateModel__submitButton}
-          style={{marginTop: '20px'}}
+          style={{ marginTop: '20px' }}
           disabled={!selectedMemberEmail}
         >
           Remove Member
@@ -168,12 +175,14 @@ TaskDetails.propTypes = {
   setTaskDescription: PropTypes.func.isRequired,
   dueDate: PropTypes.string.isRequired,
   setDueDate: PropTypes.func.isRequired,
+  projectDueDate: PropTypes.string,
 };
 
 const TaskUpdateModel = ({ isOpen, onClose, projectId, taskId, onUpdate, initialName = '', initialDescription = '', initialDueDate = '' }) => {
   const [taskName, setTaskName] = useState(initialName);
   const [taskDescription, setTaskDescription] = useState(initialDescription);
   const [dueDate, setDueDate] = useState(formatDateToYYYYMMDD(initialDueDate));
+  const [projectDueDate, setProjectDueDate] = useState('');
   const [projectMembers, setProjectMembers] = useState([]);
   const [taskMembers, setTaskMembers] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -181,15 +190,36 @@ const TaskUpdateModel = ({ isOpen, onClose, projectId, taskId, onUpdate, initial
   const [activeTab, setActiveTab] = useState('details');
 
   useEffect(() => {
-  console.log('TaskUpdateModel props:', { taskId, projectId, initialName, initialDescription, initialDueDate });
-  if (!taskName && !taskDescription && !dueDate) {
-    setTaskName(initialName);
-    setTaskDescription(initialDescription);
-    setDueDate(formatDateToYYYYMMDD(initialDueDate));
-  }
-}, [initialName, initialDescription, initialDueDate, taskName, taskDescription, dueDate, projectId, taskId]);
+    console.log('TaskUpdateModel props:', { taskId, projectId, initialName, initialDescription, initialDueDate });
+    if (!taskName && !taskDescription && !dueDate) {
+      setTaskName(initialName);
+      setTaskDescription(initialDescription);
+      setDueDate(formatDateToYYYYMMDD(initialDueDate));
+    }
+  }, [initialName, initialDescription, initialDueDate, taskName, taskDescription, dueDate, projectId, taskId]);
 
-  
+  const fetchProjectDetails = useCallback(async (projectId) => {
+    try {
+      const token = localStorage.getItem('access_token');
+      if (!token) {
+        setError('Please log in to continue');
+        return;
+      }
+
+      const API_BASE_URL = window.location.hostname === 'localhost'
+        ? 'http://127.0.0.1:8000'
+        : 'https://pcp-backend-f4a2.onrender.com';
+
+      const response = await axios.get(
+        `${API_BASE_URL}/api/getprojectdata/?project_id=${projectId}`,
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      setProjectDueDate(formatDateToYYYYMMDD(response.data.project_data.due_date || ''));
+    } catch (error) {
+      console.error('Error fetching project details:', error);
+      setError('Failed to fetch project details');
+    }
+  }, []);
 
   const fetchProjectMembers = async (projectId) => {
     try {
@@ -240,39 +270,42 @@ const TaskUpdateModel = ({ isOpen, onClose, projectId, taskId, onUpdate, initial
   };
 
   const fetchTaskDetails = useCallback(async (taskId) => {
-  try {
-    const token = localStorage.getItem('access_token');
-    if (!token) {
-      setError('Please log in to continue');
-      return;
+    try {
+      const token = localStorage.getItem('access_token');
+      if (!token) {
+        setError('Please log in to continue');
+        return;
+      }
+
+      const API_BASE_URL = window.location.hostname === 'localhost'
+        ? 'http://127.0.0.1:8000'
+        : 'https://pcp-backend-f4a2.onrender.com';
+
+      const response = await axios.post(
+        `${API_BASE_URL}/api/gettaskdetails/`, { taskId },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      console.log('Task details response:', response.data);
+      setTaskName(response.data.task_name || initialName);
+      setTaskDescription(response.data.task_description || initialDescription);
+      setDueDate(formatDateToYYYYMMDD(response.data.task_due_date) || initialDueDate);
+    } catch (error) {
+      console.error('Error fetching task details:', error);
+      setError('Failed to fetch task details');
     }
+  }, [initialName, initialDescription, initialDueDate]);
 
-    const API_BASE_URL = window.location.hostname === 'localhost'
-      ? 'http://127.0.0.1:8000'
-      : 'https://pcp-backend-f4a2.onrender.com';
-
-    const response = await axios.post(
-      `${API_BASE_URL}/api/gettaskdetails/?task_id=${taskId}`,
-      { headers: { Authorization: `Bearer ${token}` } }
-    );
-    console.log('Task details response:', response.data);
-    setTaskName(response.data.task_name || initialName);
-    setTaskDescription(response.data.task_description || initialDescription);
-    setDueDate(formatDateToYYYYMMDD(response.data.task_due_date) || initialDueDate);
-  } catch (error) {
-    console.error('Error fetching task details:', error);
-    setError('Failed to fetch task details');
-  }
-}, [initialName, initialDescription, initialDueDate]);
-
-useEffect(() => {
-  if (isOpen && taskId) {
-    fetchProjectMembers(projectId);
-    fetchTaskMembers(taskId);
-    fetchTaskDetails(taskId);
+  useEffect(() => {
+    if (isOpen && projectId) {
+      fetchProjectDetails(projectId);
+      fetchProjectMembers(projectId);
+    }
+    if (isOpen && taskId) {
+      fetchTaskMembers(taskId);
+      fetchTaskDetails(taskId);
+    }
     setLoading(false);
-  }
-}, [isOpen, projectId, taskId, fetchTaskDetails]);
+  }, [isOpen, projectId, taskId, fetchProjectDetails, fetchTaskDetails]);
 
   const handleAddMember = async (email) => {
     if (!email) return;
@@ -336,6 +369,22 @@ useEffect(() => {
         return;
       }
 
+      const today = new Date().toISOString().split('T')[0];
+      const taskDue = dueDate;
+      const projDue = projectDueDate;
+
+      if (new Date(taskDue) < new Date(today)) {
+        setError('Task due date must be today or later');
+        setTimeout(() => setError(''), 3000);
+        return;
+      }
+
+      if (projectDueDate && new Date(taskDue) > new Date(projDue)) {
+        setError('Task due date must be before or on the project due date');
+        setTimeout(() => setError(''), 3000);
+        return;
+      }
+
       setLoading(true);
       setError('');
 
@@ -390,7 +439,7 @@ useEffect(() => {
           </button>
         </div>
         {error && <div className={styles.TaskUpdateModel__errorMessage}>{error}</div>}
-        
+
         {/* Tab Navigation */}
         <div className={styles.TaskUpdateModel__tabContainer}>
           <nav className={styles.TaskUpdateModel__tabNav}>
@@ -425,11 +474,12 @@ useEffect(() => {
               setTaskDescription={setTaskDescription}
               dueDate={dueDate}
               setDueDate={setDueDate}
+              projectDueDate={projectDueDate}
             />
           )}
           {activeTab === 'add' && (
             <ProjectMembers
-              projectMembers={projectMembers}
+              projectMembers={projectMembers.filter(member => member.role !== 'Supervisor')}
               taskMembers={taskMembers}
               onAddMember={handleAddMember}
             />
