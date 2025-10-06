@@ -20,18 +20,12 @@ const SupervisorDashboard = () => {
   const [loadingTasks, setLoadingTasks] = useState(false);
   const [loadingMembers, setLoadingMembers] = useState(false);
   const [loadingDocuments, setLoadingDocuments] = useState({});
-  const [loadingChat] = useState(false);
   const [userContributions, setUserContributions] = useState([]);
   const [loadingContributions, setLoadingContributions] = useState(false);
   const [contributionsError, setContributionsError] = useState('');
   const [isProjectGraded, setIsProjectGraded] = useState(false);
   const [showGradeModel, setShowGradeModel] = useState(false);
   const [loadingChat] = useState(false);
-  const [userContributions, setUserContributions] = useState([]);
-  const [loadingContributions, setLoadingContributions] = useState(false);
-  const [contributionsError, setContributionsError] = useState('');
-  const [isProjectGraded, setIsProjectGraded] = useState(false);
-  const [showGradeModel, setShowGradeModel] = useState(false);
   const [error, setError] = useState('');
   const location = useLocation();
   const navigate = useNavigate();
@@ -44,7 +38,6 @@ const SupervisorDashboard = () => {
   const [finalDocuments, setFinalDocuments] = useState([]);
   const [showAddMemberModal, setShowAddMemberModal] = useState(false);
   const [expandedSections, setExpandedSections] = useState({ links: false });
-  const [loading, setLoading] = useState(false);
   const isTempId = (id) => typeof id === 'string' && id.startsWith('temp-');
   const toggleSectionExpansion = (section) => setExpandedSections(prev => ({ ...prev, [section]: !prev[section] }));
 
@@ -87,7 +80,7 @@ const SupervisorDashboard = () => {
     }
   }, [chatMessages]);
 
- const fetchUserContributions = useCallback(async () => {
+  const fetchUserContributions = useCallback(async () => {
     setError('');
     setLoadingContributions(true);
     try {
@@ -415,8 +408,6 @@ const SupervisorDashboard = () => {
     }
   }, [projectId, navigate, fetchDocuments, fetchContributions]);
 
-
-
   // Updated useEffect to trigger on new tab ID
   useEffect(() => {
     if ((activeTab === 'final-submission' || activeTab === 'review_project') && projectId) {
@@ -457,103 +448,6 @@ const SupervisorDashboard = () => {
       setTimeout(() => setError(''), 3000);
     }
   };
-
-  // Fetch documents for a specific task
-  const fetchDocuments = useCallback(async (taskId) => {
-    setLoadingDocuments((prev) => ({ ...prev, [taskId]: true }));
-    try {
-      const token = localStorage.getItem('access_token');
-      if (!token) {
-        navigate('/');
-        return [];
-      }
-
-      const API_BASE_URL = window.location.hostname === 'localhost'
-        ? 'http://127.0.0.1:8000'
-        : 'https://pcp-backend-f4a2.onrender.com';
-
-      const response = await axios.get(`${API_BASE_URL}/api/gettaskdocuments/?task_id=${taskId}`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-
-      const documents = response.data.documents || [];
-      setDocumentsByTask((prev) => ({
-        ...prev,
-        [taskId]: documents,
-      }));
-      return documents;
-    } catch (err) {
-      console.error(`Error fetching documents for task ${taskId}:`, err);
-      setError('Failed to fetch documents');
-      setTimeout(() => setError(''), 3000);
-      return [];
-    } finally {
-      setLoadingDocuments((prev) => ({ ...prev, [taskId]: false }));
-    }
-  }, [navigate]);
-
-  // Sample fetch for contributions (add this function)
-  const fetchContributions = useCallback(async (projectId) => {
-    setLoadingContributions(true);
-    setContributionsError('');
-    try {
-      const token = localStorage.getItem('access_token');
-      if (!token) return;
-
-      const API_BASE_URL = window.location.hostname === 'localhost'
-        ? 'http://127.0.0.1:8000'
-        : 'https://pcp-backend-f4a2.onrender.com';
-
-      const response = await axios.get(`${API_BASE_URL}/api/getcontributions/`, {
-        params: { projectId },
-        headers: { Authorization: `Bearer ${token}` },
-      });
-
-      setUserContributions(response.data.contributors || []);
-    } catch (err) {
-      console.error('Error fetching contributions:', err);
-      setContributionsError('Failed to load contributions');
-    } finally {
-      setLoadingContributions(false);
-    }
-  }, []);
-
-  // Updated fetchFinalSubmission (add case-insensitivity)
-  const fetchFinalSubmission = useCallback(async () => {
-    if (!projectId) return;
-    setLoadingTasks(true);
-    const token = localStorage.getItem('access_token');
-    if (!token) {
-      navigate('/');
-      setLoadingTasks(false);
-      return;
-    }
-    try {
-      const config = getApiConfig(token);
-      const response = await axios.get(`${config.baseURL}/api/getprojecttasks/?project_id=${projectId}`, { ...config });
-      const allTasks = response.data.tasks || [];
-      const finalTaskData = allTasks.find(task => task.task_name?.toLowerCase() === 'final submission');  // Case-insensitive
-      setFinalTask(finalTaskData || null);
-      setTasks(allTasks);  // If needed for other tabs
-
-      if (finalTaskData) {
-        const docs = await fetchDocuments(finalTaskData.task_id);
-        setFinalDocuments(docs);
-      } else {
-        setFinalDocuments([]);
-      }
-
-      // Fetch contributions and grade status (sample API; adjust endpoint)
-      await fetchContributions(projectId);
-    } catch (err) {
-      console.error('Error fetching final submission:', err);
-      setError('Failed to fetch final submission');
-      setTimeout(() => setError(''), 3000);
-      setFinalDocuments([]);
-    } finally {
-      setLoadingTasks(false);
-    }
-  }, [projectId, navigate, fetchDocuments, fetchContributions]);
 
   // Handle Change Role Modal Submit
   const handleRoleUpdate = async ({ projectId, memberEmail, role }) => {
@@ -1166,11 +1060,11 @@ const SupervisorDashboard = () => {
               {/* Documents List */}
               <div className={styles.documentsSection}>
                 <h4>Final Submission Documents</h4>
-                {finalDocuments?.length === 0 ? (
+                {(finalDocuments || []).length === 0 ? (
                   <p className={styles.noDocuments}>No documents available.</p>
                 ) : (
                   <ul className={styles.documentList}>
-                    {finalDocuments.map((doc) => (
+                    {(finalDocuments || []).map((doc) => (
                       <li key={doc.document_id} className={styles.documentItem}>
                         <span className={styles.documentTitle}>{doc.document_title}</span>
                         <button
@@ -1190,11 +1084,11 @@ const SupervisorDashboard = () => {
                   <p>Loading contributions...</p>
                 ) : contributionsError ? (
                   <p className={styles.errorMessage}>{contributionsError}</p>
-                ) : userContributions.length === 0 ? (
+                ) : (userContributions || []).length === 0 ? (
                   <p>No contributors found.</p>
                 ) : (
                   <ul>
-                    {userContributions.map((contributor, index) => (
+                    {(userContributions || []).map((contributor, index) => (
                       <li key={contributor.email || index}>
                         {contributor.first_name} {contributor.last_name} - ({contributor.email})
                       </li>
