@@ -125,7 +125,6 @@ const SupervisorDashboard = () => {
     }
   }, [activeTab, projectId, fetchUserContributions]);
 
-
   // Fetch chat messages
   const fetchChat = useCallback(async () => {
     setError('');
@@ -170,8 +169,6 @@ const SupervisorDashboard = () => {
     }
   }, [projectId, navigate]);
 
-
-
   // Chat polling - refresh every 5 seconds
   useEffect(() => {
     if (activeTab === 'chat' && projectId) {
@@ -186,8 +183,6 @@ const SupervisorDashboard = () => {
       return () => clearInterval(intervalId);
     }
   }, [activeTab, projectId, fetchChat]);
-
-
 
   // Handle sending chat message
   const handleSendMessage = async () => {
@@ -244,7 +239,6 @@ const SupervisorDashboard = () => {
       setTimeout(() => setError(''), 3000);
     }
   };
-
 
   // Fetch project data function
   const fetchProjectData = useCallback(async () => {
