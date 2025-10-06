@@ -235,7 +235,6 @@ const GroupLeaderDashboard = () => {
     }, [activeTab, projectId, fetchFinalSubmission]);
 
     // Fetch chat messages function
-    // Fetch chat messages function
     const fetchChat = useCallback(async () => {
         setError('');
         setLoadingChat(true);
