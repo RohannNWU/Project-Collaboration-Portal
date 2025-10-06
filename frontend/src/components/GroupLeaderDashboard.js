@@ -235,60 +235,60 @@ const GroupLeaderDashboard = () => {
     }, [activeTab, projectId, fetchFinalSubmission]);
 
     const fetchChat = useCallback(async () => {
-      try {
-        const token = localStorage.getItem('access_token');
-        if (!token) {
-          navigate('/');
-          return;
+        try {
+            const token = localStorage.getItem('access_token');
+            if (!token) {
+                navigate('/');
+                return;
+            }
+
+            const API_BASE_URL =
+                window.location.hostname === 'localhost'
+                    ? 'http://127.0.0.1:8000'
+                    : 'https://pcp-backend-f4a2.onrender.com';
+
+            const response = await axios.get(
+                `${API_BASE_URL}/api/getprojectchat/?project_id=${projectId}`,
+                { headers: { Authorization: `Bearer ${token}` } }
+            );
+
+            const serverMessages = response.data.messages || [];
+
+            // Compare counts before updating
+            setChatMessages(prev => {
+                const prevFiltered = prev.filter(msg => !isTempId(msg?.id));
+                const prevCount = prevFiltered.length;
+                const serverCount = serverMessages.length;
+
+                if (serverCount !== prevCount) {
+                    // Only refresh if the counts differ
+                    console.log(`Refreshing chat: local=${prevCount}, server=${serverCount}`);
+                    return serverMessages;
+                }
+
+                // No refresh needed
+                return prev;
+            });
+        } catch (err) {
+            console.error('Error fetching chat messages:', err);
+            if (err.response?.status === 401) {
+                localStorage.removeItem('access_token');
+                navigate('/');
+            } else {
+                setError('Failed to fetch chat messages');
+                setTimeout(() => setError(''), 3000);
+            }
         }
-    
-        const API_BASE_URL =
-          window.location.hostname === 'localhost'
-            ? 'http://127.0.0.1:8000'
-            : 'https://pcp-backend-f4a2.onrender.com';
-    
-        const response = await axios.get(
-          `${API_BASE_URL}/api/getprojectchat/?project_id=${projectId}`,
-          { headers: { Authorization: `Bearer ${token}` } }
-        );
-    
-        const serverMessages = response.data.messages || [];
-    
-        // Compare counts before updating
-        setChatMessages(prev => {
-          const prevFiltered = prev.filter(msg => !isTempId(msg?.id));
-          const prevCount = prevFiltered.length;
-          const serverCount = serverMessages.length;
-    
-          if (serverCount !== prevCount) {
-            // Only refresh if the counts differ
-            console.log(`Refreshing chat: local=${prevCount}, server=${serverCount}`);
-            return serverMessages;
-          }
-    
-          // No refresh needed
-          return prev;
-        });
-      } catch (err) {
-        console.error('Error fetching chat messages:', err);
-        if (err.response?.status === 401) {
-          localStorage.removeItem('access_token');
-          navigate('/');
-        } else {
-          setError('Failed to fetch chat messages');
-          setTimeout(() => setError(''), 3000);
-        }
-      }
     }, [projectId, navigate]);
-    
-    
+
+
     // Chat polling - refresh every 5 seconds
     useEffect(() => {
-      if (activeTab === 'chat' && projectId) {
-        fetchChat(); // initial fetch
-        const intervalId = setInterval(fetchChat, 5000);
-        return () => clearInterval(intervalId);
-      }
+        if (activeTab === 'chat' && projectId) {
+            fetchChat(); // initial fetch
+            const intervalId = setInterval(fetchChat, 5000);
+            return () => clearInterval(intervalId);
+        }
     }, [activeTab, projectId, fetchChat]);
 
 
@@ -1646,9 +1646,17 @@ const GroupLeaderDashboard = () => {
                                     } else if (diffDays === 1) {
                                         displayDate = 'Yesterday';
                                     } else if (diffDays < 7) {
-                                        displayDate = msgDate.toLocaleDateString('en-US', { weekday: 'long' });
+                                        displayDate = msgDate.toLocaleDateString('en-US', {
+                                            weekday: 'long',
+                                            timeZone: 'Africa/Johannesburg'
+                                        });
                                     } else {
-                                        displayDate = msgDate.toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' });
+                                        displayDate = msgDate.toLocaleDateString('en-GB', {
+                                            day: '2-digit',
+                                            month: '2-digit',
+                                            year: 'numeric',
+                                            timeZone: 'Africa/Johannesburg'
+                                        });
                                     }
 
                                     if (dateStr !== prevDate) {
