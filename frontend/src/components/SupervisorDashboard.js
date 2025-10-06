@@ -93,9 +93,8 @@ const SupervisorDashboard = () => {
         ? 'http://127.0.0.1:8000'
         : 'https://pcp-backend-f4a2.onrender.com';
 
-      // Fix: Pass projectId in params for query string (?projectId=123)
       const response = await axios.get(`${API_BASE_URL}/api/getcontributions/`, {
-        params: { projectId },  // This appends ?projectId=${projectId}
+        params: { projectId },
         headers: { Authorization: `Bearer ${token}` },
       });
 
