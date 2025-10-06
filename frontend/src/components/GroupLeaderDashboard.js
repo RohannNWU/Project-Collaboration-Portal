@@ -42,7 +42,7 @@ const GroupLeaderDashboard = () => {
     const isTempId = (id) => typeof id === 'string' && id.startsWith('temp-');
 
 
-  if (projectId);
+    if (projectId);
     // Helper function for CHAT
     function getGradientColors(senderName) {
         const colors = [
@@ -235,120 +235,124 @@ const GroupLeaderDashboard = () => {
     }, [activeTab, projectId, fetchFinalSubmission]);
 
     // Fetch chat messages function
-   const fetchChat = useCallback(async () => {
-  setError('');
-  try {
-    const token = localStorage.getItem('access_token');
-    if (!token) {
-      navigate('/');
-      return;
-    }
+    // Fetch chat messages function
+    const fetchChat = useCallback(async () => {
+        setError('');
+        setLoadingChat(true);
+        try {
+            const token = localStorage.getItem('access_token');
+            if (!token) {
+                navigate('/');
+                return;
+            }
 
-    const API_BASE_URL =
-      window.location.hostname === 'localhost'
-        ? 'http://127.0.0.1:8000'
-        : 'https://pcp-backend-f4a2.onrender.com';
+            const API_BASE_URL =
+                window.location.hostname === 'localhost'
+                    ? 'http://127.0.0.1:8000'
+                    : 'https://pcp-backend-f4a2.onrender.com';
 
-    const response = await axios.get(
-      `${API_BASE_URL}/api/getprojectchat/?project_id=${projectId}`,
-      { headers: { Authorization: `Bearer ${token}` } }
-    );
-    setLoadingChat(true);
-    const serverMessages = response.data.messages || [];
+            const response = await axios.get(
+                `${API_BASE_URL}/api/getprojectchat/?project_id=${projectId}`,
+                { headers: { Authorization: `Bearer ${token}` } }
+            );
 
-    setChatMessages(prev => {
-      // filter out local temp messages in prev
-      const prevFiltered = prev.filter(msg => !isTempId(msg?.id));
+            const serverMessages = response.data.messages || [];
 
-      // update only if lengths differ (lightweight check)
-      if (serverMessages.length !== prevFiltered.length) {
-        return serverMessages;
-      }
-      return prev;
-    });
-  } catch (err) {
-    console.error('Error fetching chat messages:', err);
-    if (err.response?.status === 401) {
-      localStorage.removeItem('access_token');
-      navigate('/');
-    } else {
-      setError('Failed to fetch chat messages');
-      setTimeout(() => setError(''), 3000);
-    }
-  }
-}, [projectId, navigate]);
+            setChatMessages(prev => {
+                // filter out local temp messages in prev
+                const prevFiltered = prev.filter(msg => !isTempId(msg?.id));
+
+                // update only if lengths differ (lightweight check)
+                if (serverMessages.length !== prevFiltered.length) {
+                    return serverMessages;
+                }
+                return prev;
+            });
+        } catch (err) {
+            console.error('Error fetching chat messages:', err);
+            if (err.response?.status === 401) {
+                localStorage.removeItem('access_token');
+                navigate('/');
+            } else {
+                setError('Failed to fetch chat messages');
+                setTimeout(() => setError(''), 3000);
+            }
+        } finally {
+            setLoadingChat(false);
+        }
+    }, [projectId, navigate]);
 
 
-useEffect(() => {
-  if (activeTab === 'chat' && projectId) {
-    // Immediate fetch
-    fetchChat();
+    useEffect(() => {
+        if (activeTab === 'chat' && projectId) {
+            // Immediate fetch
+            fetchChat();
 
-    // Poll every 5s
-    const intervalId = setInterval(() => {
-      fetchChat();
-    }, 5000);
+            // Poll every 5s
+            const intervalId = setInterval(() => {
+                fetchChat();
+            }, 5000);
 
-    return () => clearInterval(intervalId);
-  }
-}, [activeTab, projectId, fetchChat]);
+            return () => clearInterval(intervalId);
+        }
+    }, [activeTab, projectId, fetchChat]);
 
 
     // Handle sending chat message
     const handleSendMessage = async () => {
-  if (!messageInput.trim()) return;
+        if (!messageInput.trim()) return;
 
-  const messageContent = messageInput.trim();
-  const tempId = `temp-${Date.now()}`;
-  const tempMessage = {
-    id: tempId,
-    content: messageContent,
-    sender_name: 'You',
-    role: userRole || 'Group Leader',
-    sent_at: new Date().toLocaleString('en-GB', {
-      year: 'numeric',
-      month: '2-digit',
-      day: '2-digit',
-      hour: '2-digit',
-      minute: '2-digit',
-      second: '2-digit',
-      hour12: false,
-    }).replace(/(\d{2})\/(\d{2})\/(\d{4}), (\d{2}:\d{2}:\d{2})/, '$3-$2-$1 $4'),
-  };
+        const messageContent = messageInput.trim();
+        const tempId = `temp-${Date.now()}`;
+        const tempMessage = {
+            id: tempId,
+            content: messageContent,
+            sender_name: 'You',
+            role: userRole || 'Group Leader',
+            sent_at: new Date().toLocaleString('en-GB', {
+                year: 'numeric',
+                month: '2-digit',
+                day: '2-digit',
+                hour: '2-digit',
+                minute: '2-digit',
+                second: '2-digit',
+                hour12: false,
+            }).replace(/(\d{2})\/(\d{2})\/(\d{4}), (\d{2}:\d{2}:\d{2})/, '$3-$2-$1 $4'),
+        };
 
-  // show temp message immediately
-  setChatMessages(prev => [...prev, tempMessage]);
-  setMessageInput('');
+        // show temp message immediately
+        setChatMessages(prev => [...prev, tempMessage]);
+        setMessageInput('');
 
-  try {
-    const token = localStorage.getItem('access_token');
-    if (!token) {
-      navigate('/');
-      return;
-    }
+        try {
+            const token = localStorage.getItem('access_token');
+            if (!token) {
+                navigate('/');
+                return;
+            }
 
-    const API_BASE_URL =
-      window.location.hostname === 'localhost'
-        ? 'http://127.0.0.1:8000'
-        : 'https://pcp-backend-f4a2.onrender.com';
+            const API_BASE_URL =
+                window.location.hostname === 'localhost'
+                    ? 'http://127.0.0.1:8000'
+                    : 'https://pcp-backend-f4a2.onrender.com';
 
-    await axios.post(
-      `${API_BASE_URL}/api/sendchatmessage/`,
-      { project_id: projectId, content: messageContent },
-      { headers: { Authorization: `Bearer ${token}` } }
-    );
+            await axios.post(
+                `${API_BASE_URL}/api/sendchatmessage/`,
+                { project_id: projectId, content: messageContent },
+                { headers: { Authorization: `Bearer ${token}` } }
+            );
 
-    // fetch updated messages from server
-    fetchChat();
-  } catch (err) {
-    console.error('Error sending chat message:', err);
-    // remove temp message if send failed
-    setChatMessages(prev => prev.filter(msg => msg?.id !== tempId));
-    setMessageInput(messageContent);
-    setError('Failed to send message');
-    setTimeout(() => setError(''), 3000);
-  }
-};
+            // fetch updated messages from server
+            fetchChat();
+        } catch (err) {
+            console.error('Error sending chat message:', err);
+            // remove temp message if send failed
+            setChatMessages(prev => prev.filter(msg => msg?.id !== tempId));
+            setMessageInput(messageContent);
+            setError('Failed to send message');
+            setTimeout(() => setError(''), 3000);
+        }
+    };
 
     useEffect(() => {
         if (activeTab === 'chat' && projectId) {
@@ -972,119 +976,119 @@ useEffect(() => {
             return { ...prev, [taskId]: !isExpanded };
         });
     };
-    
-//Role management helpers
-const [userRole, setUserRole] = useState(null);
-const [roleLoading, setRoleLoading] = useState(false);
 
-const getApiBase = () =>
-  window.location.hostname === 'localhost'
-    ? 'http://127.0.0.1:8000'
-    : 'https://pcp-backend-f4a2.onrender.com';
+    //Role management helpers
+    const [userRole, setUserRole] = useState(null);
+    const [roleLoading, setRoleLoading] = useState(false);
 
- const fetchUserRole = useCallback(async () => {
-  try {
-    setRoleLoading(true);
-    setError('');
-    const token = localStorage.getItem('access_token');
-    if (!token) {
-      navigate('/');
-      return null;
-    }
+    const getApiBase = () =>
+        window.location.hostname === 'localhost'
+            ? 'http://127.0.0.1:8000'
+            : 'https://pcp-backend-f4a2.onrender.com';
 
-    // Decode JWT to get user's email
-    const base64Url = token.split('.')[1];
-    const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
-    const payload = JSON.parse(window.atob(base64));
-    const userEmail = payload.email || payload.user_email || payload.sub;
+    const fetchUserRole = useCallback(async () => {
+        try {
+            setRoleLoading(true);
+            setError('');
+            const token = localStorage.getItem('access_token');
+            if (!token) {
+                navigate('/');
+                return null;
+            }
 
-    if (!userEmail) {
-      console.error('Could not extract email from token');
-      setError('Failed to verify user role');
-      return null;
-    }
+            // Decode JWT to get user's email
+            const base64Url = token.split('.')[1];
+            const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+            const payload = JSON.parse(window.atob(base64));
+            const userEmail = payload.email || payload.user_email || payload.sub;
 
-    const response = await axios.post(
-      `${getApiBase()}/api/getmembers/`,
-      { projectId },
-      { headers: { Authorization: `Bearer ${token}` } }
+            if (!userEmail) {
+                console.error('Could not extract email from token');
+                setError('Failed to verify user role');
+                return null;
+            }
+
+            const response = await axios.post(
+                `${getApiBase()}/api/getmembers/`,
+                { projectId },
+                { headers: { Authorization: `Bearer ${token}` } }
+            );
+
+            const members = response.data.members || [];
+            const currentUser = members.find((m) => m.email === userEmail);
+
+            if (!currentUser) {
+                console.warn('User not found in project members');
+                setError('Failed to verify user role');
+                return null;
+            }
+
+            // Normalize role (lowercase for comparison)
+            const newRole = currentUser.role?.trim();
+            const oldRole = userRole?.trim();
+
+            // Alert if role changed
+            if (oldRole && newRole && oldRole !== newRole) {
+                alert('Your role changed for this project.');
+            }
+
+            setUserRole(newRole);
+            return newRole;
+        } catch (err) {
+            console.error('Error fetching user role:', err);
+            if (err.response?.status === 401) {
+                localStorage.removeItem('access_token');
+                navigate('/');
+            } else {
+                setError('Failed to verify user role');
+            }
+            setUserRole(null);
+            return null;
+        } finally {
+            setRoleLoading(false);
+        }
+    }, [navigate, projectId, userRole]);
+
+
+    // Ensure the user is a Student before executing handler.
+    const ensureGroupLeader = useCallback(
+        async (handler) => {
+            if (typeof handler !== 'function') {
+                console.warn('ensureGroupLeader expects a function as the handler');
+                return;
+            }
+
+            let roleToCheck = userRole;
+
+            // If we don't know the role yet, fetch it first
+            if (!roleToCheck && !roleLoading) {
+                roleToCheck = await fetchUserRole();
+            }
+
+            if (!roleToCheck) {
+                setError('Failed to verify user role');
+                return;
+            }
+
+            // Normalize capitalization
+            const normalizedRole = roleToCheck.trim().toLowerCase();
+
+            if (normalizedRole === 'groupleader' || normalizedRole === 'group leader') {
+                try {
+                    return await handler();
+                } catch (err) {
+                    console.error('Error running protected handler:', err);
+                }
+            } else if (normalizedRole === 'supervisor') {
+                navigate('/supervisordashboard', { state: { projectId } });
+            } else if (normalizedRole === 'student') {
+                navigate('/studentdashboard', { state: { projectId } });
+            } else {
+                setError('Failed to verify user role');
+            }
+        },
+        [userRole, roleLoading, fetchUserRole, navigate, projectId]
     );
-
-    const members = response.data.members || [];
-    const currentUser = members.find((m) => m.email === userEmail);
-
-    if (!currentUser) {
-      console.warn('User not found in project members');
-      setError('Failed to verify user role');
-      return null;
-    }
-
-    // Normalize role (lowercase for comparison)
-    const newRole = currentUser.role?.trim();
-    const oldRole = userRole?.trim();
-
-    // Alert if role changed
-    if (oldRole && newRole && oldRole !== newRole) {
-      alert('Your role changed for this project.');
-    }
-
-    setUserRole(newRole);
-    return newRole;
-  } catch (err) {
-    console.error('Error fetching user role:', err);
-    if (err.response?.status === 401) {
-      localStorage.removeItem('access_token');
-      navigate('/');
-    } else {
-      setError('Failed to verify user role');
-    }
-    setUserRole(null);
-    return null;
-  } finally {
-    setRoleLoading(false);
-  }
-}, [navigate, projectId, userRole]);
-
-
-// Ensure the user is a Student before executing handler.
-const ensureGroupLeader = useCallback(
-  async (handler) => {
-    if (typeof handler !== 'function') {
-      console.warn('ensureGroupLeader expects a function as the handler');
-      return;
-    }
-
-    let roleToCheck = userRole;
-
-    // If we don't know the role yet, fetch it first
-    if (!roleToCheck && !roleLoading) {
-      roleToCheck = await fetchUserRole();
-    }
-
-    if (!roleToCheck) {
-      setError('Failed to verify user role');
-      return;
-    }
-
-    // Normalize capitalization
-    const normalizedRole = roleToCheck.trim().toLowerCase();
-
-    if (normalizedRole === 'groupleader' || normalizedRole === 'group leader') {
-      try {
-        return await handler();
-      } catch (err) {
-        console.error('Error running protected handler:', err);
-      }
-    } else if (normalizedRole === 'supervisor') {
-      navigate('/supervisordashboard', { state: { projectId } });
-    } else if (normalizedRole === 'student') {
-      navigate('/studentdashboard', { state: { projectId } });
-    } else {
-      setError('Failed to verify user role');
-    }
-  },
-  [userRole, roleLoading, fetchUserRole, navigate, projectId]
-);
 
     const tabs = [
         {
@@ -1148,7 +1152,7 @@ const ensureGroupLeader = useCallback(
                     <div className={styles.section}>
                         <div
                             className={`${styles.sectionHeader} ${expandedSections.myTasks ? styles.sectionHeaderExpanded : ''}`}
-                            onClick={() => ensureGroupLeader(() =>toggleSectionExpansion('myTasks'))}
+                            onClick={() => ensureGroupLeader(() => toggleSectionExpansion('myTasks'))}
                         >
                             <h2 className={styles.sectionHeading}>My Tasks</h2>
                             <span className={`${styles.dropdownToggle} ${expandedSections.myTasks ? styles.dropdownToggleActive : ''}`}>
@@ -1180,7 +1184,7 @@ const ensureGroupLeader = useCallback(
                                             >
                                                 <div
                                                     className={`${styles.taskHeader} ${expandedTasks[task.task_id] ? styles.taskHeaderExpanded : ''}`}
-                                                    onClick={() => ensureGroupLeader(() =>toggleTaskExpansion(task.task_id))}
+                                                    onClick={() => ensureGroupLeader(() => toggleTaskExpansion(task.task_id))}
                                                 >
                                                     <div className={styles.taskInfo}>
                                                         <h4 className={styles.taskName}>{task.task_name}</h4>
@@ -1189,7 +1193,7 @@ const ensureGroupLeader = useCallback(
                                                         </p>
                                                         {
                                                             task.task_status === 'In Progress' && (
-                                                                <button className={styles.deleteButton} onClick={() => ensureGroupLeader(() =>handleDelete(task.task_id))}>Delete Task</button>
+                                                                <button className={styles.deleteButton} onClick={() => ensureGroupLeader(() => handleDelete(task.task_id))}>Delete Task</button>
                                                             )
                                                         }
                                                         {
@@ -1197,12 +1201,12 @@ const ensureGroupLeader = useCallback(
                                                                 <button
                                                                     className={styles.addTaskButton}
                                                                     onClick={(e) => {
-                                                                      e.stopPropagation(); // Still prevent propagation
-                                                                      ensureGroupLeader(() => {
-                                                                         setSelectedTaskId(task.task_id);
-                                                                         setShowTaskUpdateModel(true);
-                                                                                                    });
-                                                                                               }}
+                                                                        e.stopPropagation(); // Still prevent propagation
+                                                                        ensureGroupLeader(() => {
+                                                                            setSelectedTaskId(task.task_id);
+                                                                            setShowTaskUpdateModel(true);
+                                                                        });
+                                                                    }}
                                                                 >
                                                                     Update Task Details
                                                                 </button>
@@ -1214,8 +1218,9 @@ const ensureGroupLeader = useCallback(
                                                             <button
                                                                 onClick={(e) => {
                                                                     e.stopPropagation();
-                                                                    ensureGroupLeader(() =>{
-                                                                    handleCompleteTask(task.task_id, 'Completed')});
+                                                                    ensureGroupLeader(() => {
+                                                                        handleCompleteTask(task.task_id, 'Completed')
+                                                                    });
                                                                 }}
                                                                 className={styles.deleteButton}
                                                             >
@@ -1266,7 +1271,7 @@ const ensureGroupLeader = useCallback(
                                                                             <span className={styles.documentTitle}>{doc.document_title}</span>
                                                                             {userTaskAssignments[task.task_id] && (
                                                                                 <span
-                                                                                    onClick={() => ensureGroupLeader(() =>handleDeleteDocument(doc.document_id, task.task_id))}
+                                                                                    onClick={() => ensureGroupLeader(() => handleDeleteDocument(doc.document_id, task.task_id))}
                                                                                     className={styles.removeDocument}
                                                                                 >
                                                                                     (remove)
@@ -1274,7 +1279,7 @@ const ensureGroupLeader = useCallback(
                                                                             )}
                                                                         </div>
                                                                         <button
-                                                                            onClick={() => ensureGroupLeader(() =>handleDownload(doc.document_id, doc.document_title))}
+                                                                            onClick={() => ensureGroupLeader(() => handleDownload(doc.document_id, doc.document_title))}
                                                                             className={styles.downloadButton}
                                                                         >
                                                                             Download
@@ -1299,7 +1304,7 @@ const ensureGroupLeader = useCallback(
                     <div className={styles.section}>
                         <div
                             className={`${styles.sectionHeader} ${expandedSections.projectTasks ? styles.sectionHeaderExpanded : ''}`}
-                            onClick={() => ensureGroupLeader(() =>toggleSectionExpansion('projectTasks'))}
+                            onClick={() => ensureGroupLeader(() => toggleSectionExpansion('projectTasks'))}
                         >
                             <h2 className={styles.sectionHeading}>Project Tasks</h2>
                             <span className={`${styles.dropdownToggle} ${expandedSections.projectTasks ? styles.dropdownToggleActive : ''}`}>
@@ -1336,7 +1341,7 @@ const ensureGroupLeader = useCallback(
                                             >
                                                 <div
                                                     className={`${styles.taskHeader} ${expandedTasks[task.task_id] ? styles.taskHeaderExpanded : ''}`}
-                                                    onClick={() => ensureGroupLeader(() =>toggleTaskExpansion(task.task_id))}
+                                                    onClick={() => ensureGroupLeader(() => toggleTaskExpansion(task.task_id))}
                                                 >
                                                     <div className={styles.taskInfo}>
                                                         <h4 className={styles.taskName}>{task.task_name}</h4>
@@ -1345,7 +1350,7 @@ const ensureGroupLeader = useCallback(
                                                         </p>
                                                         {
                                                             task.task_status === 'In Progress' && (
-                                                                <button className={styles.deleteButton} onClick={() =>ensureGroupLeader(() => handleDelete(task.task_id))}>Delete Task</button>
+                                                                <button className={styles.deleteButton} onClick={() => ensureGroupLeader(() => handleDelete(task.task_id))}>Delete Task</button>
                                                             )
                                                         }
                                                         {
@@ -1354,9 +1359,10 @@ const ensureGroupLeader = useCallback(
                                                                     className={styles.addTaskButton}
                                                                     onClick={(e) => {
                                                                         e.stopPropagation(); // Prevent triggering toggleTaskExpansion
-                                                                        ensureGroupLeader(() =>{
-                                                                        setSelectedTaskId(task.task_id); // Set the task ID
-                                                                        setShowTaskUpdateModel(true)}); // Open the model
+                                                                        ensureGroupLeader(() => {
+                                                                            setSelectedTaskId(task.task_id); // Set the task ID
+                                                                            setShowTaskUpdateModel(true)
+                                                                        }); // Open the model
                                                                     }}
                                                                 >
                                                                     Update Task Details
@@ -1369,8 +1375,9 @@ const ensureGroupLeader = useCallback(
                                                             <button
                                                                 onClick={(e) => {
                                                                     e.stopPropagation();
-                                                                    ensureGroupLeader(() =>{
-                                                                    handleCompleteTask(task.task_id, 'Completed')});
+                                                                    ensureGroupLeader(() => {
+                                                                        handleCompleteTask(task.task_id, 'Completed')
+                                                                    });
                                                                 }}
                                                                 className={styles.deleteButton}
                                                             >
@@ -1421,7 +1428,7 @@ const ensureGroupLeader = useCallback(
                                                                             <span className={styles.documentTitle}>{doc.document_title}</span>
                                                                             {userTaskAssignments[task.task_id] && (
                                                                                 <span
-                                                                                    onClick={() => ensureGroupLeader(() =>handleDeleteDocument(doc.document_id, task.task_id))}
+                                                                                    onClick={() => ensureGroupLeader(() => handleDeleteDocument(doc.document_id, task.task_id))}
                                                                                     className={styles.removeDocument}
                                                                                 >
                                                                                     (remove)
@@ -1429,7 +1436,7 @@ const ensureGroupLeader = useCallback(
                                                                             )}
                                                                         </div>
                                                                         <button
-                                                                            onClick={() => ensureGroupLeader(() =>handleDownload(doc.document_id, doc.document_title))}
+                                                                            onClick={() => ensureGroupLeader(() => handleDownload(doc.document_id, doc.document_title))}
                                                                             className={styles.downloadButton}
                                                                         >
                                                                             Download
@@ -1454,7 +1461,7 @@ const ensureGroupLeader = useCallback(
                     <div className={styles.section}>
                         <div
                             className={`${styles.sectionHeader} ${expandedSections.links ? styles.sectionHeaderExpanded : ''}`}
-                            onClick={() => ensureGroupLeader(() =>toggleSectionExpansion('links'))}
+                            onClick={() => ensureGroupLeader(() => toggleSectionExpansion('links'))}
                         >
                             <h2 className={styles.sectionHeading}>Important Links for the Project</h2>
                             <span className={`${styles.dropdownToggle} ${expandedSections.links ? styles.dropdownToggleActive : ''}`}>
@@ -1473,7 +1480,7 @@ const ensureGroupLeader = useCallback(
                                             <li key={link.link_id} className={styles.linkItem}>
                                                 <a href={link.link_url} target="_blank" rel="noopener noreferrer">{link.link_name || link.link_url}</a>
                                                 <span
-                                                    onClick={() => ensureGroupLeader(() =>handleDeleteLink(link.link_id, link.project_id))}
+                                                    onClick={() => ensureGroupLeader(() => handleDeleteLink(link.link_id, link.project_id))}
                                                     className={styles.removeDocument}
                                                 >
                                                     (remove)
@@ -1484,7 +1491,7 @@ const ensureGroupLeader = useCallback(
                                 )}
                                 <button
                                     className={styles.addTaskButton}
-                                    onClick={() => ensureGroupLeader(() =>setShowLinkModal(true))}
+                                    onClick={() => ensureGroupLeader(() => setShowLinkModal(true))}
                                 >
                                     Add Link
                                 </button>
@@ -1492,7 +1499,7 @@ const ensureGroupLeader = useCallback(
                         )}
                         <button
                             className={styles.addTaskButton}
-                            onClick={() => ensureGroupLeader(() =>handleAddNewTask())}
+                            onClick={() => ensureGroupLeader(() => handleAddNewTask())}
                         >Add New Task</button>
                     </div>
                     {showLinkModal && (
@@ -1570,12 +1577,12 @@ const ensureGroupLeader = useCallback(
                                                         'N/A'
                                                     )}
                                                 </p>
-                                                <button className={styles.rejectButton} onClick={() => ensureGroupLeader(() =>handleReject(task.task_id))}>Reject and Send back</button>
-                                                <button className={styles.approveButton} onClick={() => ensureGroupLeader(() =>handleApprove(task.task_id))}>Approve and Finalize</button>
+                                                <button className={styles.rejectButton} onClick={() => ensureGroupLeader(() => handleReject(task.task_id))}>Reject and Send back</button>
+                                                <button className={styles.approveButton} onClick={() => ensureGroupLeader(() => handleApprove(task.task_id))}>Approve and Finalize</button>
                                             </div>
                                             <div
                                                 className={`${styles.dropdownToggle} ${expandedTasks[task.task_id] ? styles.dropdownToggleActive : ''}`}
-                                                onClick={() => ensureGroupLeader(() =>toggleTaskDropdown(task.task_id))}
+                                                onClick={() => ensureGroupLeader(() => toggleTaskDropdown(task.task_id))}
                                             >
                                                 ▼
                                             </div>
@@ -1602,7 +1609,7 @@ const ensureGroupLeader = useCallback(
                                                                     {doc.document_title}
                                                                 </span>
                                                                 <button
-                                                                    onClick={() => ensureGroupLeader(() =>handleDownload(doc.document_id, doc.document_title))}
+                                                                    onClick={() => ensureGroupLeader(() => handleDownload(doc.document_id, doc.document_title))}
                                                                     className={styles.downloadButton}
                                                                 >
                                                                     Download
@@ -1782,7 +1789,7 @@ const ensureGroupLeader = useCallback(
                                                 />
                                             </div>
                                             <button
-                                                onClick={() => ensureGroupLeader(() =>handleUploadDocument(finalTask.task_id))}
+                                                onClick={() => ensureGroupLeader(() => handleUploadDocument(finalTask.task_id))}
                                                 disabled={!uploadFile || uploading || finalTask.task_status === 'Finalized'}
                                                 className={styles.uploadButton}
                                             >
@@ -1809,7 +1816,7 @@ const ensureGroupLeader = useCallback(
                                                             <span>{doc.document_title || `Document ${index + 1}`}</span>
                                                             {finalTask.task_status !== 'Finalized' && (
                                                                 <span
-                                                                    onClick={() => ensureGroupLeader(() =>handleDeleteDocument(doc.document_id, finalTask.task_id))}
+                                                                    onClick={() => ensureGroupLeader(() => handleDeleteDocument(doc.document_id, finalTask.task_id))}
                                                                     className={styles.removeDocument}
                                                                 >
                                                                     (remove)
@@ -1817,7 +1824,7 @@ const ensureGroupLeader = useCallback(
                                                             )}
                                                         </div>
                                                         <button
-                                                            onClick={() => ensureGroupLeader(() =>handleDownload(doc.document_id, doc.document_title))}
+                                                            onClick={() => ensureGroupLeader(() => handleDownload(doc.document_id, doc.document_title))}
                                                             className={styles.downloadButton}
                                                         >
                                                             Download
@@ -1833,7 +1840,7 @@ const ensureGroupLeader = useCallback(
                                     {finalTask.task_status === 'In Progress' && (
                                         <button
                                             className={styles.uploadButton}
-                                            onClick={() => ensureGroupLeader(() =>handleCompleteTask(finalTask.task_id, 'Finalized'))}
+                                            onClick={() => ensureGroupLeader(() => handleCompleteTask(finalTask.task_id, 'Finalized'))}
                                             disabled={!allOtherTasksFinalized || finalDocuments.length === 0}
                                         >
                                             Submit Project
@@ -1908,7 +1915,7 @@ const ensureGroupLeader = useCallback(
                         {tabs.map((tab, index) => (
                             <button
                                 key={tab.id}
-                                onClick={() => ensureGroupLeader(() =>setActiveTab(tab.id))}
+                                onClick={() => ensureGroupLeader(() => setActiveTab(tab.id))}
                                 className={`${styles.tabButton} ${activeTab === tab.id ? styles.tabButtonActive : ''}`}
                                 style={{ borderRight: index < tabs.length - 1 ? '1px solid #4b5563' : 'none' }}
                                 onMouseEnter={(e) => {
