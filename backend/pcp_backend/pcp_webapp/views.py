@@ -207,7 +207,7 @@ class AddProjectView(APIView):
                     task_name='Final Submission',
                     task_description='Upload the final project documents here for supervisor review.',
                     task_due_date=project.due_date,
-                    task_status='Pending',
+                    task_status='In Progress',
                     task_priority='High',
                     project_id=project
                 )
@@ -1608,6 +1608,7 @@ class UpdateProfileView(APIView):
         last_name = request.data.get('last_name')
         security_question = request.data.get('security_question')
         security_answer = request.data.get('security_answer')
+        password = request.data.get('password')
         
         # At least one field must be provided to update
         try:
@@ -1620,6 +1621,9 @@ class UpdateProfileView(APIView):
             if security_answer:
                 hashed_security_answer = bcrypt.hashpw(security_answer.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
                 user.security_answer = hashed_security_answer
+            if password:
+                hashed_password = bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
+                user.password = hashed_password
 
             user.save()
             logger.info(f"Profile updated successfully for user {user.email}")
@@ -1782,7 +1786,6 @@ class GetTaskDetailsView(APIView):
             'task_description': task.task_description,
             'task_due_date': task.task_due_date
         }
-        print(task_details)
         return Response({'task_details': task_details}, status=status.HTTP_200_OK)
 
 #View that removes a member from a task
@@ -1882,6 +1885,7 @@ class AddProjectLinkView(APIView):
 
         project_id = request.data.get('project_id')
         link_url = request.data.get('link')  # Assuming 'link' is the key for link_url as per user description
+        link_name = request.data.get('link_name')
 
         if not project_id or not link_url:
             return Response({'error': 'project_id and link are required'}, status=status.HTTP_400_BAD_REQUEST)
@@ -1892,7 +1896,8 @@ class AddProjectLinkView(APIView):
             # Create the link
             link = ProjectLinks.objects.create(
                 project=project,
-                link_url=link_url
+                link_url=link_url,
+                link_name=link_name
             )
             
             logger.info(f"Link added to project {project_id} by {user.email}")
@@ -1912,13 +1917,8 @@ class AddProjectLinkView(APIView):
 # View to delete a project link
 class DeleteProjectLinkView(APIView):
     def post(self, request):
-        user = get_user_from_token(request)
-        if not user:
-            logger.error("Authentication failed: No valid user token")
-            return Response({'error': 'Authentication required'}, status=status.HTTP_401_UNAUTHORIZED)
-
-        project_id = request.data.get('project_id')
-        link_id = request.data.get('link_id')  # Assuming 'Link_id' is sent as 'link_id'
+        project_id = request.data.get('projectId')
+        link_id = request.data.get('linkId')
 
         if not project_id or not link_id:
             return Response({'error': 'project_id and link_id are required'}, status=status.HTTP_400_BAD_REQUEST)
@@ -1931,7 +1931,7 @@ class DeleteProjectLinkView(APIView):
             try:
                 link = ProjectLinks.objects.get(link_id=link_id, project=project)
                 link.delete()
-                logger.info(f"Link {link_id} deleted from project {project_id} by {user.email}")
+                logger.info(f"Link {link_id} deleted from project {project_id}")
                 return Response({'message': 'Link deleted successfully'}, status=status.HTTP_200_OK)
             except ProjectLinks.DoesNotExist:
                 logger.error(f"Link {link_id} not found in project {project_id}")
@@ -2016,7 +2016,7 @@ class DeleteMeetingView(APIView):
 # View to get user details for password reset        
 class GetUserDetailsView(APIView):
     def post(self, request):
-        email = request.data.get('email')
+        email = request.data.get('initialEmail')
         if not email:
             return Response({'error': 'email is required'}, status=status.HTTP_400_BAD_REQUEST)
         
@@ -2193,3 +2193,20 @@ class GetUserMeetingsView(APIView):
         except Exception as e:
             logger.error(f"Error fetching user meetings: {str(e)}")
             return Response({'error': f'Failed to fetch meetings: {str(e)}'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+class GetProjectLinksView(APIView):
+    def post(self, request):
+        project_id = request.data.get('projectId')
+        if not project_id:
+            return Response({'error': 'Project ID is required'}, status=status.HTTP_400_BAD_REQUEST)
+        
+        try:
+            project = Project.objects.get(project_id=project_id)
+            links = ProjectLinks.objects.filter(project=project)
+            link_list = [{'link_id': l.link_id, 'project_id': project_id, 'link_url': l.link_url, 'link_name': l.link_name} for l in links]
+
+            return Response({'links': link_list}, status=status.HTTP_200_OK)
+        except Project.DoesNotExist:
+            return Response({'error': 'Project not found'}, status=status.HTTP_404_NOT_FOUND)
+        except Exception as e:
+            return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)

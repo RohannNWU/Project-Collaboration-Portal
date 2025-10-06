@@ -2,6 +2,15 @@ import React, { useState, useEffect, useCallback } from 'react';
 import axios from 'axios'; // Assuming axios is used for API calls
 import styles from './Models.module.css'; // Import the CSS module
 
+const formatDateToYYYYMMDD = (dateStr) => {
+  if (!dateStr) return '';
+  if (/^\d{2}\/\d{2}\/\d{4}$/.test(dateStr)) {
+    const [day, month, year] = dateStr.split('/');
+    return `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
+  }
+  return dateStr;
+};
+
 const AddTaskModal = ({ isOpen, onClose, projectId, onSuccess }) => {
   const [taskName, setTaskName] = useState('');
   const [taskDescription, setTaskDescription] = useState('');
@@ -10,42 +19,82 @@ const AddTaskModal = ({ isOpen, onClose, projectId, onSuccess }) => {
   const [taskPriority, setTaskPriority] = useState('Medium');
   const [taskMembers, setTaskMembers] = useState([]);
   const [projectMembers, setProjectMembers] = useState([]);
+  const [projectDueDate, setProjectDueDate] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
-  // Fetch project members when modal opens
-  
+  const fetchProjectDetails = useCallback(async (projectId) => {
+    try {
+      const token = localStorage.getItem('access_token');
+      if (!token) {
+        setError('Please log in to continue');
+        return;
+      }
+
+      const API_BASE_URL = window.location.hostname === 'localhost'
+        ? 'http://127.0.0.1:8000'
+        : 'https://pcp-backend-f4a2.onrender.com';
+
+      const response = await axios.get(
+        `${API_BASE_URL}/api/getprojectdata/?project_id=${projectId}`,
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      setProjectDueDate(formatDateToYYYYMMDD(response.data.project_data.due_date || ''));
+    } catch (error) {
+      console.error('Error fetching project details:', error);
+      setError('Failed to fetch project details');
+    }
+  }, []);
 
   const fetchProjectMembers = useCallback(async () => {
-  try {
-    const API_BASE_URL = window.location.hostname === 'localhost'
-      ? 'http://127.0.0.1:8000'
-      : 'https://pcp-backend-f4a2.onrender.com';
-    // Assuming an API endpoint like /api/projects/{projectId}/members/ that returns [{email: 'user@example.com'}, ...]
-    const response = await axios.post(`${API_BASE_URL}/api/getmembers/`, { projectId });
-    setProjectMembers(response.data.members); // Expecting array of {email: string}
-  } catch (err) {
-    setError('Failed to load project members');
-    console.error(err);
-  }
-}, [projectId]);
-useEffect(() => {
-  if (isOpen && projectId) {
-    setTaskName('');
-    setTaskDescription('');
-    setTaskDueDate('');
-    setTaskStatus('In Progress');
-    setTaskPriority('Medium');
-    setTaskMembers([]);
-    setError('');
-    fetchProjectMembers();
-  }
-}, [isOpen, projectId, fetchProjectMembers]);
+    try {
+      const token = localStorage.getItem('access_token');
+      if (!token) {
+        setError('Please log in to continue');
+        return;
+      }
+
+      const API_BASE_URL = window.location.hostname === 'localhost'
+        ? 'http://127.0.0.1:8000'
+        : 'https://pcp-backend-f4a2.onrender.com';
+      // Assuming an API endpoint like /api/projects/{projectId}/members/ that returns [{email: 'user@example.com'}, ...]
+      const response = await axios.post(`${API_BASE_URL}/api/getmembers/`, { projectId }, { headers: { Authorization: `Bearer ${token}` } });
+      setProjectMembers(response.data.members); // Expecting array of {email: string}
+    } catch (err) {
+      setError('Failed to load project members');
+      console.error(err);
+    }
+  }, [projectId]);
+
+  useEffect(() => {
+    if (isOpen && projectId) {
+      setTaskName('');
+      setTaskDescription('');
+      setTaskDueDate('');
+      setTaskStatus('In Progress');
+      setTaskPriority('Medium');
+      setTaskMembers([]);
+      setError('');
+      fetchProjectDetails(projectId);
+      fetchProjectMembers();
+    }
+  }, [isOpen, projectId, fetchProjectDetails, fetchProjectMembers]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!taskName.trim()) {
       setError('Task name is required');
+      return;
+    }
+
+    const today = new Date().toISOString().split('T')[0];
+    if (new Date(taskDueDate) < new Date(today)) {
+      setError('Task due date must be today or later');
+      return;
+    }
+
+    if (projectDueDate && new Date(taskDueDate) > new Date(projectDueDate)) {
+      setError('Task due date must be before or on the project due date');
       return;
     }
 
@@ -63,10 +112,16 @@ useEffect(() => {
         task_members: taskMembers, // Array of selected emails
       };
 
+      const token = localStorage.getItem('access_token');
+      if (!token) {
+        setError('Please log in to continue');
+        return;
+      }
+
       const API_BASE_URL = window.location.hostname === 'localhost'
         ? 'http://127.0.0.1:8000'
         : 'https://pcp-backend-f4a2.onrender.com';
-      const response = await axios.post(`${API_BASE_URL}/api/addtask/`, formData);
+      const response = await axios.post(`${API_BASE_URL}/api/addtask/`, formData, { headers: { Authorization: `Bearer ${token}` } });
       if (response.status === 201) {
         onSuccess?.(); // Trigger parent refresh on success
         onClose(); // Close modal on success
@@ -84,6 +139,9 @@ useEffect(() => {
       prev.includes(email) ? prev.filter(m => m !== email) : [...prev, email]
     );
   };
+
+  const today = new Date().toISOString().split('T')[0];
+  const maxDate = projectDueDate ? new Date(projectDueDate).toISOString().split('T')[0] : '';
 
   if (!isOpen) return null;
 
@@ -130,21 +188,9 @@ useEffect(() => {
                 id="taskDueDate"
                 value={taskDueDate}
                 onChange={(e) => setTaskDueDate(e.target.value)}
+                min={today}
+                max={maxDate}
               />
-            </div>
-
-            <div className={styles.formGroup}>
-              <label className={styles.label} htmlFor="taskStatus">Status</label>
-              <select
-                className={styles.input}
-                id="taskStatus"
-                value={taskStatus}
-                onChange={(e) => setTaskStatus(e.target.value)}
-              >
-                <option value="To Do">To Do</option>
-                <option value="In Progress">In Progress</option>
-                <option value="Done">Done</option>
-              </select>
             </div>
 
             <div className={styles.formGroup}>
@@ -164,21 +210,26 @@ useEffect(() => {
             <div className={styles.formGroup}>
               <label className={styles.label}>Assign Members</label>
               <div>
-                {projectMembers.length > 0 ? (
-                  projectMembers.map((member) => (
-                    <label key={member.email} className={styles.label}>
-                      <input
-                        type="checkbox"
-                        value={member.email}
-                        checked={taskMembers.includes(member.email)}
-                        onChange={() => handleMemberToggle(member.email)}
-                      />
-                      {member.first_name} {member.last_name} - {member.email}
-                    </label>
-                  ))
-                ) : (
-                  <p>Loading members...</p>
-                )}
+                {(() => {
+                  const filteredMembers = projectMembers.filter(member => member.role !== 'Supervisor');
+                  if (filteredMembers.length > 0) {
+                    return filteredMembers.map((member) => (
+                      <label key={member.email} className={styles.label}>
+                        <input
+                          type="checkbox"
+                          value={member.email}
+                          checked={taskMembers.includes(member.email)}
+                          onChange={() => handleMemberToggle(member.email)}
+                        />
+                        {member.first_name} {member.last_name} - {member.email}
+                      </label>
+                    ));
+                  } else if (projectMembers.length > 0) {
+                    return <p>No available members.</p>;
+                  } else {
+                    return <p>Loading members...</p>;
+                  }
+                })()}
               </div>
             </div>
           </form>
