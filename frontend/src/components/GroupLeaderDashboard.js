@@ -298,22 +298,6 @@ const GroupLeaderDashboard = () => {
 
         const messageContent = messageInput.trim();
         const tempId = `temp-${Date.now()}`;
-        const tempMessage = {
-            id: tempId,
-            content: messageContent,
-            sender_name: 'You',
-            role: userRole || 'Group Leader',
-            sent_at: new Date().toLocaleString('en-GB', {
-                year: 'numeric',
-                month: '2-digit',
-                day: '2-digit',
-                hour: '2-digit',
-                minute: '2-digit',
-                second: '2-digit',
-                hour12: false,
-            }).replace(/(\d{2})\/(\d{2})\/(\d{4}), (\d{2}:\d{2}:\d{2})/, '$3-$2-$1 $4'),
-        };
-
         setMessageInput('');
 
         try {
