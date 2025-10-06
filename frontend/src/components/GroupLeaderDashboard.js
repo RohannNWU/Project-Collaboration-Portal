@@ -253,7 +253,7 @@ const GroupLeaderDashboard = () => {
       `${API_BASE_URL}/api/getprojectchat/?project_id=${projectId}`,
       { headers: { Authorization: `Bearer ${token}` } }
     );
-
+    setLoadingChat(true);
     const serverMessages = response.data.messages || [];
 
     setChatMessages(prev => {

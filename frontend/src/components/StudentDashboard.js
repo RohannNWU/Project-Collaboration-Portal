@@ -2,8 +2,6 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import styles from './RoleDashboards.module.css';
-import GroupLeaderDashboard from './GroupLeaderDashboard';
-import SupervisorDashboard from './SupervisorDashboard';
 
 const StudentDashboard = () => {
   const [activeTab, setActiveTab] = useState('project-description');
@@ -30,7 +28,6 @@ const StudentDashboard = () => {
   const navigate = useNavigate();
   const { projectId } = location.state || {};
   const chatContainerRef = useRef(null);
-  const prevMessageCountRef = useRef(0);
   const isTempId = (id) => typeof id === 'string' && id.startsWith('temp-');
 
   // Helper function for CHAT
@@ -130,7 +127,7 @@ const fetchChat = useCallback(async () => {
     );
 
     const serverMessages = response.data.messages || [];
-
+    setLoadingChat(true);
     setChatMessages(prev => {
       // filter out local temp messages in prev
       const prevFiltered = prev.filter(msg => !isTempId(msg?.id));
