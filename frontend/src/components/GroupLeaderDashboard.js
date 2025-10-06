@@ -314,8 +314,6 @@ const GroupLeaderDashboard = () => {
             }).replace(/(\d{2})\/(\d{2})\/(\d{4}), (\d{2}:\d{2}:\d{2})/, '$3-$2-$1 $4'),
         };
 
-        // show temp message immediately
-        setChatMessages(prev => [...prev, tempMessage]);
         setMessageInput('');
 
         try {
