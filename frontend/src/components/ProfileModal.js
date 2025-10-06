@@ -14,10 +14,6 @@ const ProfileModal = ({ onClose, onSuccess, email: initialEmail }) => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
-  const API_BASE_URL = window.location.hostname === 'localhost'
-    ? 'http://127.0.0.1:8000'
-    : 'https://pcp-backend-f4a2.onrender.com';
-
   useEffect(() => {
     const fetchProfileData = async () => {
       try {
@@ -27,6 +23,9 @@ const ProfileModal = ({ onClose, onSuccess, email: initialEmail }) => {
           return;
         }
 
+        const API_BASE_URL = window.location.hostname === 'localhost'
+          ? 'http://127.0.0.1:8000'
+          : 'https://pcp-backend-f4a2.onrender.com';
         const response = await axios.post(`${API_BASE_URL}/api/getuserdetails/`, { initialEmail });
         setFirstName(response.data.user_details.first_name || '');
         setLastName(response.data.user_details.last_name || '');
@@ -70,7 +69,9 @@ const ProfileModal = ({ onClose, onSuccess, email: initialEmail }) => {
         updateData.password = newPassword;
       }
 
-      // Assuming update endpoint /api/update-profile/
+      const API_BASE_URL = window.location.hostname === 'localhost'
+        ? 'http://127.0.0.1:8000'
+        : 'https://pcp-backend-f4a2.onrender.com';
       await axios.post(`${API_BASE_URL}/api/updateprofile/`, updateData, {
         headers: { Authorization: `Bearer ${token}` }
       });
