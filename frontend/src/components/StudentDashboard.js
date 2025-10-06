@@ -31,6 +31,7 @@ const StudentDashboard = () => {
   const { projectId } = location.state || {};
   const chatContainerRef = useRef(null);
   const prevMessageCountRef = useRef(0);
+  const isTempId = (id) => typeof id === 'string' && id.startsWith('temp-');
 
   // Helper function for CHAT
   function getGradientColors(senderName) {
@@ -108,120 +109,119 @@ const StudentDashboard = () => {
   }, [projectId, navigate]);
 
   // Fetch chat messages function
-  const fetchChat = useCallback(async () => {
-    setLoadingChat(true);
-    setError('');
-    try {
-      const token = localStorage.getItem('access_token');
-      if (!token) {
-        navigate('/');
-        return;
-      }
+    // Fetch chat messages
+const fetchChat = useCallback(async () => {
+  setError('');
+  try {
+    const token = localStorage.getItem('access_token');
+    if (!token) {
+      navigate('/');
+      return;
+    }
 
-      const API_BASE_URL = window.location.hostname === 'localhost'
+    const API_BASE_URL =
+      window.location.hostname === 'localhost'
         ? 'http://127.0.0.1:8000'
         : 'https://pcp-backend-f4a2.onrender.com';
 
-      const response = await axios.get(`${API_BASE_URL}/api/getprojectchat/?project_id=${projectId}`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+    const response = await axios.get(
+      `${API_BASE_URL}/api/getprojectchat/?project_id=${projectId}`,
+      { headers: { Authorization: `Bearer ${token}` } }
+    );
 
-      const serverMessages = response.data.messages || [];
-      setChatMessages(prev => {
-        const nonTempMessages = prev.filter(msg => {
-          return !(msg.id && typeof msg.id === 'string' && msg.id.startsWith('temp-'));
-        });
-        if (JSON.stringify(nonTempMessages) !== JSON.stringify(serverMessages)) {
-          return serverMessages;
-        }
-        return prev;
-      });
-    } catch (err) {
-      console.error('Error fetching chat messages:', err);
-      if (err.response?.status === 400) {
-        setError('Project ID is required');
-      } else if (err.response?.status === 404) {
-        setError('Project not found');
-      } else if (err.response?.status === 403) {
-        setError('Access denied to this project');
-      } else if (err.response?.status === 401) {
-        localStorage.removeItem('access_token');
-        navigate('/');
-      } else {
-        setError('Failed to fetch chat messages');
+    const serverMessages = response.data.messages || [];
+
+    setChatMessages(prev => {
+      // filter out local temp messages in prev
+      const prevFiltered = prev.filter(msg => !isTempId(msg?.id));
+
+      // update only if lengths differ (lightweight check)
+      if (serverMessages.length !== prevFiltered.length) {
+        return serverMessages;
       }
-    } finally {
-      setLoadingChat(false);
+      return prev;
+    });
+  } catch (err) {
+    console.error('Error fetching chat messages:', err);
+    if (err.response?.status === 401) {
+      localStorage.removeItem('access_token');
+      navigate('/');
+    } else {
+      setError('Failed to fetch chat messages');
+      setTimeout(() => setError(''), 3000);
     }
-  }, [projectId, navigate]);
+  }
+}, [projectId, navigate]);
 
-  // Polling for chat messages every 5 seconds when Chat tab is active
-  useEffect(() => {
-    if (activeTab === 'chat' && projectId) {
+// Chat polling - refresh every 5 seconds
+useEffect(() => {
+  if (activeTab === 'chat' && projectId) {
+    // Immediate fetch
+    fetchChat();
+
+    // Poll every 5s
+    const intervalId = setInterval(() => {
       fetchChat();
-    }
-  }, [activeTab, projectId, navigate, fetchChat]);
+    }, 5000);
+
+    return () => clearInterval(intervalId);
+  }
+}, [activeTab, projectId, fetchChat]);
 
   // Handle sending chat message
   const handleSendMessage = async () => {
-    if (!messageInput.trim()) return;
+  if (!messageInput.trim()) return;
 
-    const messageContent = messageInput.trim();
-    const tempMessage = {
-      id: `temp-${Date.now()}`,
-      content: messageContent,
-      sender_name: 'You',
-      role: 'Student',
-      sent_at: new Date().toLocaleString('en-GB', {
-        year: 'numeric',
-        month: '2-digit',
-        day: '2-digit',
-        hour: '2-digit',
-        minute: '2-digit',
-        second: '2-digit',
-        hour12: false
-      }).replace(/(\d{2})\/(\d{2})\/(\d{4}), (\d{2}:\d{2}:\d{2})/, '$3-$2-$1 $4')
-    };
+  const messageContent = messageInput.trim();
+  const tempId = `temp-${Date.now()}`;
+  const tempMessage = {
+    id: tempId,
+    content: messageContent,
+    sender_name: 'You',
+    role: userRole || 'Student',
+    sent_at: new Date().toLocaleString('en-GB', {
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit',
+      hour12: false,
+    }).replace(/(\d{2})\/(\d{2})\/(\d{4}), (\d{2}:\d{2}:\d{2})/, '$3-$2-$1 $4'),
+  };
 
-    setChatMessages(prev => [...prev, tempMessage]);
-    setMessageInput('');
+  // show temp message immediately
+  setChatMessages(prev => [...prev, tempMessage]);
+  setMessageInput('');
 
-    try {
-      const token = localStorage.getItem('access_token');
-      if (!token) {
-        navigate('/');
-        return;
-      }
+  try {
+    const token = localStorage.getItem('access_token');
+    if (!token) {
+      navigate('/');
+      return;
+    }
 
-      const API_BASE_URL = window.location.hostname === 'localhost'
+    const API_BASE_URL =
+      window.location.hostname === 'localhost'
         ? 'http://127.0.0.1:8000'
         : 'https://pcp-backend-f4a2.onrender.com';
 
-      await axios.post(`${API_BASE_URL}/api/sendchatmessage/`, {
-        project_id: projectId,
-        content: messageContent
-      }, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+    await axios.post(
+      `${API_BASE_URL}/api/sendchatmessage/`,
+      { project_id: projectId, content: messageContent },
+      { headers: { Authorization: `Bearer ${token}` } }
+    );
 
+    // fetch updated messages from server
+    fetchChat();
     } catch (err) {
-      console.error('Error sending chat message:', err);
-      setChatMessages(prev => prev.filter(msg => msg.id !== tempMessage.id));
-      setMessageInput(messageContent);
-
-      if (err.response?.status === 400) {
-        setError('Invalid input');
-      } else if (err.response?.status === 404) {
-        setError('Project not found');
-      } else if (err.response?.status === 403) {
-        setError('Access denied to this project');
-      } else if (err.response?.status === 401) {
-        localStorage.removeItem('access_token');
-        navigate('/');
-      } else {
-        setError('Failed to send message');
-      }
-    }
+    console.error('Error sending chat message:', err);
+    // remove temp message if send failed
+    setChatMessages(prev => prev.filter(msg => msg?.id !== tempId));
+    setMessageInput(messageContent);
+    setError('Failed to send message');
+    setTimeout(() => setError(''), 3000);
+   }
   };
 
   const fetchLinks = useCallback(async () => {
