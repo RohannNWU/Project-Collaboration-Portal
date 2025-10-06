@@ -2,8 +2,6 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import styles from './RoleDashboards.module.css';
-import GroupLeaderDashboard from './GroupLeaderDashboard';
-import SupervisorDashboard from './SupervisorDashboard';
 
 const StudentDashboard = () => {
   const [activeTab, setActiveTab] = useState('project-description');
@@ -30,7 +28,6 @@ const StudentDashboard = () => {
   const navigate = useNavigate();
   const { projectId } = location.state || {};
   const chatContainerRef = useRef(null);
-  const prevMessageCountRef = useRef(0);
   const isTempId = (id) => typeof id === 'string' && id.startsWith('temp-');
 
   // Helper function for CHAT
@@ -111,47 +108,50 @@ const StudentDashboard = () => {
   // Fetch chat messages function
     // Fetch chat messages
 const fetchChat = useCallback(async () => {
-  setError('');
-  try {
-    const token = localStorage.getItem('access_token');
-    if (!token) {
-      navigate('/');
-      return;
-    }
+        setError('');
+        setLoadingChat(true);
+        try {
+            const token = localStorage.getItem('access_token');
+            if (!token) {
+                navigate('/');
+                return;
+            }
 
-    const API_BASE_URL =
-      window.location.hostname === 'localhost'
-        ? 'http://127.0.0.1:8000'
-        : 'https://pcp-backend-f4a2.onrender.com';
+            const API_BASE_URL =
+                window.location.hostname === 'localhost'
+                    ? 'http://127.0.0.1:8000'
+                    : 'https://pcp-backend-f4a2.onrender.com';
 
-    const response = await axios.get(
-      `${API_BASE_URL}/api/getprojectchat/?project_id=${projectId}`,
-      { headers: { Authorization: `Bearer ${token}` } }
-    );
+            const response = await axios.get(
+                `${API_BASE_URL}/api/getprojectchat/?project_id=${projectId}`,
+                { headers: { Authorization: `Bearer ${token}` } }
+            );
 
-    const serverMessages = response.data.messages || [];
+            const serverMessages = response.data.messages || [];
 
-    setChatMessages(prev => {
-      // filter out local temp messages in prev
-      const prevFiltered = prev.filter(msg => !isTempId(msg?.id));
+            setChatMessages(prev => {
+                // filter out local temp messages in prev
+                const prevFiltered = prev.filter(msg => !isTempId(msg?.id));
 
-      // update only if lengths differ (lightweight check)
-      if (serverMessages.length !== prevFiltered.length) {
-        return serverMessages;
-      }
-      return prev;
-    });
-  } catch (err) {
-    console.error('Error fetching chat messages:', err);
-    if (err.response?.status === 401) {
-      localStorage.removeItem('access_token');
-      navigate('/');
-    } else {
-      setError('Failed to fetch chat messages');
-      setTimeout(() => setError(''), 3000);
-    }
-  }
-}, [projectId, navigate]);
+                // update only if lengths differ (lightweight check)
+                if (serverMessages.length !== prevFiltered.length) {
+                    return serverMessages;
+                }
+                return prev;
+            });
+        } catch (err) {
+            console.error('Error fetching chat messages:', err);
+            if (err.response?.status === 401) {
+                localStorage.removeItem('access_token');
+                navigate('/');
+            } else {
+                setError('Failed to fetch chat messages');
+                setTimeout(() => setError(''), 3000);
+            }
+        } finally {
+            setLoadingChat(false);
+        }
+    }, [projectId, navigate]);
 
 // Chat polling - refresh every 5 seconds
 useEffect(() => {

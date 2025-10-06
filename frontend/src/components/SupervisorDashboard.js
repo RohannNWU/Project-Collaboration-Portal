@@ -25,6 +25,7 @@ const SupervisorDashboard = () => {
   const [contributionsError, setContributionsError] = useState('');
   const [isProjectGraded, setIsProjectGraded] = useState(false);
   const [showGradeModel, setShowGradeModel] = useState(false);
+  const [links, setProjectLinks] = useState([]);
   const [loadingChat] = useState(false);
   const [error, setError] = useState('');
   const location = useLocation();
@@ -79,6 +80,25 @@ const SupervisorDashboard = () => {
       chatContainerRef.current.scrollTop = chatContainerRef.current.scrollHeight;
     }
   }, [chatMessages]);
+
+  const fetchLinks = useCallback(async () => {
+    try {
+      const API_BASE_URL = window.location.hostname === 'localhost'
+        ? 'http://127.0.0.1:8000'
+        : 'https://pcp-backend-f4a2.onrender.com';
+
+      const response = await axios.post(`${API_BASE_URL}/api/getprojectlinks/`, { projectId });
+      setProjectLinks(response.data.links || []);
+    } catch (err) {
+      console.error('Error fetching links:', err);
+    }
+  }, [projectId, setProjectLinks]);
+
+  useEffect(() => {
+    if (activeTab === 'project-description' && projectId) {
+      fetchLinks();
+    }
+  }, [activeTab, projectId, fetchLinks]);
 
   const fetchUserContributions = useCallback(async () => {
     setError('');
@@ -937,8 +957,21 @@ const SupervisorDashboard = () => {
             </div>
             {expandedSections.links && (
               <div className={styles.sectionContent}>
-                <p className={styles.detailText}>{'No links provided.'}</p>
-                {!isProjectGraded && <button className={styles.backButton}>Add new Links</button>}
+                <div className={styles.linksList}>
+                  {links && links.length > 0 ? (
+                    <ul>
+                      {links.map((link) => (
+                        <li key={link.id} className={styles.linkItem}>
+                          <a href={link.link_url} target="_blank" rel="noopener noreferrer">{link.link_name || link.link_url}</a>
+                        </li>
+                      ))}
+                    </ul>
+                  ) : (
+                    <div className={styles.noDataMessage}>
+                      No links available.
+                    </div>
+                  )}
+                </div>
               </div>
             )}
           </div>

@@ -63,19 +63,6 @@ TEMPLATES = [
 WSGI_APPLICATION = 'pcp_backend.wsgi.application'
 
 '''
-# Database settings for production
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.postgresql',
-        'NAME': 'pcpdb',
-        'USER': 'pcpdbadmin',
-        'PASSWORD': 'nVgpKGBw9sQ1d2bpm67k0A1GoRnFyDUx',  # Replace with your actual password
-        'HOST': 'dpg-d3er66ripnbc739jo8u0-a.frankfurt-postgres.render.com',
-        'PORT': '5432',
-    }
-}
-'''
-
 # Database settings for development
 DATABASES = {
     'default': {
@@ -87,6 +74,20 @@ DATABASES = {
         'PORT': '5432',
     }
 }
+
+'''
+# Database settings for production
+DATABASES = {
+    'default': {
+        'ENGINE': 'django.db.backends.postgresql',
+        'NAME': 'pcpdb_8lsj',
+        'USER': 'pcpdbadmin',
+        'PASSWORD': 'KHv9rQ4pjZ0YxsNLTRPYCnJqpxXBBMEg',  # Replace with your actual password
+        'HOST': 'dpg-d3ghnvvfte5s73c5kllg-a.frankfurt-postgres.render.com',
+        'PORT': '5432',
+    }
+}
+
 
 # Password validation
 AUTH_PASSWORD_VALIDATORS = [
