@@ -2,6 +2,8 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import styles from './RoleDashboards.module.css';
+import GroupLeaderDashboard from './GroupLeaderDashboard';
+import SupervisorDashboard from './SupervisorDashboard';
 
 const StudentDashboard = () => {
   const [activeTab, setActiveTab] = useState('project-description');
@@ -612,7 +614,122 @@ const StudentDashboard = () => {
       return { ...prev, [taskId]: !isExpanded };
     });
   };
+  
+//Role management helpers
+const [userRole, setUserRole] = useState(null);
+const [roleLoading, setRoleLoading] = useState(false);
 
+const getApiBase = () =>
+  window.location.hostname === 'localhost'
+    ? 'http://127.0.0.1:8000'
+    : 'https://pcp-backend-f4a2.onrender.com';
+
+ const fetchUserRole = useCallback(async () => {
+  try {
+    setRoleLoading(true);
+    setError('');
+    const token = localStorage.getItem('access_token');
+    if (!token) {
+      navigate('/');
+      return null;
+    }
+
+    // Decode JWT to get user's email
+    const base64Url = token.split('.')[1];
+    const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+    const payload = JSON.parse(window.atob(base64));
+    const userEmail = payload.email || payload.user_email || payload.sub;
+
+    if (!userEmail) {
+      console.error('Could not extract email from token');
+      setError('Failed to verify user role');
+      return null;
+    }
+
+    const response = await axios.post(
+      `${getApiBase()}/api/getmembers/`,
+      { projectId },
+      { headers: { Authorization: `Bearer ${token}` } }
+    );
+
+    const members = response.data.members || [];
+    const currentUser = members.find((m) => m.email === userEmail);
+
+    if (!currentUser) {
+      console.warn('User not found in project members');
+      setError('Failed to verify user role');
+      return null;
+    }
+
+    // Normalize role (lowercase for comparison)
+    const newRole = currentUser.role?.trim();
+    const oldRole = userRole?.trim();
+
+    // Alert if role changed
+    if (oldRole && newRole && oldRole !== newRole) {
+      alert('Your role changed for this project.');
+    }
+
+    setUserRole(newRole);
+    return newRole;
+  } catch (err) {
+    console.error('Error fetching user role:', err);
+    if (err.response?.status === 401) {
+      localStorage.removeItem('access_token');
+      navigate('/');
+    } else {
+      setError('Failed to verify user role');
+    }
+    setUserRole(null);
+    return null;
+  } finally {
+    setRoleLoading(false);
+  }
+}, [navigate, projectId, userRole]);
+
+
+// Ensure the user is a Student before executing handler.
+const ensureStudent = useCallback(
+  async (handler) => {
+    if (typeof handler !== 'function') {
+      console.warn('ensureStudent expects a function as the handler');
+      return;
+    }
+
+    let roleToCheck = userRole;
+
+    // If we don't know the role yet, fetch it first
+    if (!roleToCheck && !roleLoading) {
+      roleToCheck = await fetchUserRole();
+    }
+
+    if (!roleToCheck) {
+      setError('Failed to verify user role');
+      return;
+    }
+
+    // Normalize capitalization
+    const normalizedRole = roleToCheck.trim().toLowerCase();
+
+    if (normalizedRole === 'student') {
+      try {
+        return await handler();
+      } catch (err) {
+        console.error('Error running protected handler:', err);
+      }
+    } else if (normalizedRole === 'supervisor') {
+      navigate('/supervisordashboard', { state: { projectId } });
+    } else if (normalizedRole === 'group leader' || normalizedRole === 'groupleader') {
+      navigate('/groupleaderdashboard', { state: { projectId } });
+    } else {
+      setError('Failed to verify user role');
+    }
+  },
+  [userRole, roleLoading, fetchUserRole, navigate, projectId]
+);
+
+
+  // Define tabs
   const tabs = [
     {
       id: 'project-description',
@@ -665,7 +782,7 @@ const StudentDashboard = () => {
           <div className={styles.section}>
             <div
               className={`${styles.sectionHeader} ${expandedSections.myTasks ? styles.sectionHeaderExpanded : ''}`}
-              onClick={() => toggleSectionExpansion('myTasks')}
+              onClick={() => ensureStudent(() => toggleSectionExpansion('myTasks'))}
             >
               <h2 className={styles.sectionHeading}>My Tasks</h2>
               <span className={`${styles.dropdownToggle} ${expandedSections.myTasks ? styles.dropdownToggleActive : ''}`}>
@@ -697,7 +814,7 @@ const StudentDashboard = () => {
                       >
                         <div
                           className={`${styles.taskHeader} ${expandedTasks[task.task_id] ? styles.taskHeaderExpanded : ''}`}
-                          onClick={() => toggleTaskExpansion(task.task_id)}
+                          onClick={() => ensureStudent(() => toggleTaskExpansion(task.task_id))}
                         >
                           <div className={styles.taskInfo}>
                             <h4 className={styles.taskName}>{task.task_name}</h4>
@@ -710,10 +827,9 @@ const StudentDashboard = () => {
                             {userTaskAssignments[task.task_id] && task.task_status !== 'Completed' && task.task_status !== 'Finalized' && (
                               <button
                                 onClick={(e) => {
-                                  e.stopPropagation();
-                                  handleCompleteTask(task.task_id);
+                                 e.stopPropagation();
+                                 ensureStudent(() => handleCompleteTask(task.task_id));
                                 }}
-                                className={styles.deleteButton}
                               >
                                 Mark as Complete
                               </button>
@@ -761,7 +877,7 @@ const StudentDashboard = () => {
                                       <span className={styles.documentTitle}>{doc.document_title}</span>
                                       {userTaskAssignments[task.task_id] && task.task_status !== 'Completed' && task.task_status !== 'Finalized' && (
                                         <span
-                                          onClick={() => handleDeleteDocument(doc.document_id, task.task_id)}
+                                          onClick={() => ensureStudent(() => handleDeleteDocument(doc.document_id, task.task_id))}
                                           className={styles.removeDocument}
                                         >
                                           (remove)
@@ -769,7 +885,7 @@ const StudentDashboard = () => {
                                       )}
                                     </div>
                                     <button
-                                      onClick={() => handleDownload(doc.document_id, doc.document_title)}
+                                      onClick={() => ensureStudent(() =>handleDownload(doc.document_id, doc.document_title))}
                                       className={styles.downloadButton}
                                     >
                                       Download
@@ -794,7 +910,7 @@ const StudentDashboard = () => {
           <div className={styles.section}>
             <div
               className={`${styles.sectionHeader} ${expandedSections.projectTasks ? styles.sectionHeaderExpanded : ''}`}
-              onClick={() => toggleSectionExpansion('projectTasks')}
+              onClick={() =>ensureStudent(() => toggleSectionExpansion('projectTasks'))}
             >
               <h2 className={styles.sectionHeading}>Project Tasks</h2>
               <span className={`${styles.dropdownToggle} ${expandedSections.projectTasks ? styles.dropdownToggleActive : ''}`}>
@@ -831,7 +947,7 @@ const StudentDashboard = () => {
                       >
                         <div
                           className={`${styles.taskHeader} ${expandedTasks[task.task_id] ? styles.taskHeaderExpanded : ''}`}
-                          onClick={() => toggleTaskExpansion(task.task_id)}
+                          onClick={() => ensureStudent(() => toggleTaskExpansion(task.task_id))}
                         >
                           <div className={styles.taskInfo}>
                             <h4 className={styles.taskName}>{task.task_name}</h4>
@@ -845,7 +961,7 @@ const StudentDashboard = () => {
                               <button
                                 onClick={(e) => {
                                   e.stopPropagation();
-                                  handleCompleteTask(task.task_id);
+                                 ensureStudent(() => handleCompleteTask(task.task_id));
                                 }}
                                 className={styles.deleteButton}
                               >
@@ -895,7 +1011,7 @@ const StudentDashboard = () => {
                                       <span className={styles.documentTitle}>{doc.document_title}</span>
                                       {userTaskAssignments[task.task_id] && task.task_status !== 'Completed' && task.task_status !== 'Finalized' && (
                                         <span
-                                          onClick={() => handleDeleteDocument(doc.document_id, task.task_id)}
+                                          onClick={() => ensureStudent(() => handleDeleteDocument(doc.document_id, task.task_id))}
                                           className={styles.removeDocument}
                                         >
                                           (remove)
@@ -903,7 +1019,7 @@ const StudentDashboard = () => {
                                       )}
                                     </div>
                                     <button
-                                      onClick={() => handleDownload(doc.document_id, doc.document_title)}
+                                      onClick={() => ensureStudent(() => handleDownload(doc.document_id, doc.document_title))}
                                       className={styles.downloadButton}
                                     >
                                       Download
@@ -928,7 +1044,7 @@ const StudentDashboard = () => {
           <div className={styles.section}>
             <div
               className={`${styles.sectionHeader} ${expandedSections.links ? styles.sectionHeaderExpanded : ''}`}
-              onClick={() => toggleSectionExpansion('links')}
+              onClick={() => ensureStudent(() =>toggleSectionExpansion('links'))}
             >
               <h2 className={styles.sectionHeading}>Important Links for the Project</h2>
               <span className={`${styles.dropdownToggle} ${expandedSections.links ? styles.dropdownToggleActive : ''}`}>
@@ -1078,7 +1194,7 @@ const StudentDashboard = () => {
                 disabled={isProjectGraded}
               />
               <button
-                onClick={handleSendMessage}
+                onClick={() => ensureStudent(handleSendMessage)}
                 className={`${styles.sendButton} ${!messageInput.trim() ? styles.sendButtonDisabled : ''}`}
                 onMouseEnter={(e) => {
                   if (messageInput.trim()) {
@@ -1158,7 +1274,7 @@ const StudentDashboard = () => {
             {tabs.map((tab, index) => (
               <button
                 key={tab.id}
-                onClick={() => setActiveTab(tab.id)}
+                onClick={() => ensureStudent(() =>setActiveTab(tab.id))}
                 className={`${styles.tabButton} ${activeTab === tab.id ? styles.tabButtonActive : ''}`}
                 style={{ borderRight: index < tabs.length - 1 ? '1px solid #4b5563' : 'none' }}
                 onMouseEnter={(e) => {
