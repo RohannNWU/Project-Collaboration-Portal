@@ -76,7 +76,7 @@ const NewProjectModal = ({ onClose, onSuccess }) => {
         try {
             const response = await axios.post(
                 `${API_BASE_URL}/api/getuserdetails/`,
-                { email: trimmedMemberName }
+                { initialEmail: trimmedMemberName }
             );
 
             if (response.data.success) {
