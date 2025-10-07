@@ -5,6 +5,7 @@ import TaskUpdateModel from './TaskUpdateModel';
 import AddTaskModal from './AddTaskModal';
 import AddNewLinkModal from './AddNewLinkModal';
 import styles from './RoleDashboards.module.css';
+import CreateMeetingModal from './CreateMeetingModal';
 
 const GroupLeaderDashboard = () => {
     const [activeTab, setActiveTab] = useState('project-description');
@@ -40,7 +41,7 @@ const GroupLeaderDashboard = () => {
     const [uploading, setUploading] = useState(false);
     const [showLinkModal, setShowLinkModal] = useState(false);
     const isTempId = (id) => typeof id === 'string' && id.startsWith('temp-');
-
+    const [showCreateMeetingModal, setShowCreateMeetingModal] = useState(false);
 
     if (projectId);
     // Helper function for CHAT
@@ -1116,6 +1117,9 @@ const GroupLeaderDashboard = () => {
                             </div>
                         </div>
                     )}
+                    <button className={styles.backButton} onClick={() => ensureGroupLeader(() => setShowCreateMeetingModal(true))}>
+                        Create New Meeting
+                    </button>
                 </div>
             ),
         },
@@ -1928,6 +1932,12 @@ const GroupLeaderDashboard = () => {
                     </div>
                 </div>
             </div>
+            <CreateMeetingModal
+                isOpen={showCreateMeetingModal}
+                onClose={() => setShowCreateMeetingModal(false)}
+                projectId={projectId}
+                dueDate={projectData?.due_date}  // e.g., from fetched project data
+            />
             <TaskUpdateModel
                 isOpen={showTaskUpdateModel}
                 onClose={() => {

@@ -1926,9 +1926,7 @@ class DeleteMeetingView(APIView):
         try:
             meeting = Meeting.objects.get(meeting_id=meeting_id)
             project = meeting.project_id
-
             meeting.delete()
-            
             logger.info(f"Meeting {meeting_id} deleted by {user.email}")
             return Response({'message': 'Meeting deleted successfully'}, status=status.HTTP_200_OK)
         

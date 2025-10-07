@@ -6,6 +6,7 @@ import GradeFeedbackModel from './GradeFeedbackModel';
 import ProjectDetailsModel from './ProjectDetailsModel';
 import ChangeRoleModel from './ChangeRoleModel';
 import AddMemberModal from './AddMemberModal';
+import CreateMeetingModal from './CreateMeetingModal';
 
 const SupervisorDashboard = () => {
   const [activeTab, setActiveTab] = useState('project-description');
@@ -38,6 +39,7 @@ const SupervisorDashboard = () => {
   const [finalTask, setFinalTask] = useState(null);
   const [finalDocuments, setFinalDocuments] = useState([]);
   const [showAddMemberModal, setShowAddMemberModal] = useState(false);
+  const [showCreateMeetingModal, setShowCreateMeetingModal] = useState(false);
   const [expandedSections, setExpandedSections] = useState({ links: false });
   const isTempId = (id) => typeof id === 'string' && id.startsWith('temp-');
   const toggleSectionExpansion = (section) => setExpandedSections(prev => ({ ...prev, [section]: !prev[section] }));
@@ -975,6 +977,9 @@ const SupervisorDashboard = () => {
               </div>
             )}
           </div>
+          <button className={styles.backButton} onClick={() => ensureSupervisor(() => setShowCreateMeetingModal(true))}>
+            Create New Meeting
+          </button>
         </div>
       ),
     },
@@ -1378,6 +1383,12 @@ const SupervisorDashboard = () => {
         onClose={() => setShowAddMemberModal(false)}
         projectId={projectId}
       />
+      <CreateMeetingModal
+        isOpen={showCreateMeetingModal}
+        onClose={() => setShowCreateMeetingModal(false)}
+        projectId={projectId}
+        dueDate={projectData?.due_date}  // e.g., from fetched project data
+      />
       {showGradeModel && (
         <GradeFeedbackModel  // Assuming component exists
           isOpen={showGradeModel}
@@ -1413,7 +1424,6 @@ const SupervisorDashboard = () => {
       >
         Back to Dashboard
       </button>
-
     </div>
   );
 };
