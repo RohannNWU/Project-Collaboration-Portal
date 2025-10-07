@@ -322,7 +322,17 @@ class AddTaskView(APIView):
                     email=user,
                     task_id=task,
                 )
-            
+
+            get_final_task_project = Task.objects.filter(project_id=project_id)
+            get_final_task = get_final_task_project.get(task_name='Final Submission')
+            get_final_task_status = get_final_task.task_status
+            if (get_final_task_status == 'Finalized'):
+                get_final_task_status = 'In Progress'
+                update = Task.objects.filter(project_id=project_id).get(task_name='Final Submission')
+                print(update.task_status)
+                update.task_status = get_final_task_status
+                update.save()
+
             return Response({'message': 'Task added successfully'}, status=status.HTTP_201_CREATED)
         except Exception as e:
             return Response({'error': f'Failed to add task: {str(e)}'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
@@ -1160,7 +1170,6 @@ class DeleteDocumentView(APIView):
             logger.error(f"Error deleting document: {str(e)}")
             return Response({'error': f'Failed to delete document: {str(e)}'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)   
 
-
 class GetCompletedTasksView(APIView):
     def get(self, request):
         try:
@@ -1379,7 +1388,6 @@ class SendChatMessageView(APIView):
         except Exception as e:
             logger.error(f"Error sending chat message: {str(e)}")
             return Response({'error': f'Failed to send chat message: {str(e)}'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)   
-        
 
 #View that update project name,description and due date
 class UpdateProjectDetailsView(APIView):
@@ -1778,6 +1786,11 @@ class ChangeRoleView(APIView):
             member_project.role = new_role
             member_project.save()
 
+            if new_role == 'Supervisor':
+                assigned_tasks = User_Task.objects.filter(email=member_email)
+                for delete_task in assigned_tasks:
+                    delete_task.delete()
+
             logger.info(f"Role changed for {member_email} in project {project_id} to {new_role} by {requester.email}")
             return Response({'message': 'Role changed successfully'}, status=status.HTTP_200_OK)
 
@@ -1788,7 +1801,6 @@ class ChangeRoleView(APIView):
         except Exception as e:
             logger.error(f"Error changing role: {str(e)}")
             return Response({'error': f'Failed to change role: {str(e)}'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-        
 
 # View to add a project link
 class AddProjectLinkView(APIView):
