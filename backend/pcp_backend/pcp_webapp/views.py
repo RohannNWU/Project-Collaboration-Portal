@@ -5,7 +5,7 @@ from rest_framework import status
 from rest_framework_simplejwt.tokens import UntypedToken, AccessToken 
 from rest_framework_simplejwt.exceptions import InvalidToken, TokenError
 from datetime import datetime, timedelta
-from .models import User, Project, UserProject, Task, User_Task, Document,ChatMessage, ProjectChat, ProjectLinks, Meeting
+from .models import User, Project, UserProject, Task, User_Task, Document,ChatMessage, ProjectChat, ProjectLinks, Meeting, Notification, UserNotification
 from django.core.files.storage import default_storage
 from django.core.files.uploadedfile import UploadedFile
 from django.core.files.base import ContentFile
@@ -603,129 +603,7 @@ class DocumentListView(APIView):
             print(f"DOCUMENT UPLOAD ERROR: {error_details}")  # Debug print
             return Response({'error': str(e), 'details': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
         
-
-class MessageListCreateView(APIView):
-    def get_user_from_token(self, request):
-        auth_header = request.headers.get('Authorization')
-        if not auth_header or not auth_header.startswith('Bearer '):
-            return None
-        token = auth_header.split(' ')[1]
-        try:
-            payload = UntypedToken(token).payload
-            user_email = payload.get('user_email')
-            return User.objects.get(email=user_email)
-        except:
-            return None
-
-    def get(self, request):
-        user = self.get_user_from_token(request)
-        if not user:
-            return Response({'error': 'Authentication required'}, status=status.HTTP_401_UNAUTHORIZED)
-        
-        messages = Message.objects.filter(recipient=user).order_by('-created_at')
-        serializer = MessageSerializer(messages, many=True)
-        return Response(serializer.data)
-
-    def post(self, request):
-        user = self.get_user_from_token(request)
-        if not user:
-            return Response({'error': 'Authentication required'}, status=status.HTTP_401_UNAUTHORIZED)
-        
-        try:
-            recipient = User.objects.get(email=request.data.get('recipient_email'))
-            
-            message = Message.objects.create(
-                sender=user,
-                recipient=recipient,
-                project_id=request.data.get('project_id'),
-                message_type=request.data.get('message_type', 'direct'),
-                subject=request.data.get('subject'),
-                content=request.data.get('content')
-            )
-            
-            serializer = MessageSerializer(message)
-            return Response(serializer.data, status=status.HTTP_201_CREATED)
-        except Exception as e:
-            return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
-
-@api_view(['PATCH'])
-def mark_message_read(request, message_id):
-    auth_header = request.headers.get('Authorization')
-    if not auth_header or not auth_header.startswith('Bearer '):
-        return Response({'error': 'Authentication required'}, status=status.HTTP_401_UNAUTHORIZED)
-    
-    token = auth_header.split(' ')[1]
-    try:
-        payload = UntypedToken(token).payload
-        user_email = payload.get('user_email')
-        user = User.objects.get(email=user_email)
-        
-        message = Message.objects.get(id=message_id, recipient=user)
-        message.is_read = True
-        message.save()
-        
-        return Response({'message': 'Message marked as read'})
-    except Exception as e:
-        return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
-
-@api_view(['GET'])
-def user_profile(request):
-    auth_header = request.headers.get('Authorization')
-    if not auth_header or not auth_header.startswith('Bearer '):
-        return Response({'error': 'Authentication required'}, status=status.HTTP_401_UNAUTHORIZED)
-    
-    token = auth_header.split(' ')[1]
-    try:
-        payload = UntypedToken(token).payload
-        user_email = payload.get('user_email')
-        user = User.objects.get(email=user_email)
-        
-        serializer = UserSerializer(user)
-        return Response(serializer.data)
-    except Exception as e:
-        return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
-
-@api_view(['GET'])
-def project_analytics(request, project_id):
-    auth_header = request.headers.get('Authorization')
-    if not auth_header or not auth_header.startswith('Bearer '):
-        return Response({'error': 'Authentication required'}, status=status.HTTP_401_UNAUTHORIZED)
-    
-    token = auth_header.split(' ')[1]
-    try:
-        payload = UntypedToken(token).payload
-        user_email = payload.get('user_email')
-        user = User.objects.get(email=user_email)
-        
-        project = Project.objects.get(id=project_id)
-        
-        # Check access
-        if not (project.owner == user or project.members.filter(email=user.email).exists()):
-            return Response({'error': 'Access denied'}, status=status.HTTP_403_FORBIDDEN)
-        
-        # Get analytics data
-        total_tasks = project.tasks.count()
-        completed_tasks = project.tasks.filter(status='completed').count()
-        overdue_tasks = project.tasks.filter(
-            due_date__lt=timezone.now(),
-            status__in=['todo', 'in_progress']
-        ).count()
-        
-        task_status_breakdown = project.tasks.values('status').annotate(count=Count('status'))
-        
-        return Response({
-            'project': ProjectSerializer(project).data,
-            'analytics': {
-                'total_tasks': total_tasks,
-                'completed_tasks': completed_tasks,
-                'overdue_tasks': overdue_tasks,
-                'completion_rate': (completed_tasks / total_tasks * 100) if total_tasks > 0 else 0,
-                'task_status_breakdown': list(task_status_breakdown)
-            }
-        })
-    except Exception as e:
-        return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
-    
+ 
 #Notification views
 class NotificationListView(APIView):
     def get_user_from_token(self, request):
@@ -1635,92 +1513,128 @@ class UpdateProfileView(APIView):
             return Response({'error': f'Failed to update profile: {str(e)}'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 #Create notification for multiple users
-#Frontend must send token and in the body a list of emails, title and message
 class CreateNotificationView(APIView):
     def post(self, request):
-        # Authenticate user from token 
         user = get_user_from_token(request)
         if not user:
-            logger.error("Authentication failed: No valid user token")
             return Response({'error': 'Authentication required'}, status=status.HTTP_401_UNAUTHORIZED)
         
-        # Extract data from request body
-        emails = request.data.get('emails', [])  # Expecting a list of email strings
-        title = request.data.get('title')
-        message = request.data.get('message')
-        
-        if not isinstance(emails, list) or not emails or not title or not message:
-            return Response({'error': 'emails (as a list), title, and message are required'}, status=status.HTTP_400_BAD_REQUEST)
-        
+        emails = request.data.get('emails', [])
+        title = request.data.get('title', '')
+        message = request.data.get('message', '')
+
+        if not emails or not title or not message:
+            return Response({'error': 'emails, title, and message are required'}, status=status.HTTP_400_BAD_REQUEST)
+
         try:
-            # Create the notification
-            notification = Notification.objects.create(title=title, message=message)
+            sast = ZoneInfo('Africa/Johannesburg')
+            current_time = timezone.now().astimezone(sast)
             
-            # Link to each user via UserNotification
+            notification = Notification.objects.create(
+                title=title,
+                message=message,
+                time_sent=current_time
+            )
+
+            valid_users = User.objects.filter(email__in=emails)
             created_links = []
-            for email_str in emails:
-                try:
-                    recipient = User.objects.get(email=email_str)
-                    user_notif = UserNotification.objects.create(email=recipient, notif=notification)
-                    created_links.append(user_notif.user_notification_id)
-                except User.DoesNotExist:
-                    # Skip invalid emails or collect errors; here we skip silently
-                    logger.warning(f"User with email {email_str} not found; skipping")
-                    pass
-            
-            if not created_links:
-                notification.delete()  # Clean up if no valid links were created
-                return Response({'error': 'No valid users found for notification'}, status=status.HTTP_400_BAD_REQUEST)
-            
-            logger.info(f"Notification {notification.notif_id} created by {user.email} for {len(created_links)} users")
+            for valid_user in valid_users:
+                user_notif = UserNotification.objects.create(
+                    email=valid_user,
+                    notif=notification
+                )
+                created_links.append(user_notif.user_notification_id)
+
+            invalid_emails = set(emails) - set(valid_users.values_list('email', flat=True))
+            if invalid_emails:
+                return Response({
+                    'message': 'Notification created, but some emails were invalid',
+                    'created_links': created_links,
+                    'invalid_emails': list(invalid_emails)
+                }, status=status.HTTP_201_CREATED)
+
             return Response({
                 'message': 'Notification created successfully',
-                'notif_id': notification.notif_id
+                'notification_id': notification.notif_id,
+                'created_links': created_links
             }, status=status.HTTP_201_CREATED)
         
         except Exception as e:
             logger.error(f"Error creating notification: {str(e)}")
             return Response({'error': f'Failed to create notification: {str(e)}'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
-#View that deletes notification for a specific user
-#Frontend must send token (for email) and notif_id in the URL
+#Delete notification for a user, if no users remain linked to the notification, delete the notification as well
 class DeleteNotificationView(APIView):
-    def delete(self, request, notif_id):
-        # Authenticate user from token to get the user's email
-        user = get_user_from_token(request)
-        if not user:
-            logger.error("Authentication failed: No valid user token")
+    def post(self, request):
+        # Extract and validate user from JWT token
+        auth_header = request.headers.get('Authorization')
+        if not auth_header or not auth_header.startswith('Bearer '):
             return Response({'error': 'Authentication required'}, status=status.HTTP_401_UNAUTHORIZED)
         
+        token = auth_header.split(' ')[1]
         try:
-            # Fetch the notification
-            notification = Notification.objects.get(notif_id=notif_id)
+            payload = UntypedToken(token).payload
+            user_email = payload.get('user_email')
+            user = User.objects.get(email=user_email)
+        except (InvalidToken, User.DoesNotExist) as e:
+            logger.warning(f"Token validation failed: {e}")
+            return Response({'error': 'Authentication required'}, status=status.HTTP_401_UNAUTHORIZED)
+        
+        notif_id = request.data.get('notif_id')
+        if not notif_id:
+            return Response({'error': 'notif_id is required'}, status=status.HTTP_400_BAD_REQUEST)
+        
+        try:
+            # Find the UserNotification for this user and notification
+            user_notif = UserNotification.objects.get(email=user, notif__notif_id=notif_id)
+            user_notif.delete()
             
-            # Find and delete the UserNotification link for this user
-            user_notifs = UserNotification.objects.filter(email=user, notif=notification)
-            if not user_notifs.exists():
-                logger.warning(f"No notification link found for user {user.email} and notif_id {notif_id}")
-                return Response({'error': 'Notification not found for this user'}, status=status.HTTP_404_NOT_FOUND)
-            
-            user_notifs.delete()
-            
-            # Check if the notification has no more links to user(s) and deletes it
-            remaining_links = UserNotification.objects.filter(notif=notification).exists()
+            # Check if any UserNotifications remain for this notification
+            remaining_links = UserNotification.objects.filter(notif__notif_id=notif_id).exists()
             if not remaining_links:
+                notification = Notification.objects.get(notif_id=notif_id)
                 notification.delete()
-                logger.info(f"Notification {notif_id} deleted as it had no remaining user links")
+                logger.info(f"Notification {notif_id} deleted as no users remain linked")
             else:
-                logger.info(f"Notification link deleted for user {user.email} and notif_id {notif_id}")
+                logger.info(f"User {user.email} unlinked from notification {notif_id}")
             
-            return Response({'message': 'Notification deleted successfully for this user'}, status=status.HTTP_200_OK)
+            return Response({'message': 'Notification deleted successfully for the user'}, status=status.HTTP_200_OK)
         
+        except UserNotification.DoesNotExist:
+            return Response({'error': 'Notification not found for this user'}, status=status.HTTP_404_NOT_FOUND)
         except Notification.DoesNotExist:
-            logger.error(f"Notification not found: notif_id={notif_id}")
             return Response({'error': 'Notification not found'}, status=status.HTTP_404_NOT_FOUND)
-        
         except Exception as e:
             logger.error(f"Error deleting notification: {str(e)}")
             return Response({'error': f'Failed to delete notification: {str(e)}'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+#View that fetches all notifications for a user        
+class GetUserNotificationsView(APIView):
+    def get(self, request):
+        user = get_user_from_token(request)
+        if not user:
+            return Response({'error': 'Authentication required'}, status=status.HTTP_401_UNAUTHORIZED)
+        
+        try:
+            # Fetch all notifications for the user
+            user_notifications = UserNotification.objects.filter(email=user).select_related('notif')
+            notifications = [
+                {
+                    'id': un.notif.notif_id,
+                    'title': un.notif.title,
+                    'message': un.notif.message,
+                    'time_sent': un.notif.time_sent.strftime('%Y-%m-%d %H:%M:%S')
+                } for un in user_notifications
+            ]
+            
+            return Response({
+                'notifications': notifications,
+                'count': len(notifications)
+            }, status=status.HTTP_200_OK)
+        
+        except Exception as e:
+            logger.error(f"Error fetching notifications: {str(e)}")
+            return Response({'error': f'Failed to fetch notifications: {str(e)}'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 #View that marks a task as completed
 class CompleteTaskView(APIView):
@@ -2211,3 +2125,4 @@ class GetProjectLinksView(APIView):
             return Response({'error': 'Project not found'}, status=status.HTTP_404_NOT_FOUND)
         except Exception as e:
             return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+

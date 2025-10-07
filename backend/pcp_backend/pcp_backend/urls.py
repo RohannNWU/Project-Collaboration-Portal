@@ -3,7 +3,6 @@ from django.conf import settings
 from django.conf.urls.static import static
 from django.urls import path
 from pcp_webapp.views import (
-    MessageListCreateView, mark_message_read,
     LoginView, DashboardView, AddUserView, AddProjectView, 
     GetMembersView, AddTaskView, CalendarView, GetUserTasksView, 
     UpdateTaskView, DocumentUploadView, GetProjectTasksView, GetTaskDocumentsView,
@@ -13,8 +12,8 @@ from pcp_webapp.views import (
     UpdateProjectDetailsView, UpdateProjectFeedbackView,UpdateProfileView, GetProjectLinksView,
     CreateNotificationView, DeleteNotificationView, CompleteTaskView, GetFinalizedTasksView,
     GetTaskDetailsView, RemoveTaskMemberView, AddTaskMemberView, UploadDocumentView,
-    CreateNotificationView, DeleteNotificationView, ResetPasswordView, DeleteProjectView, ChangeRoleView,
-    AddProjectLinkView, DeleteProjectLinkView, GetUserDetailsView, VerifySecurityAnswerView, GetUserMeetingsView
+    CreateNotificationView, ResetPasswordView, DeleteProjectView, ChangeRoleView,
+    AddProjectLinkView, DeleteProjectLinkView, GetUserDetailsView, VerifySecurityAnswerView, GetUserMeetingsView,GetUserNotificationsView
 )
 
 urlpatterns = [
@@ -31,8 +30,6 @@ urlpatterns = [
     path('api/getprojecttasks/', GetProjectTasksView.as_view(), name='get-project-tasks'),
     path('api/gettaskdocuments/', GetTaskDocumentsView.as_view(), name='gettaskdocuments'),
     path('api/updatetaskdetails/', UpdateTaskView.as_view(), name='updatetask'),
-    path('api/messages/', MessageListCreateView.as_view(), name='messages'),
-    path('api/messages/<int:message_id>/read/', mark_message_read, name='mark_message_read'),
     path('api/document-upload/', DocumentUploadView.as_view(), name='document_upload'),
     path('api/getprojectdata/', GetProjectDataView.as_view(), name='getprojectdata'),
     path('api/document-download/', DownloadDocumentView.as_view(), name='document_download'),
@@ -64,7 +61,8 @@ urlpatterns = [
     path('api/verifysecurityanswer/', VerifySecurityAnswerView.as_view(), name='verifysecurityanswer'),
     path('api/getcontributions/', GetContributionsView.as_view(), name="getcontributions"),
     path('api/getusermeetings/', GetUserMeetingsView.as_view(), name='getusermeetings'),
-    path('api/getprojectlinks/', GetProjectLinksView.as_view(), name="getprojectlinks") 
+    path('api/getprojectlinks/', GetProjectLinksView.as_view(), name="getprojectlinks"),
+    path('api/getusernotifications/', GetUserNotificationsView.as_view(), name='getusernotifications') 
 ]
 
 # Serve media files during development

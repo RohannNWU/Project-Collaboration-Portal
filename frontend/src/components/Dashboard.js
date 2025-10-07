@@ -3,9 +3,16 @@ import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import {
-  faUser, faSignOutAlt, faProjectDiagram,
-  faChevronLeft, faChevronRight, faCalendar, faTasks,
-  faPlus, faTrash
+  faUser,
+  faSignOutAlt,
+  faProjectDiagram,
+  faChevronLeft,
+  faChevronRight,
+  faCalendar,
+  faTasks,
+  faPlus,
+  faTrash,
+  faBell,
 } from '@fortawesome/free-solid-svg-icons';
 import NewProjectModal from './NewProjectModal';
 import DeleteProjectModal from './DeleteProjectModal';
@@ -25,10 +32,24 @@ const Dashboard = () => {
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [selectedProject, setSelectedProject] = useState(null);
   const [showProfileModal, setShowProfileModal] = useState(false);
+  const [notificationCount, setNotificationCount] = useState(0);
   const navigate = useNavigate();
 
-  const months = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
-  const days = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+  const months = [
+    'January',
+    'February',
+    'March',
+    'April',
+    'May',
+    'June',
+    'July',
+    'August',
+    'September',
+    'October',
+    'November',
+    'December',
+  ];
+  const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
   const fetchDashboardData = useCallback(async () => {
     try {
@@ -38,12 +59,13 @@ const Dashboard = () => {
         return;
       }
 
-      const API_BASE_URL = window.location.hostname === 'localhost'
-        ? 'http://127.0.0.1:8000'
-        : 'https://pcp-backend-f4a2.onrender.com';
+      const API_BASE_URL =
+        window.location.hostname === 'localhost'
+          ? 'http://127.0.0.1:8000'
+          : 'https://pcp-backend-f4a2.onrender.com';
 
       const dashboardResponse = await axios.get(`${API_BASE_URL}/api/dashboard/`, {
-        headers: { Authorization: `Bearer ${token}` }
+        headers: { Authorization: `Bearer ${token}` },
       });
 
       setEmail(dashboardResponse.data.email);
@@ -51,22 +73,27 @@ const Dashboard = () => {
       setProjects(dashboardResponse.data.projects || []);
 
       const calendarResponse = await axios.get(`${API_BASE_URL}/api/calendar/`, {
-        headers: { Authorization: `Bearer ${token}` }
+        headers: { Authorization: `Bearer ${token}` },
       });
 
       const meetingsResponse = await axios.get(`${API_BASE_URL}/api/getusermeetings/`, {
-        headers: { Authorization: `Bearer ${token}` }
+        headers: { Authorization: `Bearer ${token}` },
       });
 
-      const meetingsEvents = meetingsResponse.data.meetings.map(meeting => ({
+      const meetingsEvents = meetingsResponse.data.meetings.map((meeting) => ({
         type: 'meeting',
         start: meeting.date_time.split(' ')[0],
         name: meeting.meeting_title,
         project: { name: meeting.project_name },
-        date_time: meeting.date_time
+        date_time: meeting.date_time,
       }));
 
       setCalendarEvents([...(calendarResponse.data.events || []), ...meetingsEvents]);
+
+      const notificationsResponse = await axios.get(`${API_BASE_URL}/api/getusernotifications/`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      setNotificationCount(notificationsResponse.data.count);
 
       setError('');
     } catch (err) {
@@ -86,13 +113,13 @@ const Dashboard = () => {
 
   useEffect(() => {
     setSelectedDate(null);
-    setCalendarKey(prevKey => prevKey + 1);
+    setCalendarKey((prevKey) => prevKey + 1);
   }, [currentDate]);
 
   const logout = () => {
     localStorage.removeItem('access_token');
     localStorage.removeItem('user');
-    navigate("/");
+    navigate('/');
   };
 
   const prevMonth = () => {
@@ -125,26 +152,26 @@ const Dashboard = () => {
       const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
       const today = new Date().toISOString().split('T')[0];
 
-      // Filter projects with no grade and no feedback
-      const dayProjects = calendarEvents.filter(e =>
-        e.type === 'project' &&
-        e.start === dateStr &&
-        (e.grade === undefined || e.grade === null || e.grade === '' || e.grade === '-') &&
-        (e.feedback === undefined || e.feedback === null || e.feedback === '')
+      const dayProjects = calendarEvents.filter(
+        (e) =>
+          e.type === 'project' &&
+          e.start === dateStr &&
+          (e.grade === undefined ||
+            e.grade === null ||
+            e.grade === '' ||
+            e.grade === '-') &&
+          (e.feedback === undefined || e.feedback === null || e.feedback === ''),
       );
 
-      // Filter tasks with status "In Progress"
-      const dayTasks = calendarEvents.filter(e =>
-        e.type === 'task' &&
-        e.start === dateStr &&
-        e.status === 'In Progress'
+      const dayTasks = calendarEvents.filter(
+        (e) => e.type === 'task' && e.start === dateStr && e.status === 'In Progress',
       );
 
-      // Filter meetings, excluding those in the past
-      const dayMeetings = calendarEvents.filter(e =>
-        e.type === 'meeting' &&
-        e.start === dateStr &&
-        e.start >= today
+      const dayMeetings = calendarEvents.filter(
+        (e) =>
+          e.type === 'meeting' &&
+          e.start === dateStr &&
+          e.start >= today,
       );
 
       daysArray.push({
@@ -155,8 +182,10 @@ const Dashboard = () => {
         meetings: dayMeetings,
         isToday: dateStr === today,
         isOverdue: dateStr < today && (dayProjects.length > 0 || dayTasks.length > 0),
-        hasFuture: dateStr > today && (dayProjects.length > 0 || dayTasks.length > 0 || dayMeetings.length > 0),
-        totalItems: dayProjects.length + dayTasks.length + dayMeetings.length
+        hasFuture:
+          dateStr > today &&
+          (dayProjects.length > 0 || dayTasks.length > 0 || dayMeetings.length > 0),
+        totalItems: dayProjects.length + dayTasks.length + dayMeetings.length,
       });
     }
 
@@ -169,7 +198,7 @@ const Dashboard = () => {
       weekday: 'long',
       year: 'numeric',
       month: 'long',
-      day: 'numeric'
+      day: 'numeric',
     });
   };
 
@@ -197,7 +226,9 @@ const Dashboard = () => {
       {/* Sidebar */}
       <aside className={styles.sidebar}>
         <div className={styles.brand}>
-          <div className={styles.logo}>{username.split(' ').map(word => word.charAt(0).toUpperCase()).join('')}</div>
+          <div className={styles.logo}>
+            {username.split(' ').map((word) => word.charAt(0).toUpperCase()).join('')}
+          </div>
           <div className={styles.brandText}>
             <h2 className={styles.brandTextH2}>{username}</h2>
             <small className={styles.brandTextSmall}>{email}</small>
@@ -205,31 +236,62 @@ const Dashboard = () => {
         </div>
 
         <nav className={styles.nav}>
-          <button className={styles.navBtn} onClick={() => setShowProfileModal(true)}><FontAwesomeIcon icon={faUser} /> Profile</button>
-          <button className={styles.navBtn} onClick={logout}><FontAwesomeIcon icon={faSignOutAlt} /> Logout</button>
+          <button className={styles.navBtn} onClick={() => setShowProfileModal(true)}>
+            <FontAwesomeIcon icon={faUser} /> Profile
+          </button>
+          <button className={styles.navBtn}>
+            <span style={{ position: 'relative', marginRight: '5px' }}>
+              <FontAwesomeIcon icon={faBell} />
+              {notificationCount > 0 && (
+                <span
+                  style={{
+                    position: 'absolute',
+                    top: '-5px',
+                    right: '-5px',
+                    backgroundColor: 'red',
+                    color: 'white',
+                    borderRadius: '50%',
+                    minWidth: '15px',
+                    height: '15px',
+                    fontSize: '0.8em',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                  }}
+                >
+                  {notificationCount}
+                </span>
+              )}
+            </span>
+            Notifications
+          </button>
+          <button className={styles.navBtn} onClick={logout}>
+            <FontAwesomeIcon icon={faSignOutAlt} /> Logout
+          </button>
         </nav>
       </aside>
 
       {/* Main Content */}
       <main className={styles.main}>
-        {error && (
-          <div className={styles.errorMessage}>
-            {error}
-          </div>
-        )}
+        {error && <div className={styles.errorMessage}>{error}</div>}
 
         {/* Projects Table */}
         <section className={styles.panel}>
           <div className={styles.panelHead} style={{ justifyContent: 'center' }}>
             <h2 className={styles.panelHeadH2}>Projects Overview</h2>
           </div>
-          <button className={styles.addBtn} onClick={() => setShowNewProjectModal(true)}><FontAwesomeIcon icon={faPlus} /> Create New Project</button>
+          <button
+            className={styles.addBtn}
+            onClick={() => setShowNewProjectModal(true)}
+          >
+            <FontAwesomeIcon icon={faPlus} /> Create New Project
+          </button>
           {showNewProjectModal && (
             <NewProjectModal
               onClose={() => setShowNewProjectModal(false)}
               onSuccess={() => {
-                fetchDashboardData(); // Refresh projects list
-                setShowNewProjectModal(false); // Close modal
+                fetchDashboardData();
+                setShowNewProjectModal(false);
               }}
             />
           )}
@@ -255,25 +317,35 @@ const Dashboard = () => {
                         className={styles.progress}
                         style={{ width: `${project.progress || 0}%` }}
                       />
-                      <span className={styles.progressText}>{project.progress || 0}%</span>
+                      <span className={styles.progressText}>
+                        {project.progress || 0}%
+                      </span>
                     </div>
                   </td>
                   <td className={styles.wrappableCell}>{project.dueDate}</td>
                   <td>
-                    <button className={styles.openBtn} onClick={() => handleOpenDashboard(project)}>
+                    <button
+                      className={styles.openBtn}
+                      onClick={() => handleOpenDashboard(project)}
+                    >
                       Open
                     </button>
                   </td>
                   <td className={styles.wrappableCell}>{project.role}</td>
                   <td className={styles.wrappableCell}>{project.grade || '-'}</td>
                   <td>
-                    {project.role === "Supervisor" && (
+                    {project.role === 'Supervisor' && (
                       <button
                         onClick={() => {
                           setSelectedProject(project);
                           setShowDeleteModal(true);
                         }}
-                        style={{ background: 'none', border: 'none', cursor: 'pointer', marginLeft: '8px' }}
+                        style={{
+                          background: 'none',
+                          border: 'none',
+                          cursor: 'pointer',
+                          marginLeft: '8px',
+                        }}
                         title="Delete Project"
                       >
                         <FontAwesomeIcon
@@ -291,7 +363,7 @@ const Dashboard = () => {
                         setSelectedProject(null);
                       }}
                       onSuccess={() => {
-                        fetchDashboardData(); // Refresh projects list
+                        fetchDashboardData();
                       }}
                     />
                   )}
@@ -321,125 +393,105 @@ const Dashboard = () => {
               <button className={styles.calendarNavBtn} onClick={prevMonth}>
                 <FontAwesomeIcon icon={faChevronLeft} />
               </button>
-              <h4 className={styles.calendarHeader}>
+              <h3 className={styles.panelHeadH3}>
                 {months[currentDate.getMonth()]} {currentDate.getFullYear()}
-              </h4>
+              </h3>
               <button className={styles.calendarNavBtn} onClick={nextMonth}>
                 <FontAwesomeIcon icon={faChevronRight} />
               </button>
             </div>
-
             <div className={styles.calendarGrid}>
-              {days.map(day => (
-                <div key={day} className={styles.calendarDayHeader}>
+              {days.map((day, index) => (
+                <div key={`header-${index}`} className={styles.calendarHeaderCell}>
                   {day}
                 </div>
               ))}
-
-              {getDaysInMonth().map((dayData, index) => {
-                const isEmpty = !dayData;
-                const isToday = dayData?.isToday;
-                const isOverdue = dayData?.isOverdue;
-                const hasFuture = dayData?.hasFuture;
-                const totalItems = dayData?.totalItems || 0;
-
-                const getBaseClass = () => {
-                  if (isEmpty) return styles.calendarCellEmpty;
-                  if (isToday) return styles.calendarCellToday;
-                  if (isOverdue) return styles.calendarCellOverdue;
-                  if (hasFuture) return styles.calendarCellFuture;
-                  return styles.calendarCell;
-                };
-
-                const getHoverClass = () => {
-                  if (isToday) return styles.calendarCellTodayHover;
-                  if (isOverdue) return styles.calendarCellOverdueHover;
-                  if (hasFuture) return styles.calendarCellFutureHover;
-                  return styles.calendarCellHover;
-                };
-
-                return (
-                  <div
-                    key={`${dayData?.dateStr}-${index}-${calendarKey}`}
-                    className={`${getBaseClass()} ${isEmpty ? '' : styles.hoverTarget}`}
-                    onClick={() => dayData && setSelectedDate(dayData.dateStr)}
-                    onMouseEnter={(e) => {
-                      if (!isEmpty) {
-                        e.currentTarget.classList.add(getHoverClass());
-                      }
-                    }}
-                    onMouseLeave={(e) => {
-                      if (!isEmpty) {
-                        e.currentTarget.classList.remove(getHoverClass());
-                      }
-                    }}
-                  >
-                    {dayData && (
-                      <>
-                        <div className={styles.panelHead}>
-                          <span className={styles.calendarCellDay}>{dayData.day}</span>
-                          {totalItems > 0 && (
-                            <span className={`${styles.calendarCellCount} ${isToday ? styles.calendarCellCountToday : ''}`}>
-                              {totalItems}
+              {getDaysInMonth().map((dayData, index) => (
+                <div
+                  key={`day-${index}`}
+                  className={`${styles.calendarCell} ${
+                    dayData
+                      ? dayData.isToday
+                        ? styles.calendarCellToday
+                        : dayData.isOverdue
+                        ? styles.calendarCellOverdue
+                        : dayData.hasFuture
+                        ? styles.calendarCellFuture
+                        : ''
+                      : styles.calendarCellEmpty
+                  }`}
+                  onClick={() => dayData && setSelectedDate(dayData.dateStr)}
+                >
+                  {dayData ? (
+                    <>
+                      <div
+                        className={`${styles.calendarDayNumber} ${
+                          dayData.isToday ? styles.calendarDayNumberToday : ''
+                        }`}
+                      >
+                        {dayData.day}
+                      </div>
+                      {dayData.projects.length > 0 && (
+                        <div className={styles.calendarCellProjects}>
+                          {dayData.projects.slice(0, 3).map((p, i) => (
+                            <span
+                              key={`proj-${i}`}
+                              className={styles.calendarCellProject}
+                            ></span>
+                          ))}
+                          {dayData.projects.length > 3 && (
+                            <span
+                              className={`${styles.calendarCellExtra} ${
+                                dayData.isToday ? styles.calendarCellExtraToday : ''
+                              }`}
+                            >
+                              +{dayData.projects.length - 3}
                             </span>
                           )}
                         </div>
-
-                        {dayData.projects.length > 0 && (
-                          <div style={{ display: 'flex', justifyContent: 'flex-start', flexWrap: 'wrap' }}>
-                            {dayData.projects.slice(0, 3).map((project, projIndex) => (
-                              <div
-                                key={projIndex}
-                                className={`${styles.calendarCellProject} ${isToday ? styles.calendarCellProjectToday : ''}`}
-                                title={`Project: ${project.name}`}
-                              />
-                            ))}
-                            {dayData.projects.length > 3 && (
-                              <span className={`${styles.calendarCellExtra} ${isToday ? styles.calendarCellExtraToday : ''}`}>
-                                +{dayData.projects.length - 3}
-                              </span>
-                            )}
-                          </div>
-                        )}
-
-                        {dayData.tasks.length > 0 && (
-                          <div style={{ display: 'flex', justifyContent: 'flex-start', flexWrap: 'wrap' }}>
-                            {dayData.tasks.slice(0, 3).map((task, taskIndex) => (
-                              <div
-                                key={taskIndex}
-                                className={`${styles.calendarCellEvent} ${isToday ? styles.calendarCellEventToday : ''}`}
-                                title={`Task: ${task.name}${task.project ? ` (Project: ${task.project.name})` : ''}`}
-                              />
-                            ))}
-                            {dayData.tasks.length > 3 && (
-                              <span className={`${styles.calendarCellExtra} ${isToday ? styles.calendarCellExtraToday : ''}`}>
-                                +{dayData.tasks.length - 3}
-                              </span>
-                            )}
-                          </div>
-                        )}
-
-                        {dayData.meetings.length > 0 && (
-                          <div style={{ display: 'flex', justifyContent: 'flex-start', flexWrap: 'wrap' }}>
-                            {dayData.meetings.slice(0, 3).map((meeting, meetingIndex) => (
-                              <div
-                                key={meetingIndex}
-                                className={`${styles.calendarCellMeeting} ${isToday ? styles.calendarCellMeetingToday : ''}`}
-                                title={`Meeting: ${meeting.name}${meeting.project ? ` (Project: ${meeting.project.name})` : ''}`}
-                              />
-                            ))}
-                            {dayData.meetings.length > 3 && (
-                              <span className={`${styles.calendarCellExtra} ${isToday ? styles.calendarCellExtraToday : ''}`}>
-                                +{dayData.meetings.length - 3}
-                              </span>
-                            )}
-                          </div>
-                        )}
-                      </>
-                    )}
-                  </div>
-                );
-              })}
+                      )}
+                      {dayData.tasks.length > 0 && (
+                        <div className={styles.calendarCellEvents}>
+                          {dayData.tasks.slice(0, 3).map((t, i) => (
+                            <span
+                              key={`task-${i}`}
+                              className={styles.calendarCellEvent}
+                            ></span>
+                          ))}
+                          {dayData.tasks.length > 3 && (
+                            <span
+                              className={`${styles.calendarCellExtra} ${
+                                dayData.isToday ? styles.calendarCellExtraToday : ''
+                              }`}
+                            >
+                              +{dayData.tasks.length - 3}
+                            </span>
+                          )}
+                        </div>
+                      )}
+                      {dayData.meetings.length > 0 && (
+                        <div className={styles.calendarCellMeetings}>
+                          {dayData.meetings.slice(0, 3).map((m, i) => (
+                            <span
+                              key={`meet-${i}`}
+                              className={styles.calendarCellMeeting}
+                            ></span>
+                          ))}
+                          {dayData.meetings.length > 3 && (
+                            <span
+                              className={`${styles.calendarCellExtra} ${
+                                dayData.isToday ? styles.calendarCellExtraToday : ''
+                              }`}
+                            >
+                              +{dayData.meetings.length - 3}
+                            </span>
+                          )}
+                        </div>
+                      )}
+                    </>
+                  ) : null}
+                </div>
+              ))}
             </div>
 
             <div className={styles.calendarLegend}>
@@ -483,123 +535,242 @@ const Dashboard = () => {
                     {formatDateForDisplay(selectedDate)}
                   </div>
 
-                  {calendarEvents.filter(e =>
-                    e.type === 'project' &&
-                    e.start === selectedDate &&
-                    (e.grade === undefined || e.grade === null || e.grade === '' || e.grade === '-') &&
-                    (e.feedback === undefined || e.feedback === null || e.feedback === '')
+                  {calendarEvents.filter(
+                    (e) =>
+                      e.type === 'project' &&
+                      e.start === selectedDate &&
+                      (e.grade === undefined ||
+                        e.grade === null ||
+                        e.grade === '' ||
+                        e.grade === '-') &&
+                      (e.feedback === undefined ||
+                        e.feedback === null ||
+                        e.feedback === ''),
                   ).length > 0 && (
-                      <div style={{ marginBottom: '20px' }}>
-                        <h4 className={styles.selectedDateProjectsHeader}>
-                          📁 Projects ({calendarEvents.filter(e =>
+                    <div style={{ marginBottom: '20px' }}>
+                      <h4 className={styles.selectedDateProjectsHeader}>
+                        📁 Projects (
+                        {calendarEvents.filter(
+                          (e) =>
                             e.type === 'project' &&
                             e.start === selectedDate &&
-                            (e.grade === undefined || e.grade === null || e.grade === '' || e.grade === '-') &&
-                            (e.feedback === undefined || e.feedback === null || e.feedback === '')
-                          ).length})
-                        </h4>
-                        <ul className={styles.selectedDateList}>
-                          {calendarEvents.filter(e =>
-                            e.type === 'project' &&
-                            e.start === selectedDate &&
-                            (e.grade === undefined || e.grade === null || e.grade === '' || e.grade === '-') &&
-                            (e.feedback === undefined || e.feedback === null || e.feedback === '')
-                          ).map((project, index) => (
+                            (e.grade === undefined ||
+                              e.grade === null ||
+                              e.grade === '' ||
+                              e.grade === '-') &&
+                            (e.feedback === undefined ||
+                              e.feedback === null ||
+                              e.feedback === ''),
+                        ).length}
+                        )
+                      </h4>
+                      <ul className={styles.selectedDateList}>
+                        {calendarEvents
+                          .filter(
+                            (e) =>
+                              e.type === 'project' &&
+                              e.start === selectedDate &&
+                              (e.grade === undefined ||
+                                e.grade === null ||
+                                e.grade === '' ||
+                                e.grade === '-') &&
+                              (e.feedback === undefined ||
+                                e.feedback === null ||
+                                e.feedback === ''),
+                          )
+                          .map((project, index) => (
                             <li
                               key={`proj-${index}`}
-                              className={`${styles.selectedDateListItem} ${index % 2 === 0 ? '' : styles.selectedDateListItemAlt}`}
+                              className={`${
+                                styles.selectedDateListItem
+                              } ${
+                                index % 2 === 0 ? '' : styles.selectedDateListItemAlt
+                              }`}
                             >
                               <div className={styles.selectedDateItemTitle}>
-                                <FontAwesomeIcon icon={faProjectDiagram} style={{ color: '#228693' }} />
+                                <FontAwesomeIcon
+                                  icon={faProjectDiagram}
+                                  style={{ color: '#228693' }}
+                                />
                                 {project.name}
                               </div>
                               <div className={styles.selectedDateItemMeta}>
-                                <span>Role: <span className={project.role.toLowerCase() === 'supervisor' ? styles.selectedDateItemRoleSupervisor : styles.selectedDateItemRoleOther}>{project.role}</span></span>
+                                <span>
+                                  Role:{' '}
+                                  <span
+                                    className={
+                                      project.role.toLowerCase() === 'supervisor'
+                                        ? styles.selectedDateItemRoleSupervisor
+                                        : styles.selectedDateItemRoleOther
+                                    }
+                                  >
+                                    {project.role}
+                                  </span>
+                                </span>
                                 {project.description && (
                                   <span className={styles.selectedDateItemDescription}>
                                     {project.description.length > 50
                                       ? `${project.description.substring(0, 50)}...`
-                                      : project.description
-                                    }
+                                      : project.description}
                                   </span>
                                 )}
                               </div>
                             </li>
                           ))}
-                        </ul>
-                      </div>
-                    )}
+                      </ul>
+                    </div>
+                  )}
 
-                  {calendarEvents.filter(e => e.type === 'task' && e.start === selectedDate && e.status === 'In Progress').length > 0 && (
+                  {calendarEvents.filter(
+                    (e) =>
+                      e.type === 'task' &&
+                      e.start === selectedDate &&
+                      e.status === 'In Progress',
+                  ).length > 0 && (
                     <div style={{ marginBottom: '20px' }}>
                       <h4 className={styles.selectedDateEventsHeader}>
-                        🗓️ Tasks ({calendarEvents.filter(e => e.type === 'task' && e.start === selectedDate && e.status === 'In Progress').length})
+                        🗓️ Tasks (
+                        {calendarEvents.filter(
+                          (e) =>
+                            e.type === 'task' &&
+                            e.start === selectedDate &&
+                            e.status === 'In Progress',
+                        ).length}
+                        )
                       </h4>
                       <ul className={styles.selectedDateList}>
-                        {calendarEvents.filter(e => e.type === 'task' && e.start === selectedDate && e.status === 'In Progress').map((task, index) => (
-                          <li
-                            key={`task-${index}`}
-                            className={`${styles.selectedDateListItem} ${index % 2 === 0 ? '' : styles.selectedDateListItemAlt}`}
-                          >
-                            <div className={styles.selectedDateItemTitle}>
-                              <FontAwesomeIcon icon={faTasks} style={{ color: '#228693' }} />
-                              {task.name}
-                            </div>
-                            <div className={styles.selectedDateItemMeta}>
-                              <span>Project: <span className={styles.selectedDateItemProgress}>{task.project ? task.project.name : 'No associated project'}</span></span>
-                            </div>
-                          </li>
-                        ))}
+                        {calendarEvents
+                          .filter(
+                            (e) =>
+                              e.type === 'task' &&
+                              e.start === selectedDate &&
+                              e.status === 'In Progress',
+                          )
+                          .map((task, index) => (
+                            <li
+                              key={`task-${index}`}
+                              className={`${
+                                styles.selectedDateListItem
+                              } ${
+                                index % 2 === 0 ? '' : styles.selectedDateListItemAlt
+                              }`}
+                            >
+                              <div className={styles.selectedDateItemTitle}>
+                                <FontAwesomeIcon
+                                  icon={faTasks}
+                                  style={{ color: '#228693' }}
+                                />
+                                {task.name}
+                              </div>
+                              <div className={styles.selectedDateItemMeta}>
+                                <span>
+                                  Project:{' '}
+                                  <span className={styles.selectedDateItemProgress}>
+                                    {task.project
+                                      ? task.project.name
+                                      : 'No associated project'}
+                                  </span>
+                                </span>
+                              </div>
+                            </li>
+                          ))}
                       </ul>
                     </div>
                   )}
 
-                  {calendarEvents.filter(e => e.type === 'meeting' && e.start === selectedDate && e.start >= new Date().toISOString().split('T')[0]).length > 0 && (
+                  {calendarEvents.filter(
+                    (e) =>
+                      e.type === 'meeting' &&
+                      e.start === selectedDate &&
+                      e.start >= new Date().toISOString().split('T')[0],
+                  ).length > 0 && (
                     <div>
                       <h4 className={styles.selectedDateEventsHeader}>
-                        📅 Meetings ({calendarEvents.filter(e => e.type === 'meeting' && e.start === selectedDate && e.start >= new Date().toISOString().split('T')[0]).length})
+                        📅 Meetings (
+                        {calendarEvents.filter(
+                          (e) =>
+                            e.type === 'meeting' &&
+                            e.start === selectedDate &&
+                            e.start >= new Date().toISOString().split('T')[0],
+                        ).length}
+                        )
                       </h4>
                       <ul className={styles.selectedDateList}>
-                        {calendarEvents.filter(e => e.type === 'meeting' && e.start === selectedDate && e.start >= new Date().toISOString().split('T')[0]).map((meeting, index) => (
-                          <li
-                            key={`meeting-${index}`}
-                            className={`${styles.selectedDateListItem} ${index % 2 === 0 ? '' : styles.selectedDateListItemAlt}`}
-                          >
-                            <div className={styles.selectedDateItemTitle}>
-                              <FontAwesomeIcon icon={faCalendar} style={{ color: '#228693' }} />
-                              {meeting.name}
-                            </div>
-                            <div className={styles.selectedDateItemMeta}>
-                              <span>Time: <span className={styles.selectedDateItemProgress}>{meeting.date_time.split(' ')[1]}</span></span>
-                              <span>Project: <span className={styles.selectedDateItemProgress}>{meeting.project ? meeting.project.name : 'No associated project'}</span></span>
-                            </div>
-                          </li>
-                        ))}
+                        {calendarEvents
+                          .filter(
+                            (e) =>
+                              e.type === 'meeting' &&
+                              e.start === selectedDate &&
+                              e.start >= new Date().toISOString().split('T')[0],
+                          )
+                          .map((meeting, index) => (
+                            <li
+                              key={`meeting-${index}`}
+                              className={`${
+                                styles.selectedDateListItem
+                              } ${
+                                index % 2 === 0 ? '' : styles.selectedDateListItemAlt
+                              }`}
+                            >
+                              <div className={styles.selectedDateItemTitle}>
+                                <FontAwesomeIcon
+                                  icon={faCalendar}
+                                  style={{ color: '#228693' }}
+                                />
+                                {meeting.name}
+                              </div>
+                              <div className={styles.selectedDateItemMeta}>
+                                <span>
+                                  Time:{' '}
+                                  <span className={styles.selectedDateItemProgress}>
+                                    {meeting.date_time.split(' ')[1]}
+                                  </span>
+                                </span>
+                                <span>
+                                  Project:{' '}
+                                  <span className={styles.selectedDateItemProgress}>
+                                    {meeting.project
+                                      ? meeting.project.name
+                                      : 'No associated project'}
+                                  </span>
+                                </span>
+                              </div>
+                            </li>
+                          ))}
                       </ul>
                     </div>
                   )}
 
-                  {(calendarEvents.filter(e =>
-                    e.start === selectedDate &&
-                    ((e.type === 'project' &&
-                      (e.grade === undefined || e.grade === null || e.grade === '' || e.grade === '-') &&
-                      (e.feedback === undefined || e.feedback === null || e.feedback === '')) ||
-                      (e.type === 'task' && e.status === 'In Progress') ||
-                      (e.type === 'meeting' && e.start >= new Date().toISOString().split('T')[0]))
-                  ).length === 0) && (
-                      <div className={styles.emptyState}>
-                        <div className={styles.emptyStateTitle}>🎉 Great work!</div>
-                        <div className={styles.emptyStateMessage}>
-                          No ungraded projects, in-progress tasks, or meetings scheduled for {formatDateForDisplay(selectedDate)}
-                        </div>
+                  {calendarEvents.filter(
+                    (e) =>
+                      e.start === selectedDate &&
+                      ((e.type === 'project' &&
+                        (e.grade === undefined ||
+                          e.grade === null ||
+                          e.grade === '' ||
+                          e.grade === '-') &&
+                        (e.feedback === undefined ||
+                          e.feedback === null ||
+                          e.feedback === '')) ||
+                        (e.type === 'task' && e.status === 'In Progress') ||
+                        (e.type === 'meeting' &&
+                          e.start >= new Date().toISOString().split('T')[0])),
+                  ).length === 0 && (
+                    <div className={styles.emptyState}>
+                      <div className={styles.emptyStateTitle}>🎉 Great work!</div>
+                      <div className={styles.emptyStateMessage}>
+                        No ungraded projects, in-progress tasks, or meetings scheduled
+                        for {formatDateForDisplay(selectedDate)}
                       </div>
-                    )}
+                    </div>
+                  )}
                 </div>
               ) : (
                 <div className={styles.emptyState}>
                   <div className={styles.emptyStateTitle}>📅 Select a date</div>
                   <div className={styles.emptyStateInstructions}>
-                    Click on any date in the calendar to view ungraded projects and in-progress tasks scheduled for that day
+                    Click on any date in the calendar to view ungraded projects and
+                    in-progress tasks scheduled for that day
                   </div>
                 </div>
               )}
@@ -616,37 +787,21 @@ const Dashboard = () => {
         <section className={styles.panel}>
           <div className={styles.panelHead}>
             <h3 className={styles.panelHeadH3}>Upcoming Deadlines</h3>
-            <button className={styles.iconBtn}><FontAwesomeIcon icon={faCalendar} /></button>
+            <button className={styles.iconBtn}>
+              <FontAwesomeIcon icon={faCalendar} />
+            </button>
           </div>
           <ul className={styles.list}>
             {projects.slice(0, 5).map((project, index) => (
               <li key={index}>
-                <FontAwesomeIcon icon={faProjectDiagram} /> {project.project_name} - {project.dueDate}
+                <FontAwesomeIcon icon={faProjectDiagram} /> {project.project_name} -{' '}
+                {project.dueDate}
               </li>
             ))}
             {projects.length === 0 && (
-              <li style={{ color: '#666', fontStyle: 'italic' }}>No upcoming deadlines</li>
-            )}
-          </ul>
-        </section>
-
-        <section className={styles.panel}>
-          <div className={styles.panelHead}>
-            <h3 className={styles.panelHeadH3}>Recent Events</h3>
-          </div>
-          <ul className={styles.list}>
-            {calendarEvents.slice(-3).reverse().map((event, index) => (
-              <li key={index}>
-                <FontAwesomeIcon
-                  icon={event.type === 'project' ? faProjectDiagram : event.type === 'task' ? faTasks : faCalendar}
-                  style={{ color: '#228693' }}
-                />
-                {event.name}
-                {(event.type === 'task' || event.type === 'meeting') && event.project ? ` (Project: ${event.project.name})` : ''}
+              <li style={{ color: '#666', fontStyle: 'italic' }}>
+                No upcoming deadlines
               </li>
-            ))}
-            {calendarEvents.length === 0 && (
-              <li style={{ color: '#666', fontStyle: 'italic' }}>No recent events</li>
             )}
           </ul>
         </section>
