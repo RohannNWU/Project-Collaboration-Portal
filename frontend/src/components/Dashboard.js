@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
@@ -17,6 +17,7 @@ import {
 import NewProjectModal from './NewProjectModal';
 import DeleteProjectModal from './DeleteProjectModal';
 import ProfileModal from './ProfileModal';
+import NotificationModal from './NotificationModal';
 import styles from './Dashboard.module.css';
 
 const Dashboard = () => {
@@ -33,7 +34,30 @@ const Dashboard = () => {
   const [selectedProject, setSelectedProject] = useState(null);
   const [showProfileModal, setShowProfileModal] = useState(false);
   const [notificationCount, setNotificationCount] = useState(0);
+  const [showNotificationModal, setShowNotificationModal] = useState(false);
+  const notificationButtonRef = useRef(null);
   const navigate = useNavigate();
+  
+  // Refresh notification count 
+  const refreshNotificationCount = async () => {
+  try {
+    const token = localStorage.getItem("access_token");
+    if (!token) return;
+
+    const API_BASE_URL =
+      window.location.hostname === "localhost"
+        ? "http://127.0.0.1:8000"
+        : "https://pcp-backend-f4a2.onrender.com";
+
+    const res = await axios.get(`${API_BASE_URL}/api/getusernotifications/`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+
+    setNotificationCount(res.data.count || (res.data.notifications?.length ?? 0));
+  } catch (err) {
+    console.error("Failed to refresh notification count:", err);
+  }
+ };
 
   const months = [
     'January',
@@ -126,12 +150,14 @@ const Dashboard = () => {
     const newDate = new Date(currentDate.getFullYear(), currentDate.getMonth() - 1, 1);
     setCurrentDate(newDate);
     setSelectedDate(null);
+    refreshNotificationCount();
   };
 
   const nextMonth = () => {
     const newDate = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 1);
     setCurrentDate(newDate);
     setSelectedDate(null);
+    refreshNotificationCount();
   };
 
   const getDaysInMonth = () => {
@@ -221,6 +247,19 @@ const Dashboard = () => {
     });
   };
 
+  const getButtonPosition = () => {
+    if (notificationButtonRef.current) {
+      const rect = notificationButtonRef.current.getBoundingClientRect();
+      return {
+        top: rect.bottom + window.scrollY,
+        left: rect.left + window.scrollX,
+        width: rect.width,
+        height: rect.height,
+      };
+    }
+    return { top: 120, left: 20, width: 0 }; // Fallback position
+  };
+
   return (
     <div className={styles.dashboard}>
       {/* Sidebar */}
@@ -239,7 +278,11 @@ const Dashboard = () => {
           <button className={styles.navBtn} onClick={() => setShowProfileModal(true)}>
             <FontAwesomeIcon icon={faUser} /> Profile
           </button>
-          <button className={styles.navBtn}>
+          <button
+            ref={notificationButtonRef}
+            className={styles.navBtn}
+            onClick={() => setShowNotificationModal(true)}
+          >
             <span style={{ position: 'relative', marginRight: '5px' }}>
               <FontAwesomeIcon icon={faBell} />
               {notificationCount > 0 && (
@@ -581,9 +624,7 @@ const Dashboard = () => {
                           .map((project, index) => (
                             <li
                               key={`proj-${index}`}
-                              className={`${
-                                styles.selectedDateListItem
-                              } ${
+                              className={`${styles.selectedDateListItem} ${
                                 index % 2 === 0 ? '' : styles.selectedDateListItemAlt
                               }`}
                             >
@@ -649,9 +690,7 @@ const Dashboard = () => {
                           .map((task, index) => (
                             <li
                               key={`task-${index}`}
-                              className={`${
-                                styles.selectedDateListItem
-                              } ${
+                              className={`${styles.selectedDateListItem} ${
                                 index % 2 === 0 ? '' : styles.selectedDateListItemAlt
                               }`}
                             >
@@ -706,9 +745,7 @@ const Dashboard = () => {
                           .map((meeting, index) => (
                             <li
                               key={`meeting-${index}`}
-                              className={`${
-                                styles.selectedDateListItem
-                              } ${
+                              className={`${styles.selectedDateListItem} ${
                                 index % 2 === 0 ? '' : styles.selectedDateListItemAlt
                               }`}
                             >
@@ -806,6 +843,48 @@ const Dashboard = () => {
           </ul>
         </section>
       </aside>
+
+      {/* Modals */}
+      {showNewProjectModal && (
+        <NewProjectModal
+          onClose={() => setShowNewProjectModal(false)}
+          onSuccess={() => {
+            fetchDashboardData();
+            
+            setShowNewProjectModal(false);
+          }}
+        />
+      )}
+      {showDeleteModal && selectedProject && (
+        <DeleteProjectModal
+          project={selectedProject}
+          onClose={() => {
+            setShowDeleteModal(false);
+            setSelectedProject(null);
+          }}
+          onSuccess={() => {
+            fetchDashboardData();
+          }}
+        />
+      )}
+      {showProfileModal && (
+        <ProfileModal
+          onClose={() => setShowProfileModal(false)}
+          onSuccess={() => {
+            fetchDashboardData();
+            setShowProfileModal(false);
+          }}
+          email={email}
+        />
+      )}
+      {showNotificationModal && (
+        <NotificationModal
+          isOpen={showNotificationModal}
+          onClose={() => {setShowNotificationModal(false); refreshNotificationCount();}}
+          notificationCount={notificationCount}
+          buttonPosition={getButtonPosition()}
+        />
+      )}
     </div>
   );
 };
