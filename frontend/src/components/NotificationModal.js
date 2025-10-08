@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import axios from "axios";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faChevronRight, faChevronDown } from "@fortawesome/free-solid-svg-icons";
@@ -9,27 +9,18 @@ const NotificationModal = ({ isOpen, onClose, buttonPosition }) => {
   const [expanded, setExpanded] = useState({});
   const [error, setError] = useState(null);
 
-  const API_BASE_URL =
-    window.location.hostname === "localhost"
-      ? "http://127.0.0.1:8000"
-      : "https://pcp-backend-f4a2.onrender.com";
-
-  // Fetch notifications whenever the modal opens
-  useEffect(() => {
-    if (isOpen) {
-      fetchNotifications();
-    }
-  }, [isOpen]);
-
   // Fetch notifications from backend
-  const fetchNotifications = async () => {
+  const fetchNotifications = useCallback(async () => {
     try {
       const token = localStorage.getItem("access_token");
       if (!token) {
         setError("No authentication token found. Please log in.");
         return;
       }
-
+      const API_BASE_URL =
+        window.location.hostname === "localhost"
+          ? "http://127.0.0.1:8000"
+          : "https://pcp-backend-f4a2.onrender.com";
       const response = await axios.get(`${API_BASE_URL}/api/getusernotifications/`, {
         headers: { Authorization: `Bearer ${token}` },
       });
@@ -50,7 +41,14 @@ const NotificationModal = ({ isOpen, onClose, buttonPosition }) => {
       setError(err.response?.data?.error || "Failed to fetch notifications.");
       setNotifications([]);
     }
-  };
+  }, []);  // <-- Added empty dependency array
+
+  // Fetch notifications whenever the modal opens
+  useEffect(() => {
+    if (isOpen) {
+      fetchNotifications();
+    }
+  }, [isOpen, fetchNotifications]);
 
   //Delete notification
   const handleRemove = async (notifId, e) => {
@@ -70,6 +68,10 @@ const NotificationModal = ({ isOpen, onClose, buttonPosition }) => {
         return;
       }
 
+      const API_BASE_URL =
+        window.location.hostname === "localhost"
+          ? "http://127.0.0.1:8000"
+          : "https://pcp-backend-f4a2.onrender.com";
       const deleteUrl = `${API_BASE_URL}/api/deletenotification/${notifId}/`;
       console.log("DELETE URL:", deleteUrl);
 
