@@ -156,7 +156,7 @@ class ProjectChat(models.Model):
 #Notification model
 class Notification(models.Model):
     notif_id = models.AutoField(primary_key=True)
-    time_sent = models.DateTimeField(auto_now_add=True)
+    time_sent = models.DateTimeField()
     title = models.CharField(max_length=100)
     message = models.TextField()
 

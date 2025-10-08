@@ -178,7 +178,7 @@ TaskDetails.propTypes = {
   projectDueDate: PropTypes.string,
 };
 
-const TaskUpdateModel = ({ isOpen, onClose, projectId, taskId, onUpdate, initialName = '', initialDescription = '', initialDueDate = '' }) => {
+const TaskUpdateModel = ({ isOpen, onClose, projectId, projectName, taskId, onUpdate, initialName = '', initialDescription = '', initialDueDate = '' }) => {
   const [taskName, setTaskName] = useState(initialName);
   const [taskDescription, setTaskDescription] = useState(initialDescription);
   const [dueDate, setDueDate] = useState(formatDateToYYYYMMDD(initialDueDate));
@@ -325,6 +325,24 @@ const TaskUpdateModel = ({ isOpen, onClose, projectId, taskId, onUpdate, initial
         { taskId, email },
         { headers: { Authorization: `Bearer ${token}` } }
       );
+
+      // Send notification to the added member
+      try {
+        const payload = JSON.parse(window.atob(token.split('.')[1]));
+        const loggedInEmail = payload.email || payload.user_email || payload.sub || 'Unknown user';
+
+        await axios.post(
+          `${API_BASE_URL}/api/createnotification/`,
+          {
+            emails: [email],
+            title: 'Added to Task',
+            message: `${loggedInEmail} added you to task "${taskName}" in project "${projectName}".`,
+          },
+          { headers: { Authorization: `Bearer ${token}` } }
+        );
+      } catch (notifErr) {
+        console.error('Error creating add-member notification:', notifErr);
+      }
       fetchTaskMembers(taskId);
       fetchProjectMembers(projectId);
     } catch (error) {
@@ -352,6 +370,24 @@ const TaskUpdateModel = ({ isOpen, onClose, projectId, taskId, onUpdate, initial
         { taskId, email },
         { headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' } }
       );
+    
+    // Send notification to the removed member
+    try {
+        const payload = JSON.parse(window.atob(token.split('.')[1]));
+        const loggedInEmail = payload.email || payload.user_email || payload.sub || 'Unknown user';
+
+        await axios.post(
+          `${API_BASE_URL}/api/createnotification/`,
+          {
+            emails: [email],
+            title: 'Removed from Task',
+            message: `${loggedInEmail} removed you from task "${taskName}" in project "${projectName}".`,
+          },
+          { headers: { Authorization: `Bearer ${token}` } }
+        );
+      } catch (notifErr) {
+        console.error('Error creating remove-member notification:', notifErr);
+      }
       fetchTaskMembers(taskId);
       fetchProjectMembers(projectId);
     } catch (error) {
@@ -521,6 +557,7 @@ TaskUpdateModel.propTypes = {
   isOpen: PropTypes.bool.isRequired,
   onClose: PropTypes.func.isRequired,
   projectId: PropTypes.oneOfType([PropTypes.number, PropTypes.string]).isRequired,
+  projectName: PropTypes.string,
   taskId: PropTypes.oneOfType([PropTypes.number, PropTypes.string]),
   onUpdate: PropTypes.func.isRequired,
   initialName: PropTypes.string,
