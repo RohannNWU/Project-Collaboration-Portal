@@ -719,90 +719,209 @@ const GroupLeaderDashboard = () => {
 
     // Handle task deletion
     const handleDelete = async (taskId) => {
-        if (!window.confirm('Are you sure you want to delete this task?')) {
+    if (!window.confirm('Are you sure you want to delete this task?')) {
+        return;
+    }
+
+    try {
+        const token = localStorage.getItem('access_token');
+        if (!token) {
+            navigate('/');
             return;
         }
 
+        const API_BASE_URL = window.location.hostname === 'localhost'
+            ? 'http://127.0.0.1:8000'
+            : 'https://pcp-backend-f4a2.onrender.com';
+
+        
+        const taskToDelete = tasks.find((t) => t.task_id === taskId);
+        const taskNameForMsg = taskToDelete?.task_name || 'the task';
+
+        
+        let assignedMembers = [];
         try {
-            const token = localStorage.getItem('access_token');
-            if (!token) {
-                navigate('/');
-                return;
-            }
-
-            const API_BASE_URL = window.location.hostname === 'localhost'
-                ? 'http://127.0.0.1:8000'
-                : 'https://pcp-backend-f4a2.onrender.com';
-
-            await axios.delete(`${API_BASE_URL}/api/deletetask/${taskId}/`, {
-                headers: { Authorization: `Bearer ${token}` },
-            });
-
-            setTasks((prev) => prev.filter((task) => task.task_id !== taskId));
-            setError('Task deleted successfully.');
-            setTimeout(() => setError(''), 3000);
-        } catch (err) {
-            console.error(`Error deleting task ${taskId}:`, err);
-            setError('Failed to delete task');
-            setTimeout(() => setError(''), 3000);
+            const membersResp = await axios.post(
+                `${API_BASE_URL}/api/gettaskmembers/`,
+                { taskId },
+                { headers: { Authorization: `Bearer ${token}` } }
+            );
+            assignedMembers = (membersResp.data?.task_members || []).map((m) => m.email).filter(Boolean);
+        } catch (fetchMembersErr) {
+            
+            console.error('Error fetching task members before delete:', fetchMembersErr);
         }
-    };
 
+        
+        await axios.delete(`${API_BASE_URL}/api/deletetask/${taskId}/`, {
+            headers: { Authorization: `Bearer ${token}` },
+        });
+
+        setTasks((prev) => prev.filter((task) => task.task_id !== taskId));
+        setError('Task deleted successfully.');
+        setTimeout(() => setError(''), 3000);
+
+        
+        if (assignedMembers.length > 0) {
+            try {
+                const payload = JSON.parse(window.atob(token.split('.')[1]));
+                const loggedInEmail = payload.email || payload.user_email || payload.sub || 'Unknown user';
+
+                await axios.post(
+                    `${API_BASE_URL}/api/createnotification/`,
+                    {
+                        emails: assignedMembers,
+                        title: 'Task Deleted',
+                        message: `${loggedInEmail} deleted "${taskNameForMsg}" in project "${projectData?.project_name || 'Unknown Project'}".`
+                    },
+                    { headers: { Authorization: `Bearer ${token}` } }
+                );
+            } catch (notifErr) {
+                console.error('Error sending task deletion notifications:', notifErr);
+               
+            }
+        }
+    } catch (err) {
+        console.error(`Error deleting task ${taskId}:`, err);
+        setError('Failed to delete task');
+        setTimeout(() => setError(''), 3000);
+    }
+   };
+
+    // Handle task rejection
     const handleReject = async (taskId) => {
-        try {
-            const token = localStorage.getItem('access_token');
-            if (!token) {
-                navigate('/');
-                return;
-            }
-
-            const API_BASE_URL = window.location.hostname === 'localhost'
-                ? 'http://127.0.0.1:8000'
-                : 'https://pcp-backend-f4a2.onrender.com';
-
-            await axios.post(`${API_BASE_URL}/api/updatetask/${taskId}/`, {
-                status: 'In Progress' // Payload directly
-            }, {
-                headers: { Authorization: `Bearer ${token}` } // Headers as a separate object
-            });
-
-            setTasks((prev) => prev.filter((task) => task.task_id !== taskId));
-            setError('Task Rejected');
-            setTimeout(() => setError(''), 3000);
-        } catch (err) {
-            console.error(`Error rejecting task ${taskId}:`, err);
-            setError('Failed to reject task');
-            setTimeout(() => setError(''), 3000);
+    try {
+        const token = localStorage.getItem('access_token');
+        if (!token) {
+            navigate('/');
+            return;
         }
-    };
 
+        const API_BASE_URL = window.location.hostname === 'localhost'
+            ? 'http://127.0.0.1:8000'
+            : 'https://pcp-backend-f4a2.onrender.com';
+
+        // Step 1: Update task status to "In Progress"
+        await axios.post(`${API_BASE_URL}/api/updatetask/${taskId}/`, {
+            status: 'In Progress'
+        }, {
+            headers: { Authorization: `Bearer ${token}` }
+        });
+
+        // Step 2: Remove task locally
+        setTasks((prev) => prev.filter((task) => task.task_id !== taskId));
+        setError('Task Rejected');
+        setTimeout(() => setError(''), 3000);
+
+        // Step 3: Fetch assigned members for notification
+        let assignedMembers = [];
+        try {
+            const membersResp = await axios.post(
+                `${API_BASE_URL}/api/gettaskmembers/`,
+                { taskId },
+                { headers: { Authorization: `Bearer ${token}` } }
+            );
+            assignedMembers = (membersResp.data?.task_members || []).map((m) => m.email).filter(Boolean);
+        } catch (fetchErr) {
+            console.error('Error fetching task members before notification:', fetchErr);
+        }
+
+        // Step 4: Notify members that the task was rejected
+        if (assignedMembers.length > 0) {
+            try {
+                const payload = JSON.parse(window.atob(token.split('.')[1]));
+                const leaderEmail = payload.email || payload.user_email || payload.sub || 'Unknown user';
+                const rejectedTask = tasks.find((t) => t.task_id === taskId);
+                const taskName = rejectedTask?.task_name || 'the task';
+
+                await axios.post(
+                    `${API_BASE_URL}/api/createnotification/`,
+                    {
+                        emails: assignedMembers,
+                        title: 'Task Rejected',
+                        message: `${leaderEmail} rejected "${taskName}" and sent it back for revision in project "${projectData?.project_name || 'Unknown Project'}".`,
+                    },
+                    { headers: { Authorization: `Bearer ${token}` } }
+                );
+            } catch (notifErr) {
+                console.error('Error sending reject notifications:', notifErr);
+            }
+        }
+    } catch (err) {
+        console.error(`Error rejecting task ${taskId}:`, err);
+        setError('Failed to reject task');
+        setTimeout(() => setError(''), 3000);
+    }
+};
+
+
+
+    // Handle task approval and finalization
     const handleApprove = async (taskId) => {
-        try {
-            const token = localStorage.getItem('access_token');
-            if (!token) {
-                navigate('/');
-                return;
-            }
-
-            const API_BASE_URL = window.location.hostname === 'localhost'
-                ? 'http://127.0.0.1:8000'
-                : 'https://pcp-backend-f4a2.onrender.com';
-
-            await axios.post(`${API_BASE_URL}/api/updatetask/${taskId}/`, {
-                status: 'Finalized' // Payload directly
-            }, {
-                headers: { Authorization: `Bearer ${token}` } // Headers as a separate object
-            });
-
-            setTasks((prev) => prev.filter((task) => task.task_id !== taskId));
-            setError('Task approved.');
-            setTimeout(() => setError(''), 3000);
-        } catch (err) {
-            console.error(`Error deleting task ${taskId}:`, err);
-            setError('Failed to delete task');
-            setTimeout(() => setError(''), 3000);
+    try {
+        const token = localStorage.getItem('access_token');
+        if (!token) {
+            navigate('/');
+            return;
         }
-    };
+
+        const API_BASE_URL = window.location.hostname === 'localhost'
+            ? 'http://127.0.0.1:8000'
+            : 'https://pcp-backend-f4a2.onrender.com';
+
+        
+        await axios.post(`${API_BASE_URL}/api/updatetask/${taskId}/`, {
+            status: 'Finalized'
+        }, {
+            headers: { Authorization: `Bearer ${token}` }
+        });
+
+        
+        setTasks((prev) => prev.filter((task) => task.task_id !== taskId));
+        setError('Task approved.');
+        setTimeout(() => setError(''), 3000);
+
+        
+        let assignedMembers = [];
+        try {
+            const membersResp = await axios.post(
+                `${API_BASE_URL}/api/gettaskmembers/`,
+                { taskId },
+                { headers: { Authorization: `Bearer ${token}` } }
+            );
+            assignedMembers = (membersResp.data?.task_members || []).map((m) => m.email).filter(Boolean);
+        } catch (fetchErr) {
+            console.error('Error fetching task members before notification:', fetchErr);
+        }
+
+        //Send notifications if there are members
+        if (assignedMembers.length > 0) {
+            try {
+                const payload = JSON.parse(window.atob(token.split('.')[1]));
+                const leaderEmail = payload.email || payload.user_email || payload.sub || 'Unknown user';
+                const finalizedTask = tasks.find((t) => t.task_id === taskId);
+                const taskName = finalizedTask?.task_name || 'the task';
+
+                await axios.post(
+                    `${API_BASE_URL}/api/createnotification/`,
+                    {
+                        emails: assignedMembers,
+                        title: 'Task Finalized',
+                        message: `${leaderEmail} approved and finalized "${taskName}" in project "${projectData?.project_name || 'Unknown Project'}".`,
+                    },
+                    { headers: { Authorization: `Bearer ${token}` } }
+                );
+            } catch (notifErr) {
+                console.error('Error sending finalize notifications:', notifErr);
+            }
+        }
+    } catch (err) {
+        console.error(`Error approving task ${taskId}:`, err);
+        setError('Failed to approve task');
+        setTimeout(() => setError(''), 3000);
+    }
+};
+
 
     const handleDeleteLink = async (linkId, projectId) => {
         if (!window.confirm('Are you sure you want to delete this link?')) {
@@ -1583,6 +1702,7 @@ const GroupLeaderDashboard = () => {
                             isOpen={showModal}
                             onClose={() => setShowModal(false)}
                             projectId={projectId}
+                            projectName={projectData?.project_name}
                             onSuccess={async () => {
                                 await fetchTasks();
                                 setError('Task added successfully!');
@@ -2029,6 +2149,7 @@ const GroupLeaderDashboard = () => {
                     setSelectedTaskId(null); // Reset task ID when closing
                 }}
                 projectId={projectId}
+                projectName={projectData?.project_name} 
                 taskId={selectedTaskId}
                 onUpdate={handleTaskUpdate}
                 initialName={tasks.find(task => task.task_id === selectedTaskId)?.task_name || ''}

@@ -1,10 +1,9 @@
-// Updated ChangeRoleModel.js
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import PropTypes from 'prop-types';
 import styles from './ChangeRoleModel.module.css';
 
-const ChangeRoleModel = ({ isOpen, onClose, projectId, memberEmail, onUpdate, initialRole = '' }) => {
+const ChangeRoleModel = ({ isOpen, onClose, projectId, memberEmail, onUpdate, initialRole = '', projectName }) => {
   const [role, setRole] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -34,12 +33,14 @@ const ChangeRoleModel = ({ isOpen, onClose, projectId, memberEmail, onUpdate, in
         return;
       }
 
-      const API_BASE_URL = window.location.hostname === 'localhost'
-        ? 'http://127.0.0.1:8000'
-        : 'https://pcp-backend-f4a2.onrender.com';
+      const API_BASE_URL =
+        window.location.hostname === 'localhost'
+          ? 'http://127.0.0.1:8000'
+          : 'https://pcp-backend-f4a2.onrender.com';
 
       console.log('Updating role with:', { projectId, email: memberEmail, new_role: role });
 
+      // Step 1: Update the member’s role
       const response = await axios.post(
         `${API_BASE_URL}/api/changerole/`,
         {
@@ -51,6 +52,24 @@ const ChangeRoleModel = ({ isOpen, onClose, projectId, memberEmail, onUpdate, in
       );
 
       if (response.status === 200) {
+        // Step 2: Decode JWT to get the logged-in user's email
+        const base64Url = token.split('.')[1];
+        const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+        const payload = JSON.parse(window.atob(base64));
+        const loggedInEmail = payload.email || payload.user_email || payload.sub || 'Unknown user';
+
+        // Step 3: Notify the member about their role change
+        await axios.post(
+          `${API_BASE_URL}/api/createnotification/`,
+          {
+            emails: [memberEmail],
+            title: 'Role Updated',
+            message: `${loggedInEmail} changed your role to ${role} in project "${projectName}".`,
+          },
+          { headers: { Authorization: `Bearer ${token}` } }
+        );
+
+        // Step 4: Reflect change in frontend state
         onUpdate({ projectId, memberEmail, role });
         onClose();
       } else {
@@ -78,7 +97,6 @@ const ChangeRoleModel = ({ isOpen, onClose, projectId, memberEmail, onUpdate, in
           </button>
         </div>
         {error && <div className={styles.errorMessage}>{error}</div>}
-        
         <div className={styles.modelBody}>
           <div className={styles.formGroup}>
             <label className={styles.label}>Select New Role</label>
@@ -125,10 +143,12 @@ ChangeRoleModel.propTypes = {
   memberEmail: PropTypes.string.isRequired,
   onUpdate: PropTypes.func.isRequired,
   initialRole: PropTypes.string,
+  projectName: PropTypes.string,
 };
 
 ChangeRoleModel.defaultProps = {
   initialRole: '',
+  projectName: 'Unknown Project',
 };
 
 export default ChangeRoleModel;

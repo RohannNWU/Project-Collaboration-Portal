@@ -160,3 +160,7 @@ FILE_UPLOAD_PERMISSIONS = 0o644
 
 # Security settings for file handling
 SECURE_CONTENT_TYPE_NOSNIFF = True
+
+
+TIME_ZONE = 'Africa/Johannesburg'
+USE_TZ = True

@@ -25,17 +25,20 @@ const NewProjectModal = ({ onClose, onSuccess }) => {
             navigate('/');
             return;
         }
-        const API_BASE_URL = window.location.hostname === 'localhost'
-            ? 'http://127.0.0.1:8000'
-            : 'https://pcp-backend-f4a2.onrender.com';
-        axios.get(`${API_BASE_URL}/api/dashboard/`, {
-            headers: { Authorization: `Bearer ${token}` }
-        })
-            .then(response => {
+        const API_BASE_URL =
+            window.location.hostname === 'localhost'
+                ? 'http://127.0.0.1:8000'
+                : 'https://pcp-backend-f4a2.onrender.com';
+
+        axios
+            .get(`${API_BASE_URL}/api/dashboard/`, {
+                headers: { Authorization: `Bearer ${token}` },
+            })
+            .then((response) => {
                 setEmail(response.data.email);
                 setProjectMembers([response.data.email]); // Automatically add logged-in user's email
             })
-            .catch(err => {
+            .catch((err) => {
                 if (err.response && err.response.status === 401) {
                     setMessage('Invalid credentials');
                     navigate('/');
@@ -50,7 +53,7 @@ const NewProjectModal = ({ onClose, onSuccess }) => {
 
     const handleInputChange = (event) => {
         setMemberName(event.target.value);
-        setMessage(''); // Clear message when user starts typing
+        setMessage('');
     };
 
     const handleAddMember = async (e) => {
@@ -69,9 +72,10 @@ const NewProjectModal = ({ onClose, onSuccess }) => {
             return;
         }
 
-        const API_BASE_URL = window.location.hostname === 'localhost'
-            ? 'http://127.0.0.1:8000'
-            : 'https://pcp-backend-f4a2.onrender.com';
+        const API_BASE_URL =
+            window.location.hostname === 'localhost'
+                ? 'http://127.0.0.1:8000'
+                : 'https://pcp-backend-f4a2.onrender.com';
 
         try {
             const response = await axios.post(
@@ -83,7 +87,7 @@ const NewProjectModal = ({ onClose, onSuccess }) => {
                 setProjectMembers([...project_members, trimmedMemberName]);
                 setMemberName('');
                 setMessage('Member added successfully');
-                setTimeout(() => setMessage(''), 3000); // Clear success message after 3 seconds
+                setTimeout(() => setMessage(''), 3000);
             }
         } catch (error) {
             setMessage(error.response?.data.error || 'Failed to validate email');
@@ -106,34 +110,50 @@ const NewProjectModal = ({ onClose, onSuccess }) => {
         event.preventDefault();
         setLoading(true);
 
-        // Check if there are at least 2 project members
         if (project_members.length < 2) {
             setMessage('At least 2 project members are required');
             setLoading(false);
             return;
         }
 
-        const API_BASE_URL = window.location.hostname === 'localhost'
-            ? 'http://127.0.0.1:8000'
-            : 'https://pcp-backend-f4a2.onrender.com';
+        const API_BASE_URL =
+            window.location.hostname === 'localhost'
+                ? 'http://127.0.0.1:8000'
+                : 'https://pcp-backend-f4a2.onrender.com';
+
+        const token = localStorage.getItem('access_token');
 
         try {
+            // Step 1: Create project
             const response = await axios.post(
                 `${API_BASE_URL}/api/newproject/`,
                 {
                     project_name: projectname,
                     project_description: project_description,
                     project_due_date: project_due_date,
-                    project_members: project_members
+                    project_members: project_members,
                 },
                 {
-                    headers: { Authorization: `Bearer ${localStorage.getItem('access_token')}` }
+                    headers: { Authorization: `Bearer ${token}` },
                 }
             );
+
             setMessage(response.data.message);
-            if (onSuccess) {
-                onSuccess(); // Trigger dashboard refresh
-            }
+
+            // Step 2: Send notification to all members
+            await axios.post(
+                `${API_BASE_URL}/api/createnotification/`,
+                {
+                    emails: project_members,
+                    title: 'New Project Created',
+                    message: `${email} added you to project "${projectname}".`,
+                },
+                {
+                    headers: { Authorization: `Bearer ${token}` },
+                }
+            );
+
+            if (onSuccess) onSuccess();
             setTimeout(() => {
                 onClose();
             }, 1500);
@@ -152,17 +172,18 @@ const NewProjectModal = ({ onClose, onSuccess }) => {
         createNewProject(e);
     };
 
-    if (!email) return null; // Wait for email to load
+    if (!email) return null;
 
     return (
-        <div className={styles.modelOverlay} >
+        <div className={styles.modelOverlay}>
             <div className={styles.modelContent} onClick={(e) => e.stopPropagation()}>
                 <div className={styles.modelHeader}>
                     <h2 className={styles.modelTitle}>New Project for {email}</h2>
-                    <button className={styles.closeButton}onClick={onClose}>
+                    <button className={styles.closeButton} onClick={onClose}>
                         ×
                     </button>
                 </div>
+
                 <div className={styles.modelBody}>
                     <form onSubmit={handleSubmit}>
                         <div className={styles.formGroup}>
@@ -176,6 +197,7 @@ const NewProjectModal = ({ onClose, onSuccess }) => {
                                 disabled={loading}
                             />
                         </div>
+
                         <div className={styles.formGroup}>
                             <label className={styles.label}>Project Description</label>
                             <textarea
@@ -187,6 +209,7 @@ const NewProjectModal = ({ onClose, onSuccess }) => {
                                 disabled={loading}
                             />
                         </div>
+
                         <div className={styles.formGroup}>
                             <label className={styles.label}>Due Date</label>
                             <input
@@ -196,12 +219,15 @@ const NewProjectModal = ({ onClose, onSuccess }) => {
                                 required
                                 className={styles.input}
                                 disabled={loading}
-                                min={minDate} // Restrict to tomorrow and onwards
+                                min={minDate}
                             />
                         </div>
+
                         <div className={styles.formGroup}>
                             <label className={styles.label}>Add Project Member</label>
-                            <div style={{ display: 'flex', gap: '10px', marginBottom: '10px' }}>
+                            <div
+                                style={{ display: 'flex', gap: '10px', marginBottom: '10px' }}
+                            >
                                 <input
                                     type="text"
                                     placeholder="Enter member email"
@@ -222,6 +248,7 @@ const NewProjectModal = ({ onClose, onSuccess }) => {
                                 </button>
                             </div>
                         </div>
+
                         <div className={styles.formGroup}>
                             <label className={styles.label}>Project Members</label>
                             <div
@@ -264,34 +291,44 @@ const NewProjectModal = ({ onClose, onSuccess }) => {
                                     ))}
                                 </ul>
                                 {project_members.length === 0 && (
-                                    <p style={{ textAlign: 'center', color: '#666', margin: '10px 0' }}>
+                                    <p
+                                        style={{
+                                            textAlign: 'center',
+                                            color: '#666',
+                                            margin: '10px 0',
+                                        }}
+                                    >
                                         No members added
                                     </p>
                                 )}
                             </div>
                         </div>
+
                         {message && (
                             <p
                                 className={styles.TaskUpdateModel__errorMessage}
-                                style={{ color: message.includes('successfully') ? 'green' : 'red' }}
+                                style={{
+                                    color: message.includes('successfully') ? 'green' : 'red',
+                                }}
                             >
                                 {message}
                             </p>
                         )}
                     </form>
                 </div>
+
                 <div className={styles.modelFooter}>
-                    <button 
-                        type="button" 
-                        className={styles.cancelButton} 
+                    <button
+                        type="button"
+                        className={styles.cancelButton}
                         onClick={handleCancel}
                         disabled={loading}
                     >
                         Cancel
                     </button>
-                    <button 
-                        type="button" 
-                        className={styles.submitButton} 
+                    <button
+                        type="button"
+                        className={styles.submitButton}
                         onClick={handleSubmit}
                         disabled={loading}
                     >
