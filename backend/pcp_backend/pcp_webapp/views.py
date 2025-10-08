@@ -13,7 +13,6 @@ from django.http import HttpResponse
 from django.utils import timezone
 from rest_framework.permissions import IsAuthenticated
 from .serializers import (
-    UserSerializer, ProjectSerializer, MessageSerializer,
     DocumentSerializer, NotificationSummarySerializer
 )
 from rest_framework.decorators import api_view
@@ -1573,48 +1572,38 @@ class CreateNotificationView(APIView):
 
 #Delete notification for a user, if no users remain linked to the notification, delete the notification as well
 class DeleteNotificationView(APIView):
-    def post(self, request):
-        # Extract and validate user from JWT token
-        auth_header = request.headers.get('Authorization')
-        if not auth_header or not auth_header.startswith('Bearer '):
-            return Response({'error': 'Authentication required'}, status=status.HTTP_401_UNAUTHORIZED)
-        
-        token = auth_header.split(' ')[1]
+    
+    def delete(self, request, notif_id):
         try:
-            payload = UntypedToken(token).payload
-            user_email = payload.get('user_email')
-            user = User.objects.get(email=user_email)
-        except (InvalidToken, User.DoesNotExist) as e:
-            logger.warning(f"Token validation failed: {e}")
-            return Response({'error': 'Authentication required'}, status=status.HTTP_401_UNAUTHORIZED)
-        
-        notif_id = request.data.get('notif_id')
-        if not notif_id:
-            return Response({'error': 'notif_id is required'}, status=status.HTTP_400_BAD_REQUEST)
-        
-        try:
-            # Find the UserNotification for this user and notification
-            user_notif = UserNotification.objects.get(email=user, notif__notif_id=notif_id)
+            # Identify the logged-in user (JWT)
+            user = get_user_from_token(request)
+            if not user:
+                return Response({"error": "Authentication required."}, status=status.HTTP_401_UNAUTHORIZED)
+
+            # Find the notification for this user
+            try:
+                user_notif = UserNotification.objects.get(email=user, notif__notif_id=notif_id)
+            except UserNotification.DoesNotExist:
+                return Response({"error": "Notification not found for this user."}, status=status.HTTP_404_NOT_FOUND)
+
+            # Delete the UserNotification link
             user_notif.delete()
-            
-            # Check if any UserNotifications remain for this notification
+
+            # Optional: also delete the notification itself if it’s not linked to any other users
             remaining_links = UserNotification.objects.filter(notif__notif_id=notif_id).exists()
             if not remaining_links:
-                notification = Notification.objects.get(notif_id=notif_id)
-                notification.delete()
-                logger.info(f"Notification {notif_id} deleted as no users remain linked")
-            else:
-                logger.info(f"User {user.email} unlinked from notification {notif_id}")
-            
-            return Response({'message': 'Notification deleted successfully for the user'}, status=status.HTTP_200_OK)
-        
-        except UserNotification.DoesNotExist:
-            return Response({'error': 'Notification not found for this user'}, status=status.HTTP_404_NOT_FOUND)
+                Notification.objects.filter(notif_id=notif_id).delete()
+
+            return Response(
+                {"message": "Notification deleted successfully."},
+                status=status.HTTP_200_OK
+            )
+
         except Notification.DoesNotExist:
-            return Response({'error': 'Notification not found'}, status=status.HTTP_404_NOT_FOUND)
+            return Response({"error": "Notification not found."}, status=status.HTTP_404_NOT_FOUND)
         except Exception as e:
-            logger.error(f"Error deleting notification: {str(e)}")
-            return Response({'error': f'Failed to delete notification: {str(e)}'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+            return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
 
 #View that fetches all notifications for a user        
 class GetUserNotificationsView(APIView):

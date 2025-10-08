@@ -1,7 +1,7 @@
 from rest_framework import serializers
 from django.utils import timezone
 from datetime import timedelta
-from .models import User, Project, Task, Message, Document, ActivityLog, UserProject, Notification
+from .models import User, Project, Task, Document, ActivityLog, UserProject, Notification
 
 class UserSerializer(serializers.ModelSerializer):
     full_name = serializers.ReadOnlyField()
@@ -44,15 +44,6 @@ class TaskSerializer(serializers.ModelSerializer):
         fields = ['task_id', 'task_name', 'task_description', 'project_id', 'project_name', 
                   'assignee', 'creator', 'task_status', 'task_priority', 'task_due_date']
 
-class MessageSerializer(serializers.ModelSerializer):
-    sender = UserSerializer(read_only=True)
-    recipient = UserSerializer(read_only=True)
-    project_name = serializers.CharField(source='project_id.project_name', read_only=True)
-    
-    class Meta:
-        model = Message
-        fields = ['id', 'sender', 'recipient', 'project_id', 'project_name', 'message_type', 
-                  'subject', 'content', 'is_read', 'created_at']
 
 class DocumentSerializer(serializers.ModelSerializer):
     uploaded_by = UserSerializer(read_only=True)
