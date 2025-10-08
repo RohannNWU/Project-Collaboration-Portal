@@ -17,7 +17,7 @@ const GroupLeaderDashboard = () => {
     const [chatMessages, setChatMessages] = useState([]);
     const [messageInput, setMessageInput] = useState('');
     const [expandedTasks, setExpandedTasks] = useState({});
-    const [expandedSections, setExpandedSections] = useState({ myTasks: false, projectTasks: false, links: false });
+    const [expandedSections, setExpandedSections] = useState({ myTasks: false, projectTasks: false, links: false, meetings: false });
     const [userTaskAssignments, setUserTaskAssignments] = useState({});
     const [loadingProject, setLoadingProject] = useState(false);
     const [loadingTasks, setLoadingTasks] = useState(false);
@@ -25,9 +25,11 @@ const GroupLeaderDashboard = () => {
     const [loadingDocuments, setLoadingDocuments] = useState({});
     const [loadingChat] = useState(false);
     const [loadingLinks, setLoadingLinks] = useState(false);
+    const [loadingMeetings, setLoadingMeetings] = useState(false);
     const [error, setError] = useState('');
     const [myTasks, setMyTasks] = useState([]);
     const [projectTasks, setProjectTasks] = useState([]);
+    const [meetings, setMeetings] = useState([]);
     const location = useLocation();
     const navigate = useNavigate();
     const { projectId } = location.state || {};
@@ -145,6 +147,46 @@ const GroupLeaderDashboard = () => {
             setTimeout(() => setError(''), 3000);
         } finally {
             setLoadingLinks(false);
+        }
+    }, [projectId, navigate]);
+
+    // Fetch meetings
+    const fetchMeetings = useCallback(async () => {
+        setLoadingMeetings(true);
+        setError('');
+        try {
+            const token = localStorage.getItem('access_token');
+            if (!token) {
+                navigate('/');
+                return;
+            }
+
+            const API_BASE_URL = window.location.hostname === 'localhost'
+                ? 'http://127.0.0.1:8000'
+                : 'https://pcp-backend-f4a2.onrender.com';
+
+            const response = await axios.get(`${API_BASE_URL}/api/getprojectmeetings/?project_id=${projectId}`, {
+                headers: { Authorization: `Bearer ${token}` },
+            });
+
+            setMeetings(response.data.meetings || []);
+        } catch (err) {
+            console.error('Error fetching meetings:', err);
+            if (err.response?.status === 400) {
+                setError('Project ID is required');
+                setTimeout(() => setError(''), 3000);
+            } else if (err.response?.status === 404) {
+                setError('Project not found');
+                setTimeout(() => setError(''), 3000);
+            } else if (err.response?.status === 401) {
+                localStorage.removeItem('access_token');
+                navigate('/');
+            } else {
+                setError('Failed to fetch meetings');
+                setTimeout(() => setError(''), 3000);
+            }
+        } finally {
+            setLoadingMeetings(false);
         }
     }, [projectId, navigate]);
 
@@ -1117,9 +1159,51 @@ const GroupLeaderDashboard = () => {
                             </div>
                         </div>
                     )}
-                    <button className={styles.backButton} onClick={() => ensureGroupLeader(() => setShowCreateMeetingModal(true))}>
-                        Create New Meeting
-                    </button>
+                    <div className={styles.section}>
+                        <h2>Project Meetings</h2>
+                        <div
+                            className={`${styles.sectionHeader} ${expandedSections.meetings ? styles.sectionHeaderExpanded : ''}`}
+                            onClick={() => ensureGroupLeader(() => {
+                                const willExpand = !expandedSections.meetings;
+                                toggleSectionExpansion('meetings');
+                                if (willExpand && !meetings.length && !loadingMeetings) {
+                                    fetchMeetings();
+                                }
+                            })}
+                        >
+                            <h3 className={styles.sectionHeading}>Upcoming Meetings</h3>
+                            <span className={`${styles.dropdownToggle} ${expandedSections.meetings ? styles.dropdownToggleActive : ''}`}>
+                                ▼
+                            </span>
+                        </div>
+                        {expandedSections.meetings && (
+                            <div className={styles.sectionContent}>
+                                {loadingMeetings ? (
+                                    <div className={styles.loadingMessage}>Loading meetings...</div>
+                                ) : meetings.length > 0 ? (
+                                    <ul className={styles.meetingsList}>
+                                        {meetings.map((meeting) => (
+                                            <li key={meeting.id} className={styles.meetingItem}>
+                                                <h4 className={styles.meetingTitle}>{meeting.meeting_title || 'Untitled Meeting'}</h4>
+                                                <p className={styles.meetingDate}>Date: {meeting.date || 'N/A'}</p>
+                                                <p className={styles.meetingTime}>Time: {meeting.time || 'N/A'}</p>
+                                            </li>
+                                        ))}
+                                    </ul>
+                                ) : (
+                                    <div className={styles.noDataMessage}>
+                                        No meetings scheduled.
+                                    </div>
+                                )}
+                            </div>
+                        )}
+                            <button className={styles.backButton} onClick={(e) => {
+                                e.stopPropagation();
+                                ensureGroupLeader(() => setShowCreateMeetingModal(true));
+                            }}>
+                                Create New Meeting
+                            </button>
+                    </div>
                 </div>
             ),
         },

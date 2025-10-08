@@ -2119,6 +2119,40 @@ class GetUserMeetingsView(APIView):
             logger.error(f"Error fetching user meetings: {str(e)}")
             return Response({'error': f'Failed to fetch meetings: {str(e)}'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
+class GetProjectMeetingsView(APIView):
+    def get(self, request):
+        project_id = request.GET.get('project_id')
+        if not project_id:
+            return Response({'error': 'Project ID is required'}, status=status.HTTP_400_BAD_REQUEST)
+        
+        user = get_user_from_token(request)
+        if not user:
+            return Response({'error': 'Authentication required'}, status=status.HTTP_401_UNAUTHORIZED)
+        
+        try:
+            project = Project.objects.get(project_id=project_id)
+            
+            if not UserProject.objects.filter(email=user, project_id=project).exists():
+                return Response({'error': 'Access denied to this project'}, status=status.HTTP_403_FORBIDDEN)
+            
+            meetings = Meeting.objects.filter(project_id=project).order_by('date_time').values(
+                'meeting_id', 'meeting_title', 'date_time'
+            )
+            
+            meetings_list = list(meetings)
+            for meeting in meetings_list:
+                meeting['date'] = meeting['date_time'].strftime('%Y-%m-%d')
+                meeting['time'] = meeting['date_time'].strftime('%H:%M')
+            
+            return Response({'meetings': meetings_list}, status=status.HTTP_200_OK)
+        
+        except Project.DoesNotExist:
+            return Response({'error': 'Project not found'}, status=status.HTTP_404_NOT_FOUND)
+        
+        except Exception as e:
+            logger.error(f"Error fetching project meetings: {str(e)}")
+            return Response({'error': f'Failed to fetch meetings: {str(e)}'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
 class GetProjectLinksView(APIView):
     def post(self, request):
         project_id = request.data.get('projectId')
