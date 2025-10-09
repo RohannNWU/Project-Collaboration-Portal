@@ -93,7 +93,7 @@ const SupervisorDashboard = () => {
         ? 'http://127.0.0.1:8000'
         : 'https://pcp-backend-f4a2.onrender.com';
 
-      const response = await axios.get(`${API_BASE_URL}/api/gettaskmembers/`,  {
+      const response = await axios.get(`${API_BASE_URL}/api/gettaskmembers/`, {
         headers: { Authorization: `Bearer ${token}` },
       });
 
@@ -1131,6 +1131,12 @@ const SupervisorDashboard = () => {
                       {links.map((link) => (
                         <li key={link.id} className={styles.linkItem}>
                           <a href={link.link_url} target="_blank" rel="noopener noreferrer">{link.link_name || link.link_url}</a>
+                          <span
+                            onClick={() => ensureGroupLeader(() => handleDeleteLink(link.link_id, link.project_id))}
+                            className={styles.removeDocument}
+                          >
+                            (remove)
+                          </span>
                         </li>
                       ))}
                     </ul>
