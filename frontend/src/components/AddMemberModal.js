@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
-import styles from './AddMemberModal.module.css'; // Adjust import as needed
+import styles from './ChangeRoleModel.module.css'; // Adjust import as needed
 
-const AddMemberModal = ({ isOpen, onClose, projectId, projectName }) => {
+const AddMembermodal = ({ isOpen, onClose, projectId, projectName }) => {
     const [email, setEmail] = useState('');
     const [role, setRole] = useState('role');
     const [message, setMessage] = useState('');
@@ -11,7 +11,7 @@ const AddMemberModal = ({ isOpen, onClose, projectId, projectName }) => {
     const [loggedInEmail, setLoggedInEmail] = useState('');
     const navigate = useNavigate();
 
-    // Reset form when modal closes
+    // Reset form when model closes
     useEffect(() => {
         if (!isOpen) {
             setEmail('');
@@ -85,7 +85,7 @@ const AddMemberModal = ({ isOpen, onClose, projectId, projectName }) => {
             setRole('role');
             setMessage('Member added and notified successfully.');
 
-            // Close modal after success
+            // Close model after success
             setTimeout(() => {
                 onClose();
             }, 2000);
@@ -100,16 +100,16 @@ const AddMemberModal = ({ isOpen, onClose, projectId, projectName }) => {
     if (!isOpen) return null;
 
     return (
-        <div className={styles.modalOverlay}>
-            <div className={styles.modalContent} onClick={(e) => e.stopPropagation()}>
-                <div className={styles.modalHeader}>
-                    <h2 className={styles.modalTitle}>Add Project Member</h2>
+        <div className={styles.modelOverlay}>
+            <div className={styles.modelContent} onClick={(e) => e.stopPropagation()}>
+                <div className={styles.modelHeader}>
+                    <h2 className={styles.modelTitle}>Add Project Member</h2>
                     <button className={styles.closeButton} onClick={onClose}>
                         ×
                     </button>
                 </div>
 
-                <div className={styles.modalBody}>
+                <div className={styles.modelBody}>
                     <div className={styles.formGroup}>
                         <label className={styles.label}>Member Email</label>
                         <input
@@ -140,7 +140,7 @@ const AddMemberModal = ({ isOpen, onClose, projectId, projectName }) => {
                     {message && <p className={styles.message}>{message}</p>}
                 </div>
 
-                <div className={styles.modalFooter}>
+                <div className={styles.modelFooter}>
                     <button
                         className={styles.cancelButton}
                         onClick={onClose}
@@ -161,4 +161,4 @@ const AddMemberModal = ({ isOpen, onClose, projectId, projectName }) => {
     );
 };
 
-export default AddMemberModal;
+export default AddMembermodal;

@@ -7,6 +7,7 @@ import ProjectDetailsModel from './ProjectDetailsModel';
 import ChangeRoleModel from './ChangeRoleModel';
 import AddMemberModal from './AddMemberModal';
 import CreateMeetingModal from './CreateMeetingModal';
+import AddNewLinkModal from './AddNewLinkModal';
 
 const SupervisorDashboard = () => {
   const [activeTab, setActiveTab] = useState('project-description');
@@ -33,6 +34,7 @@ const SupervisorDashboard = () => {
   const navigate = useNavigate();
   const { projectId } = location.state || {};
   const chatContainerRef = useRef(null);
+  const [taskMembers, setTaskMembers] = useState({});
   const [showProjectDetailsModel, setShowProjectDetailsModel] = useState(false);
   const [showChangeRoleModel, setShowChangeRoleModel] = useState(false);
   const [selectedMember, setSelectedMember] = useState(null);
@@ -41,6 +43,7 @@ const SupervisorDashboard = () => {
   const [showAddMemberModal, setShowAddMemberModal] = useState(false);
   const [showCreateMeetingModal, setShowCreateMeetingModal] = useState(false);
   const [expandedSections, setExpandedSections] = useState({ links: false, meetings: false });
+  const [showLinkModal, setShowLinkModal] = useState(false);
   const [meetings, setMeetings] = useState([]);
   const [loadingMeetings, setLoadingMeetings] = useState(false);
   const isTempId = (id) => typeof id === 'string' && id.startsWith('temp-');
@@ -77,6 +80,31 @@ const SupervisorDashboard = () => {
       headers: { Authorization: `Bearer ${token}` },
     };
   };
+
+  const fetchTaskMembers = useCallback(async (taskId) => {
+    try {
+      const token = localStorage.getItem('access_token');
+      if (!token) {
+        navigate('/');
+        return;
+      }
+
+      const API_BASE_URL = window.location.hostname === 'localhost'
+        ? 'http://127.0.0.1:8000'
+        : 'https://pcp-backend-f4a2.onrender.com';
+
+      const response = await axios.get(`${API_BASE_URL}/api/gettaskmembers/`,  {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      setTaskMembers((prev) => ({
+        ...prev,
+        [taskId]: response.data.members || [],
+      }));
+    } catch (err) {
+      console.error(`Error fetching members for task ${taskId}:`, err);
+    }
+  }, [navigate]);
 
   // Effect to scroll to the latest message when chatMessages update
   useEffect(() => {
@@ -215,24 +243,6 @@ const SupervisorDashboard = () => {
 
     const messageContent = messageInput.trim();
     const tempId = `temp-${Date.now()}`;
-    const tempMessage = {
-      id: tempId,
-      content: messageContent,
-      sender_name: 'You',
-      role: userRole || 'Student',
-      sent_at: new Date().toLocaleString('en-GB', {
-        year: 'numeric',
-        month: '2-digit',
-        day: '2-digit',
-        hour: '2-digit',
-        minute: '2-digit',
-        second: '2-digit',
-        hour12: false,
-      }).replace(/(\d{2})\/(\d{2})\/(\d{4}), (\d{2}:\d{2}:\d{2})/, '$3-$2-$1 $4'),
-    };
-
-    // show temp message immediately
-    setChatMessages(prev => [...prev, tempMessage]);
     setMessageInput('');
 
     try {
@@ -308,76 +318,76 @@ const SupervisorDashboard = () => {
 
   // For Grade and Feedback Modal
   // For Grade and Feedback Modal
-const handleGradeFeedbackSubmit = async ({ grade, feedback }) => {
-  try {
-    const token = localStorage.getItem('access_token');
-    if (!token) {
-      navigate('/');
-      return;
-    }
-
-    const API_BASE_URL = window.location.hostname === 'localhost'
-      ? 'http://127.0.0.1:8000'
-      : 'https://pcp-backend-f4a2.onrender.com';
-
-    //Submit grade and feedback using your real endpoint
-    await axios.post(`${API_BASE_URL}/api/updateprojectfeedback/`, {
-      project_id: projectId,
-      grade: grade,
-      feedback: feedback
-    }, {
-      headers: { Authorization: `Bearer ${token}` },
-    });
-
-    //Refresh and show success ---
-    await fetchProjectData();
-    setActiveTab('review_project');
-    setError('Grade and feedback submitted successfully!');
-    setTimeout(() => setError(''), 3000);
-
-    //Fetch all members of the project
-    let projectMembers = [];
+  const handleGradeFeedbackSubmit = async ({ grade, feedback }) => {
     try {
-      const membersResponse = await axios.post(
-        `${API_BASE_URL}/api/getmembers/`,
-        { projectId },
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
-      projectMembers = (membersResponse.data?.members || []).map((m) => m.email).filter(Boolean);
-    } catch (fetchErr) {
-      console.error('Error fetching project members before notification:', fetchErr);
-    }
-
-    //Notify all members except the grader (current supervisor)
-    if (projectMembers.length > 0) {
-      try {
-        const payload = JSON.parse(window.atob(token.split('.')[1]));
-        const supervisorEmail = payload.email || payload.user_email || payload.sub || 'Unknown user';
-
-        //Exclude the supervisor themself
-        const filteredRecipients = projectMembers.filter((email) => email !== supervisorEmail);
-
-        if (filteredRecipients.length > 0) {
-          await axios.post(
-            `${API_BASE_URL}/api/createnotification/`,
-            {
-              emails: filteredRecipients,
-              title: 'Project Graded',
-              message: `${supervisorEmail} graded your project "${projectData?.project_name || 'Unknown Project'}" and provided feedback.`,
-            },
-            { headers: { Authorization: `Bearer ${token}` } }
-          );
-        }
-      } catch (notifErr) {
-        console.error('Error sending project graded notifications:', notifErr);
+      const token = localStorage.getItem('access_token');
+      if (!token) {
+        navigate('/');
+        return;
       }
+
+      const API_BASE_URL = window.location.hostname === 'localhost'
+        ? 'http://127.0.0.1:8000'
+        : 'https://pcp-backend-f4a2.onrender.com';
+
+      //Submit grade and feedback using your real endpoint
+      await axios.post(`${API_BASE_URL}/api/updateprojectfeedback/`, {
+        project_id: projectId,
+        grade: grade,
+        feedback: feedback
+      }, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      //Refresh and show success ---
+      await fetchProjectData();
+      setActiveTab('review_project');
+      setError('Grade and feedback submitted successfully!');
+      setTimeout(() => setError(''), 3000);
+
+      //Fetch all members of the project
+      let projectMembers = [];
+      try {
+        const membersResponse = await axios.post(
+          `${API_BASE_URL}/api/getmembers/`,
+          { projectId },
+          { headers: { Authorization: `Bearer ${token}` } }
+        );
+        projectMembers = (membersResponse.data?.members || []).map((m) => m.email).filter(Boolean);
+      } catch (fetchErr) {
+        console.error('Error fetching project members before notification:', fetchErr);
+      }
+
+      //Notify all members except the grader (current supervisor)
+      if (projectMembers.length > 0) {
+        try {
+          const payload = JSON.parse(window.atob(token.split('.')[1]));
+          const supervisorEmail = payload.email || payload.user_email || payload.sub || 'Unknown user';
+
+          //Exclude the supervisor themself
+          const filteredRecipients = projectMembers.filter((email) => email !== supervisorEmail);
+
+          if (filteredRecipients.length > 0) {
+            await axios.post(
+              `${API_BASE_URL}/api/createnotification/`,
+              {
+                emails: filteredRecipients,
+                title: 'Project Graded',
+                message: `${supervisorEmail} graded your project "${projectData?.project_name || 'Unknown Project'}" and provided feedback.`,
+              },
+              { headers: { Authorization: `Bearer ${token}` } }
+            );
+          }
+        } catch (notifErr) {
+          console.error('Error sending project graded notifications:', notifErr);
+        }
+      }
+    } catch (err) {
+      console.error('Error submitting grade and feedback:', err);
+      setError('Failed to submit grade and feedback');
+      setTimeout(() => setError(''), 3000);
     }
-  } catch (err) {
-    console.error('Error submitting grade and feedback:', err);
-    setError('Failed to submit grade and feedback');
-    setTimeout(() => setError(''), 3000);
-  }
- };
+  };
 
 
   // Fetch documents for a specific task
@@ -481,82 +491,80 @@ const handleGradeFeedbackSubmit = async ({ grade, feedback }) => {
   }, [activeTab, projectId, fetchFinalSubmission]);
 
   // Handle Project Details Modal Submit
- const handleProjectDetailsSubmit = async ({ name, description, due_date }) => {
-  try {
-    const token = localStorage.getItem('access_token');
-    if (!token) {
-      navigate('/');
-      return;
-    }
-
-    const API_BASE_URL =
-      window.location.hostname === 'localhost'
-        ? 'http://127.0.0.1:8000'
-        : 'https://pcp-backend-f4a2.onrender.com';
-
-    // --- Step 1: Update the project details ---
-    await axios.post(
-      `${API_BASE_URL}/api/updateprojectdetails/`,
-      {
-        project_id: projectId,
-        name,
-        description,
-        due_date,
-      },
-      { headers: { Authorization: `Bearer ${token}` } }
-    );
-
-    // --- Step 2: Refresh UI ---
-    await fetchProjectData();
-    setActiveTab('project-description');
-    setError('Project details updated successfully!');
-    setTimeout(() => setError(''), 3000);
-
-    // --- Step 3: Fetch all project members ---
-    let projectMembers = [];
+  const handleProjectDetailsSubmit = async ({ name, description, due_date }) => {
     try {
-      const membersResponse = await axios.post(
-        `${API_BASE_URL}/api/getmembers/`,
-        { projectId },
+      const token = localStorage.getItem('access_token');
+      if (!token) {
+        navigate('/');
+        return;
+      }
+
+      const API_BASE_URL =
+        window.location.hostname === 'localhost'
+          ? 'http://127.0.0.1:8000'
+          : 'https://pcp-backend-f4a2.onrender.com';
+
+      // --- Step 1: Update the project details ---
+      await axios.post(
+        `${API_BASE_URL}/api/updateprojectdetails/`,
+        {
+          project_id: projectId,
+          name,
+          description,
+          due_date,
+        },
         { headers: { Authorization: `Bearer ${token}` } }
       );
-      projectMembers = (membersResponse.data?.members || []).map((m) => m.email).filter(Boolean);
-    } catch (fetchErr) {
-      console.error('Error fetching project members for notification:', fetchErr);
-    }
 
-    // --- Step 4: Notify all members except the supervisor who made the change ---
-    if (projectMembers.length > 0) {
+      // --- Step 2: Refresh UI ---
+      await fetchProjectData();
+      setActiveTab('project-description');
+      setError('Project details updated successfully!');
+      setTimeout(() => setError(''), 3000);
+
+      // --- Step 3: Fetch all project members ---
+      let projectMembers = [];
       try {
-        const payload = JSON.parse(window.atob(token.split('.')[1]));
-        const supervisorEmail = payload.email || payload.user_email || payload.sub || 'Unknown user';
-
-        // Remove the current supervisor's email
-        const filteredRecipients = projectMembers.filter((email) => email !== supervisorEmail);
-
-        if (filteredRecipients.length > 0) {
-          await axios.post(
-            `${API_BASE_URL}/api/createnotification/`,
-            {
-              emails: filteredRecipients,
-              title: 'Project Details Updated',
-              message: `${supervisorEmail} updated the details of project "${name}". Please review the latest description and due date.`,
-            },
-            { headers: { Authorization: `Bearer ${token}` } }
-          );
-        }
-      } catch (notifErr) {
-        console.error('Error sending project update notifications:', notifErr);
+        const membersResponse = await axios.post(
+          `${API_BASE_URL}/api/getmembers/`,
+          { projectId },
+          { headers: { Authorization: `Bearer ${token}` } }
+        );
+        projectMembers = (membersResponse.data?.members || []).map((m) => m.email).filter(Boolean);
+      } catch (fetchErr) {
+        console.error('Error fetching project members for notification:', fetchErr);
       }
+
+      // --- Step 4: Notify all members except the supervisor who made the change ---
+      if (projectMembers.length > 0) {
+        try {
+          const payload = JSON.parse(window.atob(token.split('.')[1]));
+          const supervisorEmail = payload.email || payload.user_email || payload.sub || 'Unknown user';
+
+          // Remove the current supervisor's email
+          const filteredRecipients = projectMembers.filter((email) => email !== supervisorEmail);
+
+          if (filteredRecipients.length > 0) {
+            await axios.post(
+              `${API_BASE_URL}/api/createnotification/`,
+              {
+                emails: filteredRecipients,
+                title: 'Project Details Updated',
+                message: `${supervisorEmail} updated the details of project "${name}". Please review the latest description and due date.`,
+              },
+              { headers: { Authorization: `Bearer ${token}` } }
+            );
+          }
+        } catch (notifErr) {
+          console.error('Error sending project update notifications:', notifErr);
+        }
+      }
+    } catch (err) {
+      console.error('Error updating project details:', err);
+      setError('Failed to update project details');
+      setTimeout(() => setError(''), 3000);
     }
-  } catch (err) {
-    console.error('Error updating project details:', err);
-    setError('Failed to update project details');
-    setTimeout(() => setError(''), 3000);
-  }
- };
-
-
+  };
 
   // Handle Change Role Modal Submit
   const handleRoleUpdate = async ({ projectId, memberEmail, role }) => {
@@ -702,72 +710,72 @@ const handleGradeFeedbackSubmit = async ({ grade, feedback }) => {
       setFinalDocuments(documentsByTask[finalTask.task_id] || []);
     }
   }, [finalTask, documentsByTask, fetchDocuments]);
- 
+
   //Remove member from project with role constraints
   const handleMemberDelete = async (email) => {
-  const memberToDelete = members.find(m => m.email === email);
-  if (!memberToDelete) return;
+    const memberToDelete = members.find(m => m.email === email);
+    if (!memberToDelete) return;
 
-  const supervisors = members.filter(m => m.role === 'Supervisor').length;
-  const groupLeaders = members.filter(m => m.role === 'Group Leader').length;
+    const supervisors = members.filter(m => m.role === 'Supervisor').length;
+    const groupLeaders = members.filter(m => m.role === 'Group Leader').length;
 
-  const newSup = supervisors - (memberToDelete.role === 'Supervisor' ? 1 : 0);
-  const newGl = groupLeaders - (memberToDelete.role === 'Group Leader' ? 1 : 0);
+    const newSup = supervisors - (memberToDelete.role === 'Supervisor' ? 1 : 0);
+    const newGl = groupLeaders - (memberToDelete.role === 'Group Leader' ? 1 : 0);
 
-  if (newSup < 1 || newGl < 1) {
-    setError('Cannot remove member: Project must have at least one Supervisor and one Group Leader');
-    setTimeout(() => setError(''), 3000);
-    return;
-  }
+    if (newSup < 1 || newGl < 1) {
+      setError('Cannot remove member: Project must have at least one Supervisor and one Group Leader');
+      setTimeout(() => setError(''), 3000);
+      return;
+    }
 
-  try {
-    const token = localStorage.getItem('access_token');
-    const API_BASE_URL =
-      window.location.hostname === 'localhost'
-        ? 'http://127.0.0.1:8000'
-        : 'https://pcp-backend-f4a2.onrender.com';
+    try {
+      const token = localStorage.getItem('access_token');
+      const API_BASE_URL =
+        window.location.hostname === 'localhost'
+          ? 'http://127.0.0.1:8000'
+          : 'https://pcp-backend-f4a2.onrender.com';
 
-    // Decode JWT to get the email of the logged-in user
-    const base64Url = token.split('.')[1];
-    const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
-    const payload = JSON.parse(window.atob(base64));
-    const loggedInEmail = payload.email || payload.user_email || payload.sub || 'Unknown user';
+      // Decode JWT to get the email of the logged-in user
+      const base64Url = token.split('.')[1];
+      const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+      const payload = JSON.parse(window.atob(base64));
+      const loggedInEmail = payload.email || payload.user_email || payload.sub || 'Unknown user';
 
-    // Step 1: Remove member from the project
-    await axios.post(
-      `${API_BASE_URL}/api/deleteprojectmember/`,
-      {
-        project_id: projectId,
-        email: email
-      },
-      {
-        headers: { Authorization: `Bearer ${token}` }
-      }
-    );
+      // Step 1: Remove member from the project
+      await axios.post(
+        `${API_BASE_URL}/api/deleteprojectmember/`,
+        {
+          project_id: projectId,
+          email: email
+        },
+        {
+          headers: { Authorization: `Bearer ${token}` }
+        }
+      );
 
-    // Step 2: Notify the removed member
-    await axios.post(
-      `${API_BASE_URL}/api/createnotification/`,
-      {
-        emails: [email],
-        title: 'Removed from Project',
-        message: `${loggedInEmail} removed you from project "${projectData?.project_name}".`,
-      },
-      {
-        headers: { Authorization: `Bearer ${token}` },
-      }
-    );
+      // Step 2: Notify the removed member
+      await axios.post(
+        `${API_BASE_URL}/api/createnotification/`,
+        {
+          emails: [email],
+          title: 'Removed from Project',
+          message: `${loggedInEmail} removed you from project "${projectData?.project_name}".`,
+        },
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
 
-    // Step 3: Update members state
-    setMembers(prev => prev.filter(m => m.email !== email));
-    setError('Member removed successfully');
-    setTimeout(() => setError(''), 3000);
-  } catch (err) {
-    console.error('Error deleting member:', err);
-    setError(err.response?.data?.error || 'Failed to remove member');
-    setTimeout(() => setError(''), 3000);
-  }
-};
+      // Step 3: Update members state
+      setMembers(prev => prev.filter(m => m.email !== email));
+      setError('Member removed successfully');
+      setTimeout(() => setError(''), 3000);
+    } catch (err) {
+      console.error('Error deleting member:', err);
+      setError(err.response?.data?.error || 'Failed to remove member');
+      setTimeout(() => setError(''), 3000);
+    }
+  };
 
   // Handle document download
   const handleDownload = async (documentId, documentTitle) => {
@@ -837,14 +845,16 @@ const handleGradeFeedbackSubmit = async ({ grade, feedback }) => {
 
   // Toggle task dropdown
   const toggleTaskDropdown = (taskId) => {
-    setExpandedTasks((prev) => ({
-      ...prev,
-      [taskId]: !prev[taskId],
-    }));
-
-    if (!documentsByTask[taskId] && !loadingDocuments[taskId]) {
-      fetchDocuments(taskId);
-    }
+    setExpandedTasks((prev) => {
+      const isExpanded = prev[taskId];
+      if (!isExpanded && !documentsByTask[taskId]) {
+        fetchDocuments(taskId);
+      }
+      if (!isExpanded && !taskMembers[taskId]) {
+        fetchTaskMembers(taskId);
+      }
+      return { ...prev, [taskId]: !isExpanded };
+    });
   };
 
   // Fetch members when Members tab is clicked
@@ -1130,6 +1140,12 @@ const handleGradeFeedbackSubmit = async ({ grade, feedback }) => {
                     </div>
                   )}
                 </div>
+                <button
+                  className={styles.addTaskButton}
+                  onClick={() => ensureSupervisor(() => setShowLinkModal(true))}
+                >
+                  Add Link
+                </button>
               </div>
             )}
           </div>
@@ -1186,12 +1202,12 @@ const handleGradeFeedbackSubmit = async ({ grade, feedback }) => {
       label: 'Tasks',
       content: (
         <div className={styles.tabContent}>
-          <h2 className={styles.tabHeading}>Project Tasks</h2>
           {error && (
             <div className={styles.errorMessage}>
               {error}
             </div>
           )}
+          <h2 className={styles.tabHeading}>Project Tasks</h2>
           {loadingTasks ? (
             <div className={styles.loadingMessage}>
               Loading tasks...
@@ -1279,8 +1295,8 @@ const handleGradeFeedbackSubmit = async ({ grade, feedback }) => {
       label: 'Finalized Project',
       content: (
         <div className={styles.tabContent}>
-          <h2 className={styles.tabHeading}>Finalized Project</h2>
           {error && <div className={styles.errorMessage}>{error}</div>}
+          <h2 className={styles.tabHeading}>Finalized Project</h2>
           {loadingTasks ? (
             <div className={styles.loadingMessage}>Loading finalized project...</div>
           ) : !finalTask ? (
@@ -1349,12 +1365,12 @@ const handleGradeFeedbackSubmit = async ({ grade, feedback }) => {
       label: 'Chat',
       content: (
         <div key="chat-stable" className={styles.chatContainer}>
-          <h2 className={styles.tabHeading}>Project Chat</h2>
           {error && (
             <div className={styles.chatError}>
               {error}
             </div>
           )}
+          <h2 className={styles.tabHeading}>Project Chat</h2>
           {loadingChat ? (
             <div className={styles.chatLoading}>
               <div className={styles.spinner}></div>
@@ -1577,7 +1593,10 @@ const handleGradeFeedbackSubmit = async ({ grade, feedback }) => {
       </div>
       <AddMemberModal
         isOpen={showAddMemberModal}
-        onClose={() => setShowAddMemberModal(false)}
+        onClose={() => {
+          setShowAddMemberModal(false);
+          fetchMembers()
+        }}
         projectId={projectId}
         projectName={projectData?.project_name}
       />
@@ -1596,6 +1615,18 @@ const handleGradeFeedbackSubmit = async ({ grade, feedback }) => {
           onSuccess={() => {
             fetchProjectData();  // Refresh grade/feedback
             setShowGradeModel(false);
+          }}
+        />
+      )}
+      {showLinkModal && (
+        <AddNewLinkModal
+          isOpen={showLinkModal}
+          onClose={() => setShowLinkModal(false)}
+          projectId={projectId}
+          onSuccess={async () => {
+            await fetchLinks();
+            setError('Link added successfully!');
+            setTimeout(() => setError(''), 3000);
           }}
         />
       )}

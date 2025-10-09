@@ -114,6 +114,54 @@
   margin-bottom: 1rem;
 }
 
+.meetingsList{
+  color: black;
+}
+
+
+.linksList {
+border-radius: 0.25rem;
+padding: 1rem;
+margin-top: 1rem;
+}
+.linksList ul {
+list-style-type: none;
+padding: 0;
+margin: 0;
+}
+.linkItem {
+width: 30%;
+display: flex;
+align-items: center;
+justify-content: space-between;
+margin-bottom: 0.75rem;
+padding: 0.5rem;
+border-radius: 0.25rem;
+transition: background-color 0.2s ease;
+}
+.linkItem a {
+color: black;
+text-decoration: none;
+font-size: 0.9rem;
+font-weight: 500;
+transition: color 0.2s ease;
+flex: 1;
+}
+.linkItem a:hover {
+color: #228693;
+text-decoration: underline;
+}
+.removeDocument {
+font-size: 0.75rem;
+color: #dc2626;
+cursor: pointer;
+text-decoration: underline;
+transition: color 0.2s;
+white-space: nowrap; /* Prevents wrapping */
+}
+.removeDocument:hover {
+color: #991b1b;
+}
 .detailRow {
   display: flex;
   gap: 2rem;
@@ -344,6 +392,17 @@
 
 .uploadContainer {
   margin-bottom: 1rem;
+}
+
+.buttonContainer {
+  display: flex;
+  /* Enables horizontal layout */
+  flex-direction: row;
+  /* Explicitly horizontal (default for flex) */
+  gap: 10px;
+  /* Space between buttons; adjust as needed */
+  align-items: center;
+  /* Vertically centers them if heights differ */
 }
 
 .uploadButton {
@@ -886,4 +945,95 @@
 
 .noDocuments:focus {
   caret-color: transparent;
+}
+
+.sectionHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 16px;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+}
+
+.sectionHeaderExpanded {
+  border-bottom-left-radius: 0;
+  border-bottom-right-radius: 0;
+}
+
+.sectionHeading {
+  margin: 0;
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: black;
+}
+
+.dropdownToggle {
+  font-size: 1.5rem;
+  transition: transform 0.3s ease;
+}
+
+.dropdownToggleActive {
+  transform: rotate(180deg);
+}
+
+.sectionHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 15px;
+  border-bottom: 2px solid #eee;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.sectionHeader:hover {
+  border-bottom-color: #ccc;
+}
+
+.sectionHeading {
+  margin: 0;
+  font-size: 1.4rem;
+  font-weight: bold;
+  color: #212529;
+}
+
+.dropdownToggle {
+  font-size: 1.2rem;
+  color: #6c757d;
+  transition: transform 0.2s;
+}
+
+.sectionHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 20px;
+  border: none;
+  border-radius: 8px 8px 0 0;
+  cursor: pointer;
+  transition: box-shadow 0.3s;
+}
+
+.sectionHeaderExpanded {
+  border-radius: 8px 8px 0 0;
+}
+
+.sectionHeading {
+  margin: 0;
+  font-size: 1.3rem;
+  font-weight: 500;
+  color: black;
+}
+
+.dropdownToggle {
+  font-size: 1.8rem;
+  color: black;
+  transition: transform 0.3s ease-in-out;
+}
+
+.dropdownToggleActive {
+  transform: rotate(-180deg);
+  color: grey;
 }

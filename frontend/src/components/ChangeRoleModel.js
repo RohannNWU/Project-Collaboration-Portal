@@ -7,7 +7,7 @@ const ChangeRoleModel = ({ isOpen, onClose, projectId, memberEmail, onUpdate, in
   const [role, setRole] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const allRoles = ['Supervisor', 'Group Leader', 'Student'];
+  const allRoles = ['Group Leader', 'Student'];
 
   useEffect(() => {
     if (isOpen) {

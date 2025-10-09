@@ -535,7 +535,7 @@ const TaskUpdateModel = ({ isOpen, onClose, projectId, projectName, taskId, onUp
             className={styles.TaskUpdateModel__cancelButton}
             disabled={loading}
           >
-            Cancel
+            Close
           </button>
           {activeTab === 'details' && (
             <button

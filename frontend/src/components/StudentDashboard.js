@@ -109,117 +109,98 @@ const StudentDashboard = () => {
 
   // Fetch chat messages function
   const fetchChat = useCallback(async () => {
-  try {
-    const token = localStorage.getItem('access_token');
-    if (!token) {
-      navigate('/');
-      return;
-    }
-
-    const API_BASE_URL =
-      window.location.hostname === 'localhost'
-        ? 'http://127.0.0.1:8000'
-        : 'https://pcp-backend-f4a2.onrender.com';
-
-    const response = await axios.get(
-      `${API_BASE_URL}/api/getprojectchat/?project_id=${projectId}`,
-      { headers: { Authorization: `Bearer ${token}` } }
-    );
-
-    const serverMessages = response.data.messages || [];
-
-    // Compare counts before updating
-    setChatMessages(prev => {
-      const prevFiltered = prev.filter(msg => !isTempId(msg?.id));
-      const prevCount = prevFiltered.length;
-      const serverCount = serverMessages.length;
-
-      if (serverCount !== prevCount) {
-        // Only refresh if the counts differ
-        console.log(`Refreshing chat: local=${prevCount}, server=${serverCount}`);
-        return serverMessages;
+    try {
+      const token = localStorage.getItem('access_token');
+      if (!token) {
+        navigate('/');
+        return;
       }
 
-      // No refresh needed
-      return prev;
-    });
-  } catch (err) {
-    console.error('Error fetching chat messages:', err);
-    if (err.response?.status === 401) {
-      localStorage.removeItem('access_token');
-      navigate('/');
-    } else {
-      setError('Failed to fetch chat messages');
-      setTimeout(() => setError(''), 3000);
+      const API_BASE_URL =
+        window.location.hostname === 'localhost'
+          ? 'http://127.0.0.1:8000'
+          : 'https://pcp-backend-f4a2.onrender.com';
+
+      const response = await axios.get(
+        `${API_BASE_URL}/api/getprojectchat/?project_id=${projectId}`,
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+
+      const serverMessages = response.data.messages || [];
+
+      // Compare counts before updating
+      setChatMessages(prev => {
+        const prevFiltered = prev.filter(msg => !isTempId(msg?.id));
+        const prevCount = prevFiltered.length;
+        const serverCount = serverMessages.length;
+
+        if (serverCount !== prevCount) {
+          // Only refresh if the counts differ
+          console.log(`Refreshing chat: local=${prevCount}, server=${serverCount}`);
+          return serverMessages;
+        }
+
+        // No refresh needed
+        return prev;
+      });
+    } catch (err) {
+      console.error('Error fetching chat messages:', err);
+      if (err.response?.status === 401) {
+        localStorage.removeItem('access_token');
+        navigate('/');
+      } else {
+        setError('Failed to fetch chat messages');
+        setTimeout(() => setError(''), 3000);
+      }
     }
-  }
-}, [projectId, navigate]);
+  }, [projectId, navigate]);
 
 
-// Chat polling - refresh every 5 seconds
-useEffect(() => {
-  if (activeTab === 'chat' && projectId) {
-    fetchChat(); // initial fetch
-    const intervalId = setInterval(fetchChat, 5000);
-    return () => clearInterval(intervalId);
-  }
-}, [activeTab, projectId, fetchChat]);
+  // Chat polling - refresh every 5 seconds
+  useEffect(() => {
+    if (activeTab === 'chat' && projectId) {
+      fetchChat(); // initial fetch
+      const intervalId = setInterval(fetchChat, 5000);
+      return () => clearInterval(intervalId);
+    }
+  }, [activeTab, projectId, fetchChat]);
 
   // Handle sending chat message
   const handleSendMessage = async () => {
-  if (!messageInput.trim()) return;
+    if (!messageInput.trim()) return;
 
-  const messageContent = messageInput.trim();
-  const tempId = `temp-${Date.now()}`;
-  const tempMessage = {
-    id: tempId,
-    content: messageContent,
-    sender_name: 'You',
-    role: userRole || 'Student',
-    sent_at: new Date().toLocaleString('en-GB', {
-      year: 'numeric',
-      month: '2-digit',
-      day: '2-digit',
-      hour: '2-digit',
-      minute: '2-digit',
-      second: '2-digit',
-      hour12: false,
-      timeZone: 'Africa/Johannesburg'
-    }).replace(/(\d{2})\/(\d{2})\/(\d{4}), (\d{2}:\d{2}:\d{2})/, '$3-$2-$1 $4'),
-  };
+    const messageContent = messageInput.trim();
+    const tempId = `temp-${Date.now()}`;
+    setMessageInput('');
 
-  // show temp message immediately
-  setChatMessages(prev => [...prev, tempMessage]);
-  setMessageInput('');
+    try {
+      const token = localStorage.getItem('access_token');
+      if (!token) {
+        navigate('/');
+        return;
+      }
 
-  try {
-    const token = localStorage.getItem('access_token');
-    if (!token) {
-      navigate('/');
-      return;
-    }
+      const API_BASE_URL =
+        window.location.hostname === 'localhost'
+          ? 'http://127.0.0.1:8000'
+          : 'https://pcp-backend-f4a2.onrender.com';
 
-    const API_BASE_URL =
-      window.location.hostname === 'localhost'
-        ? 'http://127.0.0.1:8000'
-        : 'https://pcp-backend-f4a2.onrender.com';
+      await axios.post(
+        `${API_BASE_URL}/api/sendchatmessage/`,
+        { project_id: projectId, content: messageContent },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
 
-    await axios.post(
-      `${API_BASE_URL}/api/sendchatmessage/`,
-      { project_id: projectId, content: messageContent },
-      { headers: { Authorization: `Bearer ${token}` } }
-    );
-
-    // fetch updated messages from server
-    fetchChat();
+      // fetch updated messages from server
+      fetchChat();
     } catch (err) {
-    console.error('Error sending chat message:', err);
-    // remove temp message if send failed
-    setChatMessages(prev => prev.filter(msg => msg?.id !== tempId));
-    setMessageInput(messageContent);
-    setError('Failed to send message');
-    setTimeout(() => setError(''), 3000);
-   }
+      console.error('Error sending chat message:', err);
+      // remove temp message if send failed
+      setChatMessages(prev => prev.filter(msg => msg?.id !== tempId));
+      setMessageInput(messageContent);
+      setError('Failed to send message');
+      setTimeout(() => setError(''), 3000);
+    }
   };
 
   const fetchLinks = useCallback(async () => {
@@ -228,7 +209,7 @@ useEffect(() => {
         ? 'http://127.0.0.1:8000'
         : 'https://pcp-backend-f4a2.onrender.com';
 
-      const response = await axios.post(`${API_BASE_URL}/api/getprojectlinks/`, {projectId});
+      const response = await axios.post(`${API_BASE_URL}/api/getprojectlinks/`, { projectId });
       setProjectLinks(response.data.links || []);
     } catch (err) {
       console.error('Error fetching links:', err);
@@ -550,6 +531,7 @@ useEffect(() => {
       fetchDocuments(taskId);
       setError('Document deleted successfully.');
       setTimeout(() => setError(''), 3000);
+      fetchTasks();
     } catch (err) {
       console.error(`Error deleting document ${documentId}:`, err);
       if (err.response?.status === 401) {
@@ -652,119 +634,119 @@ useEffect(() => {
       return { ...prev, [taskId]: !isExpanded };
     });
   };
-  
- //Role management helpers
- const [userRole, setUserRole] = useState(null);
- const [roleLoading, setRoleLoading] = useState(false);
 
- const getApiBase = () =>
-  window.location.hostname === 'localhost'
-    ? 'http://127.0.0.1:8000'
-    : 'https://pcp-backend-f4a2.onrender.com';
+  //Role management helpers
+  const [userRole, setUserRole] = useState(null);
+  const [roleLoading, setRoleLoading] = useState(false);
 
- const fetchUserRole = useCallback(async () => {
-  try {
-    setRoleLoading(true);
-    setError('');
-    const token = localStorage.getItem('access_token');
-    if (!token) {
-      navigate('/');
-      return null;
-    }
+  const getApiBase = () =>
+    window.location.hostname === 'localhost'
+      ? 'http://127.0.0.1:8000'
+      : 'https://pcp-backend-f4a2.onrender.com';
 
-    // Decode JWT to get user's email
-    const base64Url = token.split('.')[1];
-    const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
-    const payload = JSON.parse(window.atob(base64));
-    const userEmail = payload.email || payload.user_email || payload.sub;
-
-    if (!userEmail) {
-      console.error('Could not extract email from token');
-      setError('Failed to verify user role');
-      return null;
-    }
-
-    const response = await axios.post(
-      `${getApiBase()}/api/getmembers/`,
-      { projectId },
-      { headers: { Authorization: `Bearer ${token}` } }
-    );
-
-    const members = response.data.members || [];
-    const currentUser = members.find((m) => m.email === userEmail);
-
-    if (!currentUser) {
-      console.warn('User not found in project members');
-      setError('Failed to verify user role');
-      return null;
-    }
-
-    // Normalize role (lowercase for comparison)
-    const newRole = currentUser.role?.trim();
-    const oldRole = userRole?.trim();
-
-    // Alert if role changed
-    if (oldRole && newRole && oldRole !== newRole) {
-      alert('Your role changed for this project.');
-    }
-
-    setUserRole(newRole);
-    return newRole;
-  } catch (err) {
-    console.error('Error fetching user role:', err);
-    if (err.response?.status === 401) {
-      localStorage.removeItem('access_token');
-      navigate('/');
-    } else {
-      setError('Failed to verify user role');
-    }
-    setUserRole(null);
-    return null;
-  } finally {
-    setRoleLoading(false);
-  }
-}, [navigate, projectId, userRole]);
-
-
-// Ensure the user is a Student before executing handler.
-const ensureStudent = useCallback(
-  async (handler) => {
-    if (typeof handler !== 'function') {
-      console.warn('ensureStudent expects a function as the handler');
-      return;
-    }
-
-    let roleToCheck = userRole;
-
-    // If we don't know the role yet, fetch it first
-    if (!roleToCheck && !roleLoading) {
-      roleToCheck = await fetchUserRole();
-    }
-
-    if (!roleToCheck) {
-      setError('Failed to verify user role');
-      return;
-    }
-
-    // Normalize capitalization
-    const normalizedRole = roleToCheck.trim().toLowerCase();
-
-    if (normalizedRole === 'student') {
-      try {
-        return await handler();
-      } catch (err) {
-        console.error('Error running protected handler:', err);
+  const fetchUserRole = useCallback(async () => {
+    try {
+      setRoleLoading(true);
+      setError('');
+      const token = localStorage.getItem('access_token');
+      if (!token) {
+        navigate('/');
+        return null;
       }
-    } else if (normalizedRole === 'supervisor') {
-      navigate('/supervisordashboard', { state: { projectId } });
-    } else if (normalizedRole === 'group leader' || normalizedRole === 'groupleader') {
-      navigate('/groupleaderdashboard', { state: { projectId } });
-    } else {
-      setError('Failed to verify user role');
+
+      // Decode JWT to get user's email
+      const base64Url = token.split('.')[1];
+      const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+      const payload = JSON.parse(window.atob(base64));
+      const userEmail = payload.email || payload.user_email || payload.sub;
+
+      if (!userEmail) {
+        console.error('Could not extract email from token');
+        setError('Failed to verify user role');
+        return null;
+      }
+
+      const response = await axios.post(
+        `${getApiBase()}/api/getmembers/`,
+        { projectId },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+
+      const members = response.data.members || [];
+      const currentUser = members.find((m) => m.email === userEmail);
+
+      if (!currentUser) {
+        console.warn('User not found in project members');
+        setError('Failed to verify user role');
+        return null;
+      }
+
+      // Normalize role (lowercase for comparison)
+      const newRole = currentUser.role?.trim();
+      const oldRole = userRole?.trim();
+
+      // Alert if role changed
+      if (oldRole && newRole && oldRole !== newRole) {
+        alert('Your role changed for this project.');
+      }
+
+      setUserRole(newRole);
+      return newRole;
+    } catch (err) {
+      console.error('Error fetching user role:', err);
+      if (err.response?.status === 401) {
+        localStorage.removeItem('access_token');
+        navigate('/');
+      } else {
+        setError('Failed to verify user role');
+      }
+      setUserRole(null);
+      return null;
+    } finally {
+      setRoleLoading(false);
     }
-  },
-  [userRole, roleLoading, fetchUserRole, navigate, projectId]
-);
+  }, [navigate, projectId, userRole]);
+
+
+  // Ensure the user is a Student before executing handler.
+  const ensureStudent = useCallback(
+    async (handler) => {
+      if (typeof handler !== 'function') {
+        console.warn('ensureStudent expects a function as the handler');
+        return;
+      }
+
+      let roleToCheck = userRole;
+
+      // If we don't know the role yet, fetch it first
+      if (!roleToCheck && !roleLoading) {
+        roleToCheck = await fetchUserRole();
+      }
+
+      if (!roleToCheck) {
+        setError('Failed to verify user role');
+        return;
+      }
+
+      // Normalize capitalization
+      const normalizedRole = roleToCheck.trim().toLowerCase();
+
+      if (normalizedRole === 'student') {
+        try {
+          return await handler();
+        } catch (err) {
+          console.error('Error running protected handler:', err);
+        }
+      } else if (normalizedRole === 'supervisor') {
+        navigate('/supervisordashboard', { state: { projectId } });
+      } else if (normalizedRole === 'group leader' || normalizedRole === 'groupleader') {
+        navigate('/groupleaderdashboard', { state: { projectId } });
+      } else {
+        setError('Failed to verify user role');
+      }
+    },
+    [userRole, roleLoading, fetchUserRole, navigate, projectId]
+  );
 
 
   // Define tabs
@@ -855,6 +837,11 @@ const ensureStudent = useCallback(
       label: 'Tasks',
       content: (
         <div className={styles.tabContent}>
+          {error && (
+            <div className={styles.errorMessage}>
+              {error}
+            </div>
+          )}
           {/* My Tasks Section */}
           <div className={styles.section}>
             <div
@@ -903,9 +890,10 @@ const ensureStudent = useCallback(
                           <div className={styles.taskActions}>
                             {userTaskAssignments[task.task_id] && task.task_status !== 'Completed' && task.task_status !== 'Finalized' && (
                               <button
+                              className={styles.deleteButton}
                                 onClick={(e) => {
-                                 e.stopPropagation();
-                                 ensureStudent(() => handleCompleteTask(task.task_id));
+                                  e.stopPropagation();
+                                  ensureStudent(() => handleCompleteTask(task.task_id));
                                 }}
                               >
                                 Mark as Complete
@@ -962,7 +950,7 @@ const ensureStudent = useCallback(
                                       )}
                                     </div>
                                     <button
-                                      onClick={() => ensureStudent(() =>handleDownload(doc.document_id, doc.document_title))}
+                                      onClick={() => ensureStudent(() => handleDownload(doc.document_id, doc.document_title))}
                                       className={styles.downloadButton}
                                     >
                                       Download
@@ -987,7 +975,7 @@ const ensureStudent = useCallback(
           <div className={styles.section}>
             <div
               className={`${styles.sectionHeader} ${expandedSections.projectTasks ? styles.sectionHeaderExpanded : ''}`}
-              onClick={() =>ensureStudent(() => toggleSectionExpansion('projectTasks'))}
+              onClick={() => ensureStudent(() => toggleSectionExpansion('projectTasks'))}
             >
               <h2 className={styles.sectionHeading}>Project Tasks</h2>
               <span className={`${styles.dropdownToggle} ${expandedSections.projectTasks ? styles.dropdownToggleActive : ''}`}>
@@ -996,11 +984,6 @@ const ensureStudent = useCallback(
             </div>
             {expandedSections.projectTasks && (
               <div className={styles.sectionContent}>
-                {error && (
-                  <div className={styles.errorMessage}>
-                    {error}
-                  </div>
-                )}
                 {loadingTasks ? (
                   <div className={styles.loadingMessage}>
                     Loading tasks...
@@ -1038,7 +1021,7 @@ const ensureStudent = useCallback(
                               <button
                                 onClick={(e) => {
                                   e.stopPropagation();
-                                 ensureStudent(() => handleCompleteTask(task.task_id));
+                                  ensureStudent(() => handleCompleteTask(task.task_id));
                                 }}
                                 className={styles.deleteButton}
                               >
@@ -1121,7 +1104,7 @@ const ensureStudent = useCallback(
           <div className={styles.section}>
             <div
               className={`${styles.sectionHeader} ${expandedSections.links ? styles.sectionHeaderExpanded : ''}`}
-              onClick={() => ensureStudent(() =>toggleSectionExpansion('links'))}
+              onClick={() => ensureStudent(() => toggleSectionExpansion('links'))}
             >
               <h2 className={styles.sectionHeading}>Important Links for the Project</h2>
               <span className={`${styles.dropdownToggle} ${expandedSections.links ? styles.dropdownToggleActive : ''}`}>
@@ -1351,7 +1334,7 @@ const ensureStudent = useCallback(
             {tabs.map((tab, index) => (
               <button
                 key={tab.id}
-                onClick={() => ensureStudent(() =>setActiveTab(tab.id))}
+                onClick={() => ensureStudent(() => setActiveTab(tab.id))}
                 className={`${styles.tabButton} ${activeTab === tab.id ? styles.tabButtonActive : ''}`}
                 style={{ borderRight: index < tabs.length - 1 ? '1px solid #4b5563' : 'none' }}
                 onMouseEnter={(e) => {

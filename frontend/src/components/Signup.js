@@ -35,6 +35,7 @@ const AddUser = () => {
         },
       );
       setMessage(response.data.message);
+      setTimeout(() => navigate('/'), 3000);
     } catch (error) {
       setMessage(error.response?.data.error || 'Failed to add user');
     }

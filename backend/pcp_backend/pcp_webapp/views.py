@@ -24,7 +24,7 @@ from django.utils import timezone
 from django.db.models import Count
 from zoneinfo import ZoneInfo
 from django.db import transaction
-
+from collections import defaultdict
 
 logger = logging.getLogger(__name__)
 
@@ -412,44 +412,80 @@ class CalendarView(APIView):
 #View that returns tasks for a user
 class GetUserTasksView(APIView):
     def get(self, request):
-            auth_header = request.headers.get('Authorization')
-            if not auth_header or not auth_header.startswith('Bearer '):
-                return Response({'error': 'Authentication required'}, status=status.HTTP_401_UNAUTHORIZED)
-            
-            token = auth_header.split(' ')[1]
-            try:
-                # Validate token
-                payload = UntypedToken(token).payload
-                user_email = payload.get('user_email')
-                try:
-                    user = User.objects.get(email=user_email)
-                except User.DoesNotExist:
-                    return Response({'error': 'User not found'}, status=status.HTTP_404_NOT_FOUND)
+        # Optional: Use helper if available; otherwise keep manual
+        # user = get_user_from_token(request)
+        # if not user:
+        #     return Response({'error': 'Authentication required'}, status=status.HTTP_401_UNAUTHORIZED)
+        
+        auth_header = request.headers.get('Authorization')
+        if not auth_header or not auth_header.startswith('Bearer '):
+            return Response({'error': 'Authentication required'}, status=status.HTTP_401_UNAUTHORIZED)
+        
+        token = auth_header.split(' ')[1]
+        try:
+            # Validate token
+            payload = UntypedToken(token).payload
+            user_email = payload.get('user_email')
+            user = User.objects.get(email=user_email)
 
+            # Fetch user's tasks
+            user_tasks = User_Task.objects.filter(email=user).select_related('task_id', 'task_id__project_id')
 
+            # Early exit if no tasks
+            if not user_tasks.exists():
+                return Response({'tasks': []}, status=status.HTTP_200_OK)
 
-                # Fetch tasks assigned to the user
-                user_tasks = User_Task.objects.filter(email=user).select_related('task_id')
-                tasks_list = [
-                    {
-                        'task_id': user_task.task_id.task_id,
-                        'task_name': user_task.task_id.task_name,
-                        'task_description': user_task.task_id.task_description,
-                        'task_due_date': user_task.task_id.task_due_date.strftime('%d/%m/%Y'),
-                        'task_status': user_task.task_id.task_status,
-                        'task_priority': user_task.task_id.task_priority,
-                        'project_id': user_task.task_id.project_id.project_id,
-                        'project_name': user_task.task_id.project_id.project_name
-                    }
-                    for user_task in user_tasks
+            # Get unique task IDs for prefetching assignees
+            task_ids = [ut.task_id.task_id for ut in user_tasks]
+
+            # Prefetch all assignees for these tasks
+            all_assignees = User_Task.objects.filter(
+                task_id__in=task_ids
+            ).select_related('email')
+
+            # Group assignees by task_id
+            assignees_by_task = defaultdict(list)
+            for assignee in all_assignees:
+                assignees_by_task[assignee.task_id.task_id].append(assignee.email)
+
+            # Build the tasks list with fellow assignees (exclude current user, include names)
+            tasks_list = []
+            for user_task in user_tasks:
+                task = user_task.task_id
+                project_id = task.project_id.project_id  # Assuming custom PK
+
+                # Verify project access (per guideline)
+                if not UserProject.objects.filter(email=user, project_id=project_id).exists():
+                    continue  # Skip if no access (or raise 403 if strict)
+
+                # Get fellow assignees' details (exclude self)
+                fellow_users = [
+                    fellow for fellow in assignees_by_task[user_task.task_id.task_id]
+                    if fellow.email != user.email
                 ]
-                return Response({'tasks': tasks_list}, status=status.HTTP_200_OK)
-            except InvalidToken:
-                return Response({'error': 'Invalid token'}, status=status.HTTP_401_UNAUTHORIZED)
-            except User.DoesNotExist:
-                return Response({'error': 'User not found'}, status=status.HTTP_401_UNAUTHORIZED)
-            except Exception as e:
-                return Response({'error': f'Database error: {str(e)}'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+                fellow_assignees = list(
+                    User.objects.filter(email__in=[f.email for f in fellow_users])
+                    .values('first_name', 'last_name', 'email')
+                )
+
+                tasks_list.append({
+                    'task_id': task.task_id,
+                    'task_name': task.task_name,
+                    'task_description': task.task_description,
+                    'task_due_date': task.task_due_date.strftime('%Y-%m-%d') if task.task_due_date else 'No due date',
+                    'task_status': task.task_status,
+                    'task_priority': task.task_priority,
+                    'project_id': project_id,
+                    'project_name': task.project_id.project_name,
+                    'fellow_assignees': fellow_assignees  # List of {'first_name': ..., 'last_name': ..., 'email': ...}
+                })
+            return Response({'tasks': tasks_list}, status=status.HTTP_200_OK)
+        except InvalidToken:
+            return Response({'error': 'Invalid token'}, status=status.HTTP_401_UNAUTHORIZED)
+        except User.DoesNotExist:
+            return Response({'error': 'User not found'}, status=status.HTTP_404_NOT_FOUND)
+        except Exception as e:
+            return Response({'error': f'Failed to fetch tasks: {str(e)}'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 #View that updates tasks
 class UpdateTaskView(APIView):
@@ -459,8 +495,6 @@ class UpdateTaskView(APIView):
             task_name = request.data.get('task_name')
             task_description = request.data.get('task_description')
             task_due_date = request.data.get('due_date')
-            print(task_id)
-
             task = Task.objects.get(task_id=task_id)
             task.task_name = task_name
             task.task_description = task_description
@@ -1607,7 +1641,6 @@ class AddTaskMemberView(APIView):
         job.save()
         return Response({'message': 'Task member added successfully'}, status=status.HTTP_200_OK)
 
-
 #View that deletes a project and all related data
 class DeleteProjectView(APIView):
     def delete(self, request, project_id):
@@ -1671,7 +1704,6 @@ class DeleteProjectView(APIView):
             logger.error(f"Error deleting project {project_id}: {str(e)}")
             return Response({'error': f'Failed to delete project: {str(e)}'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
-
 #View that changes role of a user in a project
 class ChangeRoleView(APIView):
     def post(self, request):
@@ -1718,10 +1750,10 @@ class ChangeRoleView(APIView):
             member_project.role = new_role
             member_project.save()
 
-            if new_role == 'Supervisor':
-                assigned_tasks = User_Task.objects.filter(email=member_email)
-                for delete_task in assigned_tasks:
-                    delete_task.delete()
+            if (new_role == 'Group Leader'):
+                get_member = User.objects.get(email=member_email)
+                get_final_submission = Task.objects.get(task_name='Final Submission', project_id=project_id)
+                assign_task = User_Task.objects.create(task_id=get_final_submission, email=get_member)
 
             logger.info(f"Role changed for {member_email} in project {project_id} to {new_role} by {requester.email}")
             return Response({'message': 'Role changed successfully'}, status=status.HTTP_200_OK)
