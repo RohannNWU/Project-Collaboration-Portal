@@ -90,6 +90,10 @@ const NotificationModal = ({ isOpen, onClose, buttonPosition }) => {
       const token = localStorage.getItem("access_token");
       if (!token) return;
 
+      const API_BASE_URL =
+        window.location.hostname === "localhost"
+          ? "http://127.0.0.1:8000"
+          : "https://pcp-backend-f4a2.onrender.com";
       // Loop through each notification delete call
       await Promise.all(
         notifications.map((notif) =>
