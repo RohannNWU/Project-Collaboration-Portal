@@ -1647,7 +1647,7 @@ const SupervisorDashboard = () => {
       />
       <CreateMeetingModal
         isOpen={showCreateMeetingModal}
-        onClose={() => setShowCreateMeetingModal(false)}
+        onClose={() => {setShowCreateMeetingModal(false); fetchMeetings();}}
         projectId={projectId}
         dueDate={projectData?.due_date}  // e.g., from fetched project data
       />
@@ -1666,7 +1666,7 @@ const SupervisorDashboard = () => {
       {showLinkModal && (
         <AddNewLinkModal
           isOpen={showLinkModal}
-          onClose={() => setShowLinkModal(false)}
+          onClose={() => {setShowLinkModal(false); fetchLinks();}}
           projectId={projectId}
           onSuccess={async () => {
             await fetchLinks();

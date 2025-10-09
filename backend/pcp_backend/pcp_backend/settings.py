@@ -62,14 +62,13 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'pcp_backend.wsgi.application'
 
-'''
 # Database settings for development
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql',
         'NAME': 'postgres',
         'USER': 'postgres',
-        'PASSWORD': 'pcpadmin123',  # Replace with your actual password
+        'PASSWORD': '1234',  # Replace with your actual password
         'HOST': '127.0.0.1',
         'PORT': '5432',
     }
@@ -88,7 +87,7 @@ DATABASES = {
     }
 }
 
-
+'''
 # Password validation
 AUTH_PASSWORD_VALIDATORS = [
     {'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator',},
