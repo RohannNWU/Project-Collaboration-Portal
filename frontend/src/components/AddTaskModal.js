@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import axios from 'axios'; // Assuming axios is used for API calls
-import styles from './Models.module.css'; // Import the CSS module
+import axios from 'axios';
+import styles from './Models.module.css';
 
 const formatDateToYYYYMMDD = (dateStr) => {
   if (!dateStr) return '';
@@ -11,7 +11,7 @@ const formatDateToYYYYMMDD = (dateStr) => {
   return dateStr;
 };
 
-const AddTaskModal = ({ isOpen, onClose, projectId, onSuccess }) => {
+const AddTaskModal = ({ isOpen, onClose, projectId, projectName, onSuccess }) => {
   const [taskName, setTaskName] = useState('');
   const [taskDescription, setTaskDescription] = useState('');
   const [taskDueDate, setTaskDueDate] = useState('');
@@ -23,6 +23,11 @@ const AddTaskModal = ({ isOpen, onClose, projectId, onSuccess }) => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
+  const API_BASE_URL =
+    window.location.hostname === 'localhost'
+      ? 'http://127.0.0.1:8000'
+      : 'https://pcp-backend-f4a2.onrender.com';
+
   const fetchProjectDetails = useCallback(async (projectId) => {
     try {
       const token = localStorage.getItem('access_token');
@@ -30,10 +35,6 @@ const AddTaskModal = ({ isOpen, onClose, projectId, onSuccess }) => {
         setError('Please log in to continue');
         return;
       }
-
-      const API_BASE_URL = window.location.hostname === 'localhost'
-        ? 'http://127.0.0.1:8000'
-        : 'https://pcp-backend-f4a2.onrender.com';
 
       const response = await axios.get(
         `${API_BASE_URL}/api/getprojectdata/?project_id=${projectId}`,
@@ -44,7 +45,7 @@ const AddTaskModal = ({ isOpen, onClose, projectId, onSuccess }) => {
       console.error('Error fetching project details:', error);
       setError('Failed to fetch project details');
     }
-  }, []);
+  }, [API_BASE_URL]);
 
   const fetchProjectMembers = useCallback(async () => {
     try {
@@ -54,17 +55,17 @@ const AddTaskModal = ({ isOpen, onClose, projectId, onSuccess }) => {
         return;
       }
 
-      const API_BASE_URL = window.location.hostname === 'localhost'
-        ? 'http://127.0.0.1:8000'
-        : 'https://pcp-backend-f4a2.onrender.com';
-      // Assuming an API endpoint like /api/projects/{projectId}/members/ that returns [{email: 'user@example.com'}, ...]
-      const response = await axios.post(`${API_BASE_URL}/api/getmembers/`, { projectId }, { headers: { Authorization: `Bearer ${token}` } });
-      setProjectMembers(response.data.members); // Expecting array of {email: string}
+      const response = await axios.post(
+        `${API_BASE_URL}/api/getmembers/`,
+        { projectId },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      setProjectMembers(response.data.members);
     } catch (err) {
       setError('Failed to load project members');
       console.error(err);
     }
-  }, [projectId]);
+  }, [projectId, API_BASE_URL]);
 
   useEffect(() => {
     if (isOpen && projectId) {
@@ -109,7 +110,7 @@ const AddTaskModal = ({ isOpen, onClose, projectId, onSuccess }) => {
         task_status: taskStatus,
         task_priority: taskPriority,
         project_id: projectId,
-        task_members: taskMembers, // Array of selected emails
+        task_members: taskMembers,
       };
 
       const token = localStorage.getItem('access_token');
@@ -118,25 +119,48 @@ const AddTaskModal = ({ isOpen, onClose, projectId, onSuccess }) => {
         return;
       }
 
-      const API_BASE_URL = window.location.hostname === 'localhost'
-        ? 'http://127.0.0.1:8000'
-        : 'https://pcp-backend-f4a2.onrender.com';
-      const response = await axios.post(`${API_BASE_URL}/api/addtask/`, formData, { headers: { Authorization: `Bearer ${token}` } });
+      const response = await axios.post(`${API_BASE_URL}/api/addtask/`, formData, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
       if (response.status === 201) {
-        onSuccess?.(); // Trigger parent refresh on success
-        onClose(); // Close modal on success
+        // ✅ Send notifications like ChangeRoleModel does
+        try {
+          const base64Url = token.split('.')[1];
+          const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+          const payload = JSON.parse(window.atob(base64));
+          const loggedInEmail =
+            payload.email || payload.user_email || payload.sub || 'Unknown user';
+
+          if (taskMembers.length > 0) {
+            await axios.post(
+              `${API_BASE_URL}/api/createnotification/`,
+              {
+                emails: taskMembers,
+                title: 'Task Assignment',
+                message: `${loggedInEmail} added you to "${taskName}" in project "${projectName}".`,
+              },
+              { headers: { Authorization: `Bearer ${token}` } }
+            );
+          }
+        } catch (notifErr) {
+          console.error('Error creating notifications:', notifErr);
+        }
+
+        onSuccess?.();
+        onClose();
       }
     } catch (err) {
-      setError(err.response?.data?.error || 'Failed to add task');
       console.error(err);
+      setError(err.response?.data?.error || 'Failed to add task');
     } finally {
       setLoading(false);
     }
   };
 
   const handleMemberToggle = (email) => {
-    setTaskMembers(prev =>
-      prev.includes(email) ? prev.filter(m => m !== email) : [...prev, email]
+    setTaskMembers((prev) =>
+      prev.includes(email) ? prev.filter((m) => m !== email) : [...prev, email]
     );
   };
 
@@ -157,8 +181,11 @@ const AddTaskModal = ({ isOpen, onClose, projectId, onSuccess }) => {
         <div className={styles.modelBody}>
           <form onSubmit={handleSubmit}>
             {error && <div className={styles.TaskUpdateModel__errorMessage}>{error}</div>}
+
             <div className={styles.formGroup}>
-              <label className={styles.label} htmlFor="taskName">Task Name *</label>
+              <label className={styles.label} htmlFor="taskName">
+                Task Name *
+              </label>
               <input
                 className={styles.input}
                 type="text"
@@ -170,7 +197,9 @@ const AddTaskModal = ({ isOpen, onClose, projectId, onSuccess }) => {
             </div>
 
             <div className={styles.formGroup}>
-              <label className={styles.label} htmlFor="taskDescription">Description</label>
+              <label className={styles.label} htmlFor="taskDescription">
+                Description
+              </label>
               <textarea
                 className={styles.textarea}
                 id="taskDescription"
@@ -181,7 +210,9 @@ const AddTaskModal = ({ isOpen, onClose, projectId, onSuccess }) => {
             </div>
 
             <div className={styles.formGroup}>
-              <label className={styles.label} htmlFor="taskDueDate">Due Date</label>
+              <label className={styles.label} htmlFor="taskDueDate">
+                Due Date
+              </label>
               <input
                 className={styles.input}
                 type="date"
@@ -194,7 +225,9 @@ const AddTaskModal = ({ isOpen, onClose, projectId, onSuccess }) => {
             </div>
 
             <div className={styles.formGroup}>
-              <label className={styles.label} htmlFor="taskPriority">Priority</label>
+              <label className={styles.label} htmlFor="taskPriority">
+                Priority
+              </label>
               <select
                 className={styles.input}
                 id="taskPriority"
@@ -211,7 +244,9 @@ const AddTaskModal = ({ isOpen, onClose, projectId, onSuccess }) => {
               <label className={styles.label}>Assign Members</label>
               <div>
                 {(() => {
-                  const filteredMembers = projectMembers.filter(member => member.role !== 'Supervisor');
+                  const filteredMembers = projectMembers.filter(
+                    (member) => member.role !== 'Supervisor'
+                  );
                   if (filteredMembers.length > 0) {
                     return filteredMembers.map((member) => (
                       <label key={member.email} className={styles.label}>

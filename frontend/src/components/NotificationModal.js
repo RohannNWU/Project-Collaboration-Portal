@@ -25,17 +25,18 @@ const NotificationModal = ({ isOpen, onClose, buttonPosition }) => {
         headers: { Authorization: `Bearer ${token}` },
       });
 
-      console.log("Fetched notifications:", response.data);
-
+      let fetchedNotifications;
       if (Array.isArray(response.data.notifications)) {
-        setNotifications(response.data.notifications);
-        setError(null);
+        fetchedNotifications = response.data.notifications;
       } else if (Array.isArray(response.data)) {
-        setNotifications(response.data);
-        setError(null);
+        fetchedNotifications = response.data;
       } else {
         throw new Error("Invalid response format");
       }
+
+      fetchedNotifications.sort((a, b) => new Date(b.time_sent) - new Date(a.time_sent));
+      setNotifications(fetchedNotifications);
+      setError(null);
     } catch (err) {
       console.error("Error fetching notifications:", err);
       setError(err.response?.data?.error || "Failed to fetch notifications.");
@@ -50,11 +51,9 @@ const NotificationModal = ({ isOpen, onClose, buttonPosition }) => {
     }
   }, [isOpen, fetchNotifications]);
 
-  //Delete notification
+  // Delete one notification
   const handleRemove = async (notifId, e) => {
     e.stopPropagation();
-    console.log("Remove clicked for notifId:", notifId);
-
     try {
       const token = localStorage.getItem("access_token");
       if (!token) {
@@ -78,18 +77,36 @@ const NotificationModal = ({ isOpen, onClose, buttonPosition }) => {
       await axios.delete(deleteUrl, {
         headers: { Authorization: `Bearer ${token}` },
       });
-
-      // Update UI and count instantly
       setNotifications((prev) => prev.filter((n) => n.id !== notifId));
-      console.log("Notification deleted:", notifId);
-      setError(null);
     } catch (err) {
       console.error("Error deleting notification:", err);
       setError(err.response?.data?.error || "Failed to delete notification.");
     }
   };
 
-  //Expand or collapse a message
+  // Delete all notifications
+  const handleRemoveAll = async () => {
+    try {
+      const token = localStorage.getItem("access_token");
+      if (!token) return;
+
+      // Loop through each notification delete call
+      await Promise.all(
+        notifications.map((notif) =>
+          axios.delete(`${API_BASE_URL}/api/deletenotification/${notif.id}/`, {
+            headers: { Authorization: `Bearer ${token}` },
+          })
+        )
+      );
+
+      setNotifications([]);
+      setError(null);
+    } catch (err) {
+      console.error("Error deleting all notifications:", err);
+      setError(err.response?.data?.error || "Failed to delete all notifications.");
+    }
+  };
+
   const toggleExpand = (notifId) => {
     setExpanded((prev) => ({
       ...prev,
@@ -97,24 +114,9 @@ const NotificationModal = ({ isOpen, onClose, buttonPosition }) => {
     }));
   };
 
-  //Format the time in South African local time
-  const formatDateTime = (dateStr) => {
-    if (!dateStr) return "Unknown date";
-    try {
-      const date = new Date(dateStr);
-      return date.toLocaleString("en-ZA", {
-        dateStyle: "medium",
-        timeStyle: "short",
-        timeZone: "Africa/Johannesburg",
-      });
-    } catch {
-      return dateStr;
-    }
-  };
-
   if (!isOpen) return null;
 
-  // Modal position near notification button
+  // Modal positioning
   const modalWidth = 300;
   const viewportWidth = window.innerWidth;
   const rightSpace = viewportWidth - buttonPosition.left - buttonPosition.width;
@@ -131,7 +133,6 @@ const NotificationModal = ({ isOpen, onClose, buttonPosition }) => {
     <div className={styles.modalOverlay}>
       <div className={styles.modalContent} style={modalStyle}>
         <div className={styles.modalHeader}>
-          {/* Count now uses notifications.length so it updates live */}
           <h2 className={styles.modalTitle}>Notifications ({notifications.length})</h2>
           <button className={styles.closeButton} onClick={onClose}>
             &times;
@@ -142,50 +143,53 @@ const NotificationModal = ({ isOpen, onClose, buttonPosition }) => {
           {error && <p className={styles.errorMessage}>{error}</p>}
 
           {notifications.length > 0 ? (
-            <ul className={styles.notificationList}>
-              {notifications.map((notif, index) => (
-                <li key={notif.id || index} className={styles.notificationItem}>
-                  <div
-                    className={styles.notificationHeader}
-                    onClick={() => toggleExpand(notif.id || index)}
-                  >
-                    <div className={styles.notificationTitleSection}>
-                      <span className={styles.notificationTitle}>
-                        {notif.title?.length > 50
-                          ? `${notif.title.substring(0, 50)}...`
-                          : notif.title || "Untitled"}
-                      </span>
+            <>
+              <ul className={styles.notificationList}>
+                {notifications.map((notif, index) => (
+                  <li key={notif.id || index} className={styles.notificationItem}>
+                    <div
+                      className={styles.notificationHeader}
+                      onClick={() => toggleExpand(notif.id || index)}
+                    >
+                      <div className={styles.notificationTitleSection}>
+                        <span className={styles.notificationTitle}>
+                          {notif.title?.length > 50
+                            ? `${notif.title.substring(0, 50)}...`
+                            : notif.title || "Untitled"}
+                        </span>
 
-                      {/* Remove button */}
-                      <span
-                        className={styles.removeLink}
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleRemove(notif.id, e);
-                        }}
-                      >
-                        (remove)
-                      </span>
+                        <span
+                          className={styles.removeLink}
+                          onClick={(e) => handleRemove(notif.id, e)}
+                        >
+                          (remove)
+                        </span>
+                      </div>
+
+                      <FontAwesomeIcon
+                        icon={expanded[notif.id || index] ? faChevronDown : faChevronRight}
+                        className={styles.expandIcon}
+                      />
                     </div>
 
-                    <FontAwesomeIcon
-                      icon={expanded[notif.id || index] ? faChevronDown : faChevronRight}
-                      className={styles.expandIcon}
-                    />
-                  </div>
+                    <div className={styles.notificationTime}>{notif.time_sent}</div>
 
-                  <div className={styles.notificationTime}>
-                    {formatDateTime(notif.time_sent)}
-                  </div>
+                    {expanded[notif.id || index] && (
+                      <div className={styles.notificationMessageFull}>
+                        {notif.message}
+                      </div>
+                    )}
+                  </li>
+                ))}
+              </ul>
 
-                  {expanded[notif.id || index] && (
-                    <div className={styles.notificationMessageFull}>
-                      {notif.message}
-                    </div>
-                  )}
-                </li>
-              ))}
-            </ul>
+              {/* Remove All button */}
+              <div className={styles.removeAllContainer}>
+                <button className={styles.removeAllButton} onClick={handleRemoveAll}>
+                  Remove All
+                </button>
+              </div>
+            </>
           ) : (
             <p className={styles.noNotifications}>No new notifications</p>
           )}

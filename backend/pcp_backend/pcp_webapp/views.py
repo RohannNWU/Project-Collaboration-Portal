@@ -23,7 +23,8 @@ import mimetypes
 from django.utils import timezone
 from django.db.models import Count
 from zoneinfo import ZoneInfo
-
+from django.db import transaction
+from collections import defaultdict
 
 logger = logging.getLogger(__name__)
 
@@ -411,44 +412,80 @@ class CalendarView(APIView):
 #View that returns tasks for a user
 class GetUserTasksView(APIView):
     def get(self, request):
-            auth_header = request.headers.get('Authorization')
-            if not auth_header or not auth_header.startswith('Bearer '):
-                return Response({'error': 'Authentication required'}, status=status.HTTP_401_UNAUTHORIZED)
-            
-            token = auth_header.split(' ')[1]
-            try:
-                # Validate token
-                payload = UntypedToken(token).payload
-                user_email = payload.get('user_email')
-                try:
-                    user = User.objects.get(email=user_email)
-                except User.DoesNotExist:
-                    return Response({'error': 'User not found'}, status=status.HTTP_404_NOT_FOUND)
+        # Optional: Use helper if available; otherwise keep manual
+        # user = get_user_from_token(request)
+        # if not user:
+        #     return Response({'error': 'Authentication required'}, status=status.HTTP_401_UNAUTHORIZED)
+        
+        auth_header = request.headers.get('Authorization')
+        if not auth_header or not auth_header.startswith('Bearer '):
+            return Response({'error': 'Authentication required'}, status=status.HTTP_401_UNAUTHORIZED)
+        
+        token = auth_header.split(' ')[1]
+        try:
+            # Validate token
+            payload = UntypedToken(token).payload
+            user_email = payload.get('user_email')
+            user = User.objects.get(email=user_email)
 
+            # Fetch user's tasks
+            user_tasks = User_Task.objects.filter(email=user).select_related('task_id', 'task_id__project_id')
 
+            # Early exit if no tasks
+            if not user_tasks.exists():
+                return Response({'tasks': []}, status=status.HTTP_200_OK)
 
-                # Fetch tasks assigned to the user
-                user_tasks = User_Task.objects.filter(email=user).select_related('task_id')
-                tasks_list = [
-                    {
-                        'task_id': user_task.task_id.task_id,
-                        'task_name': user_task.task_id.task_name,
-                        'task_description': user_task.task_id.task_description,
-                        'task_due_date': user_task.task_id.task_due_date.strftime('%d/%m/%Y'),
-                        'task_status': user_task.task_id.task_status,
-                        'task_priority': user_task.task_id.task_priority,
-                        'project_id': user_task.task_id.project_id.project_id,
-                        'project_name': user_task.task_id.project_id.project_name
-                    }
-                    for user_task in user_tasks
+            # Get unique task IDs for prefetching assignees
+            task_ids = [ut.task_id.task_id for ut in user_tasks]
+
+            # Prefetch all assignees for these tasks
+            all_assignees = User_Task.objects.filter(
+                task_id__in=task_ids
+            ).select_related('email')
+
+            # Group assignees by task_id
+            assignees_by_task = defaultdict(list)
+            for assignee in all_assignees:
+                assignees_by_task[assignee.task_id.task_id].append(assignee.email)
+
+            # Build the tasks list with fellow assignees (exclude current user, include names)
+            tasks_list = []
+            for user_task in user_tasks:
+                task = user_task.task_id
+                project_id = task.project_id.project_id  # Assuming custom PK
+
+                # Verify project access (per guideline)
+                if not UserProject.objects.filter(email=user, project_id=project_id).exists():
+                    continue  # Skip if no access (or raise 403 if strict)
+
+                # Get fellow assignees' details (exclude self)
+                fellow_users = [
+                    fellow for fellow in assignees_by_task[user_task.task_id.task_id]
+                    if fellow.email != user.email
                 ]
-                return Response({'tasks': tasks_list}, status=status.HTTP_200_OK)
-            except InvalidToken:
-                return Response({'error': 'Invalid token'}, status=status.HTTP_401_UNAUTHORIZED)
-            except User.DoesNotExist:
-                return Response({'error': 'User not found'}, status=status.HTTP_401_UNAUTHORIZED)
-            except Exception as e:
-                return Response({'error': f'Database error: {str(e)}'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+                fellow_assignees = list(
+                    User.objects.filter(email__in=[f.email for f in fellow_users])
+                    .values('first_name', 'last_name', 'email')
+                )
+
+                tasks_list.append({
+                    'task_id': task.task_id,
+                    'task_name': task.task_name,
+                    'task_description': task.task_description,
+                    'task_due_date': task.task_due_date.strftime('%Y-%m-%d') if task.task_due_date else 'No due date',
+                    'task_status': task.task_status,
+                    'task_priority': task.task_priority,
+                    'project_id': project_id,
+                    'project_name': task.project_id.project_name,
+                    'fellow_assignees': fellow_assignees  # List of {'first_name': ..., 'last_name': ..., 'email': ...}
+                })
+            return Response({'tasks': tasks_list}, status=status.HTTP_200_OK)
+        except InvalidToken:
+            return Response({'error': 'Invalid token'}, status=status.HTTP_401_UNAUTHORIZED)
+        except User.DoesNotExist:
+            return Response({'error': 'User not found'}, status=status.HTTP_404_NOT_FOUND)
+        except Exception as e:
+            return Response({'error': f'Failed to fetch tasks: {str(e)}'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 #View that updates tasks
 class UpdateTaskView(APIView):
@@ -458,8 +495,6 @@ class UpdateTaskView(APIView):
             task_name = request.data.get('task_name')
             task_description = request.data.get('task_description')
             task_due_date = request.data.get('due_date')
-            print(task_id)
-
             task = Task.objects.get(task_id=task_id)
             task.task_name = task_name
             task.task_description = task_description
@@ -611,122 +646,6 @@ class DocumentListView(APIView):
             logger.error(f"Document upload error: {error_details}")
             print(f"DOCUMENT UPLOAD ERROR: {error_details}")  # Debug print
             return Response({'error': str(e), 'details': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-        
- 
-#Notification views
-class NotificationListView(APIView):
-    def get_user_from_token(self, request):
-        auth_header = request.headers.get('Authorization')
-        if not auth_header or not auth_header.startswith('Bearer '):
-            return None
-        token = auth_header.split(' ')[1]
-        try:
-            payload = UntypedToken(token).payload
-            user_email = payload.get('user_email')
-            return User.objects.get(email=user_email)
-        except:
-            return None
-
-    def get(self, request):
-        user = self.get_user_from_token(request)
-        if not user:
-            return Response({'error': 'Authentication required'}, status=status.HTTP_401_UNAUTHORIZED)
-        
-        try:
-            # Step 1 & 2: Get project IDs for the logged-in user from UserProject
-            project_id = UserProject.objects.filter(email=user).values_list('project_id', flat=True)
-            
-            # Step 3: Get notifications for those projects using project_id FK
-            notifications = Notification.objects.filter(
-                Q(project_id__in=project_id)
-            ).order_by('-time_sent')
-            
-            # Step 4 & 5: Serialize notifications and format as requested
-            serializer = NotificationSummarySerializer(notifications, many=True)
-            
-            # Format response as an array of key-value pairs with title+time_sent as key
-            formatted_notifications = [
-                {
-                    f"{notif['title']} ({notif['time_ago']})": {
-                        "message": notif['message'],
-                        "notification_type": notif['notification_type'],
-                        "time_sent": notif['time_sent'],
-                        "grades": notif['grades'] if notif['grades'] else None,
-                        "due_date": notif['due_date'] if notif['due_date'] else None,
-                        "project_name": Project.objects.get(project_id=notif['project']).project_name if notif['project'] else None,
-                        "task_name": notif['task'].task_name if notif['task'] else None,
-                    }
-                } for notif in serializer.data
-            ]
-            
-            return Response(formatted_notifications, status=status.HTTP_200_OK)
-        except Exception as e:
-            return Response({'error': f'Failed to fetch notifications: {str(e)}'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-
-    def post(self, request):
-        user = self.get_user_from_token(request)
-        if not user:
-            return Response({'error': 'Authentication required'}, status=status.HTTP_401_UNAUTHORIZED)
-        
-        try:
-            # Step 6: Extract required data from frontend
-            project_id = request.data.get('project_id')
-            title = request.data.get('title')
-            message = request.data.get('message')
-            notification_type = request.data.get('notification_type', 'system')  # Default to system if not provided
-            
-            if not all([project_id, title, message]):
-                return Response({'error': 'project_id, title, and message are required'}, status=status.HTTP_400_BAD_REQUEST)
-            
-            # Verify user has access to the project
-            if not UserProject.objects.filter(email=user, project_id=project_id).exists():
-                return Response({'error': 'Access denied to this project'}, status=status.HTTP_403_FORBIDDEN)
-            
-            # Get project instance
-            project = Project.objects.get(project_id=project_id)
-            
-            # Create notification
-            notification = Notification.objects.create(
-                project_id=project,
-                title=title,
-                message=message,
-                notification_type=notification_type,
-                project=project,  # Set redundant project FK
-                time_sent=timezone.now(),
-                grades=request.data.get('grades'),  # Optional fields
-                due_date=request.data.get('due_date'),
-                task_id=request.data.get('task_id'),  # Optional task reference
-                requested_by=user if notification_type == 'edit_requested' else None
-            )
-            
-            # Log activity (consistent with existing views)
-            from .models import ActivityLog
-            ActivityLog.objects.create(
-                user=user,
-                project=project,
-                action_type='notification_created',
-                description=f'Created notification: {title}'
-            )
-            
-            # Serialize the created notification
-            serializer = NotificationSummarySerializer(notification)
-            return Response(serializer.data, status=status.HTTP_201_CREATED)
-        except Project.DoesNotExist:
-            return Response({'error': 'Project not found'}, status=status.HTTP_404_NOT_FOUND)
-        except Exception as e:
-            return Response({'error': f'Failed to create notification: {str(e)}'}, status=status.HTTP_400_BAD_REQUEST)
-    serializer_class = NotificationSummarySerializer
-    permission_classes = [permissions.IsAuthenticated]
-    
-    def get_queryset(self):
-        """Filter notifications by type"""
-        notification_type = self.request.query_params.get('type')
-        queryset = Notification.objects.filter(recipient=self.request.user)
-        
-        if notification_type and notification_type in dict(Notification.NOTIFICATION_TYPES):
-            queryset = queryset.filter(notification_type=notification_type)
-        
-        return queryset
     
 #View that displays sends related to a project
 class GetProjectTasksView(APIView):
@@ -1620,7 +1539,7 @@ class GetUserNotificationsView(APIView):
                     'id': un.notif.notif_id,
                     'title': un.notif.title,
                     'message': un.notif.message,
-                    'time_sent': un.notif.time_sent.strftime('%Y-%m-%d %H:%M:%S')
+                    'time_sent': un.notif.time_sent.astimezone(ZoneInfo('Africa/Johannesburg')).strftime('%Y-%m-%d %H:%M:%S')
                 } for un in user_notifications
             ]
             
@@ -1722,12 +1641,68 @@ class AddTaskMemberView(APIView):
         job.save()
         return Response({'message': 'Task member added successfully'}, status=status.HTTP_200_OK)
 
-#View that deletes a project          
+#View that deletes a project and all related data
 class DeleteProjectView(APIView):
     def delete(self, request, project_id):
-        project = Project.objects.get(project_id=project_id)
-        project.delete();
-        return Response({'message': "Project deleted successfully"}, status=status.HTTP_200_OK)
+        user = get_user_from_token(request)
+        if not user:
+            return Response({'error': 'Authentication required'}, status=status.HTTP_401_UNAUTHORIZED)
+
+        try:
+            # Fetch project
+            project = Project.objects.get(project_id=project_id)
+
+            # Verify user has access (only supervisors or group leaders can delete)
+            if not UserProject.objects.filter(email=user, project_id=project).exists():
+                return Response({'error': 'Access denied to this project'}, status=status.HTTP_403_FORBIDDEN)
+
+            with transaction.atomic():
+                #STEP 1: Delete related project chats ---
+                project_chats = ProjectChat.objects.filter(project_id=project)
+                chat_message_ids = list(project_chats.values_list('chat_message_id', flat=True))
+                
+                # Delete project chat mapping first
+                deleted_chats_count, _ = project_chats.delete()
+                
+                # Then delete related chat messages
+                deleted_messages_count, _ = ChatMessage.objects.filter(
+                    chat_message_id__in=chat_message_ids
+                ).delete()
+
+                #Delete related tasks and documents ---
+                task_ids = list(Task.objects.filter(project_id=project).values_list('task_id', flat=True))
+                Document.objects.filter(task_id__in=task_ids).delete()
+                User_Task.objects.filter(task_id__in=task_ids).delete()
+                Task.objects.filter(project_id=project).delete()
+
+                #Delete related project links, meetings, and user-project links ---
+                ProjectLinks.objects.filter(project=project).delete()
+                Meeting.objects.filter(project_id=project).delete()
+                UserProject.objects.filter(project_id=project).delete()
+
+                #Delete related notifications (if any) ---
+                notif_ids = list(Notification.objects.filter(message__icontains=project.project_name).values_list('notif_id', flat=True))
+                UserNotification.objects.filter(notif_id__in=notif_ids).delete()
+                Notification.objects.filter(notif_id__in=notif_ids).delete()
+
+                #Delete the project itself ---
+                project.delete()
+
+            logger.info(
+                f"Project {project_id} and all related data deleted "
+                f"(Chats: {deleted_chats_count}, Messages: {deleted_messages_count}) by {user.email}"
+            )
+
+            return Response({
+                'message': f'Project {project.project_name} and all related data deleted successfully.'
+            }, status=status.HTTP_200_OK)
+
+        except Project.DoesNotExist:
+            return Response({'error': 'Project not found'}, status=status.HTTP_404_NOT_FOUND)
+
+        except Exception as e:
+            logger.error(f"Error deleting project {project_id}: {str(e)}")
+            return Response({'error': f'Failed to delete project: {str(e)}'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 #View that changes role of a user in a project
 class ChangeRoleView(APIView):
@@ -1775,10 +1750,10 @@ class ChangeRoleView(APIView):
             member_project.role = new_role
             member_project.save()
 
-            if new_role == 'Supervisor':
-                assigned_tasks = User_Task.objects.filter(email=member_email)
-                for delete_task in assigned_tasks:
-                    delete_task.delete()
+            if (new_role == 'Group Leader'):
+                get_member = User.objects.get(email=member_email)
+                get_final_submission = Task.objects.get(task_name='Final Submission', project_id=project_id)
+                assign_task = User_Task.objects.create(task_id=get_final_submission, email=get_member)
 
             logger.info(f"Role changed for {member_email} in project {project_id} to {new_role} by {requester.email}")
             return Response({'message': 'Role changed successfully'}, status=status.HTTP_200_OK)

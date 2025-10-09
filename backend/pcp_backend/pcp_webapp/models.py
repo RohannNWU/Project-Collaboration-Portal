@@ -1,6 +1,5 @@
 from django.utils import timezone
 from django.db import models
-from django.contrib.auth.models import User as DjangoUser
 from django.conf import settings
 
 class User(models.Model):
@@ -72,9 +71,6 @@ class User_Task(models.Model):
     def __str__(self):
         return f"{self.user_email} - {self.task_id}"
     
-
-# Removed conflicting Document model using the correct one below (lines 117-131)
-
 class Document(models.Model):
     document_id = models.AutoField(primary_key=True)
     task_id = models.ForeignKey(Task, on_delete=models.CASCADE, null=True, blank=True)
@@ -119,7 +115,6 @@ class ActivityLog(models.Model):
     def __str__(self):
         return f"{self.user.email} - {self.action_type}"
     
-    
 class EditRequest(models.Model):
     task = models.ForeignKey("Task", on_delete=models.CASCADE, related_name="edit_requests")
     requested_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
@@ -156,7 +151,7 @@ class ProjectChat(models.Model):
 #Notification model
 class Notification(models.Model):
     notif_id = models.AutoField(primary_key=True)
-    time_sent = models.DateTimeField(auto_now_add=True)
+    time_sent = models.DateTimeField()
     title = models.CharField(max_length=100)
     message = models.TextField()
 

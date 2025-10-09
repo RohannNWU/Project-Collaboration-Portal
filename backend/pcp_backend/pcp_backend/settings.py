@@ -69,7 +69,7 @@ DATABASES = {
         'ENGINE': 'django.db.backends.postgresql',
         'NAME': 'postgres',
         'USER': 'postgres',
-        'PASSWORD': '1234',  # Replace with your actual password
+        'PASSWORD': 'pcpadmin123',  # Replace with your actual password
         'HOST': '127.0.0.1',
         'PORT': '5432',
     }
@@ -160,3 +160,7 @@ FILE_UPLOAD_PERMISSIONS = 0o644
 
 # Security settings for file handling
 SECURE_CONTENT_TYPE_NOSNIFF = True
+
+
+TIME_ZONE = 'Africa/Johannesburg'
+USE_TZ = True
