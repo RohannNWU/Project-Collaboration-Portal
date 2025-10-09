@@ -777,6 +777,45 @@ const SupervisorDashboard = () => {
     }
   };
 
+  const handleDeleteLink = async (linkId, projectId) => {
+    if (!window.confirm('Are you sure you want to delete this link?')) {
+      return;
+    }
+
+    try {
+      const token = localStorage.getItem('access_token');
+      if (!token) {
+        navigate('/');
+        return;
+      }
+
+      const API_BASE_URL = window.location.hostname === 'localhost'
+        ? 'http://127.0.0.1:8000'
+        : 'https://pcp-backend-f4a2.onrender.com';
+
+      await axios.post(`${API_BASE_URL}/api/deleteprojectlink/`, { linkId, projectId }, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      fetchLinks(); // Refresh the links list
+      setError('Link deleted successfully.');
+      setTimeout(() => setError(''), 3000);
+    } catch (err) {
+      console.error(`Error deleting link ${linkId}:`, err);
+      if (err.response?.status === 401) {
+        localStorage.removeItem('access_token');
+        navigate('/');
+      } else if (err.response?.status === 404) {
+        setError('Link not found');
+      } else if (err.response?.status === 403) {
+        setError('Access denied to this link');
+      } else {
+        setError('Failed to delete link');
+      }
+      setTimeout(() => setError(''), 3000);
+    }
+  };
+
   // Handle document download
   const handleDownload = async (documentId, documentTitle) => {
     try {
@@ -1132,7 +1171,7 @@ const SupervisorDashboard = () => {
                         <li key={link.id} className={styles.linkItem}>
                           <a href={link.link_url} target="_blank" rel="noopener noreferrer">{link.link_name || link.link_url}</a>
                           <span
-                            onClick={() => ensureGroupLeader(() => handleDeleteLink(link.link_id, link.project_id))}
+                            onClick={() => ensureSupervisor(() => handleDeleteLink(link.link_id, link.project_id))}
                             className={styles.removeDocument}
                           >
                             (remove)
