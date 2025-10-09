@@ -22,6 +22,7 @@ const StudentDashboard = () => {
   const [loadingDocuments, setLoadingDocuments] = useState({});
   const [loadingChat] = useState(false);
   const [loadingMeetings, setLoadingMeetings] = useState(false);
+  const [taskMembers, setTaskMembers] = useState({});
   const [links, setProjectLinks] = useState([]);
   const [meetings, setMeetings] = useState([]);
   const [error, setError] = useState('');
@@ -297,6 +298,35 @@ const StudentDashboard = () => {
     }
   }, [navigate]);
 
+  const fetchTaskMembers = useCallback(async (taskId) => {
+    try {
+      const token = localStorage.getItem('access_token');
+      if (!token) {
+        navigate('/');
+        return;
+      }
+
+      const API_BASE_URL = window.location.hostname === 'localhost'
+        ? 'http://127.0.0.1:8000'
+        : 'https://pcp-backend-f4a2.onrender.com';
+
+      const response = await axios.get(`${API_BASE_URL}/api/gettaskmembers/?task_id=${taskId}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      setTaskMembers(prev => ({
+        ...prev,
+        [taskId]: response.data.task_members || [],  // Changed from 'members' to 'task_members'
+      }));
+    } catch (err) {
+      console.error(`Error fetching members for task ${taskId}:`, err);
+      setTaskMembers(prev => ({
+        ...prev,
+        [taskId]: [],
+      }));
+    }
+  }, [navigate]);
+
   const fetchTasks = useCallback(async () => {
     setLoadingTasks(true);
     setError('');
@@ -318,6 +348,8 @@ const StudentDashboard = () => {
       setTasks(response.data.tasks || []);
 
       await fetchUserTaskAssignments();
+      const taskIds = response.data.tasks.map(task => task.task_id);
+      await Promise.all(taskIds.map(taskId => fetchTaskMembers(taskId)));
     } catch (err) {
       console.error('Error fetching tasks:', err);
       if (err.response?.status === 400) {
@@ -886,11 +918,14 @@ const StudentDashboard = () => {
                             <p className={styles.taskMeta}>
                               <strong>Due:</strong> {task.task_due_date} | <strong>Status:</strong> {task.task_status} | <strong>Priority:</strong> {task.task_priority}
                             </p>
+                            {taskMembers[task.task_id] && taskMembers[task.task_id].length > 0 && (
+                              <p className={styles.taskMeta}><strong>Assigned Members:</strong> {taskMembers[task.task_id].map(member => `${member.first_name} ${member.last_name}`).join(', ')}</p>
+                            )}
                           </div>
                           <div className={styles.taskActions}>
                             {userTaskAssignments[task.task_id] && task.task_status !== 'Completed' && task.task_status !== 'Finalized' && (
                               <button
-                              className={styles.deleteButton}
+                                className={styles.deleteButton}
                                 onClick={(e) => {
                                   e.stopPropagation();
                                   ensureStudent(() => handleCompleteTask(task.task_id));
@@ -1015,6 +1050,9 @@ const StudentDashboard = () => {
                             <p className={styles.taskMeta}>
                               Due: {task.task_due_date} | Status: {task.task_status} | Priority: {task.task_priority}
                             </p>
+                            {taskMembers[task.task_id] && taskMembers[task.task_id].length > 0 && (
+                              <p className={styles.taskMeta}><strong>Assigned Members:</strong> {taskMembers[task.task_id].map(member => `${member.first_name} ${member.last_name}`).join(', ')}</p>
+                            )}
                           </div>
                           <div className={styles.taskActions}>
                             {userTaskAssignments[task.task_id] && task.task_status !== 'Completed' && task.task_status !== 'Finalized' && (
