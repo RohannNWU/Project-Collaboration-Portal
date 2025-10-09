@@ -44,6 +44,7 @@ const GroupLeaderDashboard = () => {
     const [showLinkModal, setShowLinkModal] = useState(false);
     const isTempId = (id) => typeof id === 'string' && id.startsWith('temp-');
     const [showCreateMeetingModal, setShowCreateMeetingModal] = useState(false);
+    const [isProjectGraded, setIsProjectGraded] = useState(false);
 
     if (projectId);
     // Helper function for CHAT
@@ -409,6 +410,7 @@ const GroupLeaderDashboard = () => {
             });
 
             setProjectData(response.data.project_data || {});
+            setIsProjectGraded(!!response.data.project_data?.grade && response.data.project_data?.grade !== '');
         } catch (err) {
             console.error('Error fetching project data:', err);
             if (err.response?.status === 400) {
@@ -496,8 +498,6 @@ const GroupLeaderDashboard = () => {
     }, [activeTab, projectId, navigate]);
 
     // Fetch documents for a specific task
-
-
     const handleCompleteTask = async (taskId, statusOfTask) => {
         try {
             const token = localStorage.getItem('access_token');
@@ -1317,12 +1317,14 @@ const GroupLeaderDashboard = () => {
                                 )}
                             </div>
                         )}
-                        <button className={styles.backButton} onClick={(e) => {
-                            e.stopPropagation();
-                            ensureGroupLeader(() => setShowCreateMeetingModal(true));
-                        }}>
-                            Create New Meeting
-                        </button>
+                        {!isProjectGraded && (
+                            <button className={styles.backButton} onClick={(e) => {
+                                e.stopPropagation();
+                                ensureGroupLeader(() => setShowCreateMeetingModal(true));
+                            }}>
+                                Create New Meeting
+                            </button>
+                        )}
                     </div>
                 </div>
             ),
@@ -1665,28 +1667,34 @@ const GroupLeaderDashboard = () => {
                                         {links.map((link) => (
                                             <li key={link.link_id} className={styles.linkItem}>
                                                 <a href={link.link_url} target="_blank" rel="noopener noreferrer">{link.link_name || link.link_url}</a>
+                                                {!isProjectGraded && (
                                                 <span
                                                     onClick={() => ensureGroupLeader(() => handleDeleteLink(link.link_id, link.project_id))}
                                                     className={styles.removeDocument}
                                                 >
                                                     (remove)
                                                 </span>
+                                                )}
                                             </li>
                                         ))}
                                     </ul>
                                 )}
-                                <button
-                                    className={styles.addTaskButton}
-                                    onClick={() => ensureGroupLeader(() => setShowLinkModal(true))}
-                                >
-                                    Add Link
-                                </button>
+                                {!isProjectGraded && (
+                                    <button
+                                        className={styles.addTaskButton}
+                                        onClick={() => ensureGroupLeader(() => setShowLinkModal(true))}
+                                    >
+                                        Add Link
+                                    </button>
+                                )}
                             </div>
                         )}
-                        <button
-                            className={styles.addTaskButton}
-                            onClick={() => ensureGroupLeader(() => handleAddNewTask())}
-                        >Add New Task</button>
+                        {!isProjectGraded && (
+                            <button
+                                className={styles.addTaskButton}
+                                onClick={() => ensureGroupLeader(() => handleAddNewTask())}
+                            >Add New Task</button>
+                        )}
                     </div>
                     {showLinkModal && (
                         <AddNewLinkModal
@@ -1921,23 +1929,25 @@ const GroupLeaderDashboard = () => {
                             })()}
                         </div>
                     )}
-                    <div className={styles.chatInputContainer}>
-                        <input
-                            type="text"
-                            placeholder="Type your message..."
-                            value={messageInput}
-                            onChange={(e) => setMessageInput(e.target.value)}
-                            onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
-                            className={styles.chatInput}
-                        />
-                        <button
-                            onClick={() => ensureGroupLeader(handleSendMessage)}
-                            disabled={!messageInput.trim()}
-                            className={`${styles.sendButton} ${!messageInput.trim() ? styles.sendButtonDisabled : ''}`}
-                        >
-                            Send
-                        </button>
-                    </div>
+                    {!isProjectGraded && (
+                        <div className={styles.chatInputContainer}>
+                            <input
+                                type="text"
+                                placeholder="Type your message..."
+                                value={messageInput}
+                                onChange={(e) => setMessageInput(e.target.value)}
+                                onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
+                                className={styles.chatInput}
+                            />
+                            <button
+                                onClick={() => ensureGroupLeader(handleSendMessage)}
+                                disabled={!messageInput.trim()}
+                                className={`${styles.sendButton} ${!messageInput.trim() ? styles.sendButtonDisabled : ''}`}
+                            >
+                                Send
+                            </button>
+                        </div>
+                    )}
                 </div>
             ),
         },
@@ -1982,6 +1992,18 @@ const GroupLeaderDashboard = () => {
                                                     onChange={handleFileSelectFinal}
                                                     disabled={uploading || finalTask.task_status === 'Finalized'}
                                                 />
+                                                {uploadFile && (
+                                                    <p className={styles.selectedFile}>
+                                                        Selected File: {uploadFile.name}&nbsp;&nbsp;&nbsp;&nbsp;
+                                                        <span
+                                                            onClick={() => setUploadFile(null)}
+                                                            className={styles.removeDocument}
+                                                            disabled={uploading || finalTask.task_status === 'Finalized'}
+                                                        >
+                                                            (remove)
+                                                        </span>
+                                                    </p>
+                                                )}
                                             </div>
                                             <button
                                                 onClick={() => ensureGroupLeader(() => handleUploadDocument(finalTask.task_id))}
@@ -2008,7 +2030,7 @@ const GroupLeaderDashboard = () => {
                                                         }}
                                                     >
                                                         <div className={styles.documentInfo}>
-                                                            <span>{doc.document_title || `Document ${index + 1}`}</span>
+                                                            <span>{doc.document_title || `Document ${index + 1}`}&nbsp;&nbsp;&nbsp;&nbsp;</span>
                                                             {finalTask.task_status !== 'Finalized' && (
                                                                 <span
                                                                     onClick={() => ensureGroupLeader(() => handleDeleteDocument(doc.document_id, finalTask.task_id))}
@@ -2034,15 +2056,17 @@ const GroupLeaderDashboard = () => {
 
                                     {finalTask.task_status === 'In Progress' && (
                                         <button
-                                            className={styles.uploadButton}
+                                            className={styles.submitProjectButton}
                                             onClick={() => ensureGroupLeader(() => handleCompleteTask(finalTask.task_id, 'Finalized'))}
-                                            disabled={!allOtherTasksFinalized || finalDocuments.length === 0}
+                                            disabled={!allOtherTasksFinalized || finalDocuments.length === 0 || isProjectGraded}
                                         >
                                             Submit Project
                                         </button>
                                     )}
                                     {finalTask.task_status === 'Finalized' && (
-                                        <p className={styles.successMessage}>Project submitted! Awaiting supervisor review.</p>
+                                        <p className={styles.successMessage}>
+                                            {isProjectGraded ? 'Project Graded' : 'Project submitted! Awaiting supervisor review.'}
+                                        </p>
                                     )}
                                 </div>
                             );

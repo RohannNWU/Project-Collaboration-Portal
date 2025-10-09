@@ -1185,12 +1185,14 @@ const SupervisorDashboard = () => {
                     </div>
                   )}
                 </div>
+                {!isProjectGraded && (
                 <button
                   className={styles.addTaskButton}
                   onClick={() => ensureSupervisor(() => setShowLinkModal(true))}
                 >
                   Add Link
                 </button>
+                )}
               </div>
             )}
           </div>
@@ -1394,7 +1396,7 @@ const SupervisorDashboard = () => {
                 )}
               </div>
               <button
-                className={styles.addTaskButton}
+                className={styles.submitProjectButton}
                 onClick={() => ensureSupervisor(() => setShowGradeModel(true))}
                 disabled={isProjectGraded}
               >

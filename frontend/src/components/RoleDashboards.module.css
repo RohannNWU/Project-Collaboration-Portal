@@ -118,7 +118,6 @@
   color: black;
 }
 
-
 .linksList {
 border-radius: 0.25rem;
 padding: 1rem;
@@ -138,6 +137,7 @@ margin-bottom: 0.75rem;
 padding: 0.5rem;
 border-radius: 0.25rem;
 transition: background-color 0.2s ease;
+text-decoration: underline;
 }
 .linkItem a {
 color: black;
@@ -396,13 +396,9 @@ color: #991b1b;
 
 .buttonContainer {
   display: flex;
-  /* Enables horizontal layout */
   flex-direction: row;
-  /* Explicitly horizontal (default for flex) */
   gap: 10px;
-  /* Space between buttons; adjust as needed */
   align-items: center;
-  /* Vertically centers them if heights differ */
 }
 
 .uploadButton {
@@ -432,6 +428,38 @@ color: #991b1b;
 
 .uploadButton:disabled {
   background-color: transparent;
+  cursor: not-allowed;
+}
+
+.submitProjectButton {
+  padding: 0.5rem 1rem;
+  background-color: #00f96c;
+  color: black;
+  border-radius: 0.25rem;
+  cursor: pointer;
+  font-size: 0.875rem;
+  display: inline-block;
+  transition: background-color 0.2s;
+  border: 2px solid black;
+}
+
+.disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.submitProjectButton:focus {
+  caret-color: transparent;
+}
+
+.submitProjectButton:hover {
+  background-color: #87f7b7;
+}
+
+.submitProjectButton:disabled {
+  background-color: transparent;
+  border-color: transparent;
+  color: transparent;
   cursor: not-allowed;
 }
 
