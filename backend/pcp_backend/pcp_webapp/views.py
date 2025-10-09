@@ -1602,6 +1602,36 @@ class GetTaskMembersView(APIView):
         task_members = User.objects.filter(email__in=email_list)
         task_members_list = [{'first_name': member.first_name, 'last_name': member.last_name, 'email': member.email} for member in task_members]
         return Response({'task_members': task_members_list}, status=status.HTTP_200_OK)
+    
+    def get(self, request):
+        user = get_user_from_token(request)
+        if not user:
+            logger.error("Authentication failed: No valid user token")
+            return Response({'error': 'Authentication required'}, status=status.HTTP_401_UNAUTHORIZED)
+
+        task_id = request.query_params.get('task_id')
+        if not task_id:
+            return Response({'error': 'task_id is required'}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            task = Task.objects.get(task_id=task_id)
+            
+            # Verify user has access to the project
+            if not UserProject.objects.filter(email=user, project_id=task.project_id).exists():
+                return Response({'error': 'Access denied to this project'}, status=status.HTTP_403_FORBIDDEN)
+            
+            task_members = User_Task.objects.filter(task_id=task).select_related('email')
+            email_list = [member.email.email for member in task_members]
+            task_members = User.objects.filter(email__in=email_list)
+            task_members_list = [{'first_name': member.first_name, 'last_name': member.last_name, 'email': member.email} for member in task_members]
+            
+            return Response({'task_members': task_members_list}, status=status.HTTP_200_OK)
+        
+        except Task.DoesNotExist:
+            return Response({'error': 'Task not found'}, status=status.HTTP_404_NOT_FOUND)
+        except Exception as e:
+            logger.error(f"Error fetching task members: {str(e)}")
+            return Response({'error': 'Failed to fetch task members'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 #View that gets task details
 class GetTaskDetailsView(APIView):
