@@ -29,6 +29,7 @@ const SupervisorDashboard = () => {
   const [showGradeModel, setShowGradeModel] = useState(false);
   const [links, setProjectLinks] = useState([]);
   const [loadingChat] = useState(false);
+  const [success, setSuccess] = useState('');
   const [error, setError] = useState('');
   const location = useLocation();
   const navigate = useNavigate();
@@ -342,8 +343,8 @@ const SupervisorDashboard = () => {
       //Refresh and show success ---
       await fetchProjectData();
       setActiveTab('review_project');
-      setError('Grade and feedback submitted successfully!');
-      setTimeout(() => setError(''), 3000);
+      setSuccess('Grade and feedback submitted successfully!');
+      setTimeout(() => setSuccess(''), 3000);
 
       //Fetch all members of the project
       let projectMembers = [];
@@ -519,8 +520,8 @@ const SupervisorDashboard = () => {
       // --- Step 2: Refresh UI ---
       await fetchProjectData();
       setActiveTab('project-description');
-      setError('Project details updated successfully!');
-      setTimeout(() => setError(''), 3000);
+      setSuccess('Project details updated successfully!');
+      setTimeout(() => setSuccess(''), 3000);
 
       // --- Step 3: Fetch all project members ---
       let projectMembers = [];
@@ -768,8 +769,8 @@ const SupervisorDashboard = () => {
 
       // Step 3: Update members state
       setMembers(prev => prev.filter(m => m.email !== email));
-      setError('Member removed successfully');
-      setTimeout(() => setError(''), 3000);
+      setSuccess('Member removed successfully');
+      setTimeout(() => setSuccess(''), 3000);
     } catch (err) {
       console.error('Error deleting member:', err);
       setError(err.response?.data?.error || 'Failed to remove member');
@@ -798,8 +799,8 @@ const SupervisorDashboard = () => {
       });
 
       fetchLinks(); // Refresh the links list
-      setError('Link deleted successfully.');
-      setTimeout(() => setError(''), 3000);
+      setSuccess('Link deleted successfully.');
+      setTimeout(() => setSuccess(''), 3000);
     } catch (err) {
       console.error(`Error deleting link ${linkId}:`, err);
       if (err.response?.status === 401) {
@@ -1106,6 +1107,11 @@ const SupervisorDashboard = () => {
               {error}
             </div>
           )}
+          {success && (
+            <div className={styles.successMessage}>
+              {success}
+            </div>
+          )}
           {loadingProject ? (
             <div className={styles.loadingMessage}>
               Loading project details...
@@ -1186,18 +1192,17 @@ const SupervisorDashboard = () => {
                   )}
                 </div>
                 {!isProjectGraded && (
-                <button
-                  className={styles.addTaskButton}
-                  onClick={() => ensureSupervisor(() => setShowLinkModal(true))}
-                >
-                  Add Link
-                </button>
+                  <button
+                    className={styles.addTaskButton}
+                    onClick={() => ensureSupervisor(() => setShowLinkModal(true))}
+                  >
+                    Add Link
+                  </button>
                 )}
               </div>
             )}
           </div>
           <div className={styles.section}>
-            <h2>Project Meetings</h2>
             <div
               className={`${styles.sectionHeader} ${expandedSections.meetings ? styles.sectionHeaderExpanded : ''}`}
               onClick={() => ensureSupervisor(() => {
@@ -1252,6 +1257,11 @@ const SupervisorDashboard = () => {
           {error && (
             <div className={styles.errorMessage}>
               {error}
+            </div>
+          )}
+          {success && (
+            <div className={styles.successMessage}>
+              {success}
             </div>
           )}
           <h2 className={styles.tabHeading}>Project Tasks</h2>
@@ -1343,6 +1353,11 @@ const SupervisorDashboard = () => {
       content: (
         <div className={styles.tabContent}>
           {error && <div className={styles.errorMessage}>{error}</div>}
+          {success && (
+            <div className={styles.successMessage}>
+              {success}
+            </div>
+          )}
           <h2 className={styles.tabHeading}>Finalized Project</h2>
           {loadingTasks ? (
             <div className={styles.loadingMessage}>Loading finalized project...</div>
@@ -1415,6 +1430,11 @@ const SupervisorDashboard = () => {
           {error && (
             <div className={styles.chatError}>
               {error}
+            </div>
+          )}
+          {success && (
+            <div className={styles.successMessage}>
+              {success}
             </div>
           )}
           <h2 className={styles.tabHeading}>Project Chat</h2>
@@ -1537,6 +1557,11 @@ const SupervisorDashboard = () => {
               {error}
             </div>
           )}
+          {success && (
+            <div className={styles.successMessage}>
+              {success}
+            </div>
+          )}
           {loadingMembers ? (
             <div className={styles.loadingMessage}>
               Loading members...
@@ -1649,7 +1674,7 @@ const SupervisorDashboard = () => {
       />
       <CreateMeetingModal
         isOpen={showCreateMeetingModal}
-        onClose={() => {setShowCreateMeetingModal(false); fetchMeetings();}}
+        onClose={() => { setShowCreateMeetingModal(false); fetchMeetings(); }}
         projectId={projectId}
         dueDate={projectData?.due_date}  // e.g., from fetched project data
       />
@@ -1668,12 +1693,12 @@ const SupervisorDashboard = () => {
       {showLinkModal && (
         <AddNewLinkModal
           isOpen={showLinkModal}
-          onClose={() => {setShowLinkModal(false); fetchLinks();}}
+          onClose={() => { setShowLinkModal(false); fetchLinks(); }}
           projectId={projectId}
           onSuccess={async () => {
             await fetchLinks();
-            setError('Link added successfully!');
-            setTimeout(() => setError(''), 3000);
+            setSuccess('Link added successfully!');
+            setTimeout(() => setSuccess(''), 3000);
           }}
         />
       )}

@@ -6,16 +6,17 @@ import { faExclamationTriangle } from '@fortawesome/free-solid-svg-icons';
 
 const DeleteProjectModal = ({ project, onClose, onSuccess }) => {
   const [loading, setLoading] = useState(false);
-  const [message, setMessage] = useState('');
+  const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
   const [inputValue, setInputValue] = useState('');
 
   const handleDelete = async () => {
     if (inputValue !== project.project_name) {
-      setMessage('Project name does not match. Please type the exact name.');
+      setError('Project name does not match. Please type the exact name.');
       return;
     }
     if (!project.project_id) {
-      setMessage('Project ID not found. Cannot delete.');
+      setError('Project ID not found. Cannot delete.');
       return;
     }
     setLoading(true);
@@ -24,14 +25,13 @@ const DeleteProjectModal = ({ project, onClose, onSuccess }) => {
       : 'https://pcp-backend-f4a2.onrender.com';
 
     try {
-      console.log("IDDDDD: " + project.project_id);
       await axios.delete(
         `${API_BASE_URL}/api/deleteproject/${project.project_id}/`,
         {
           headers: { Authorization: `Bearer ${localStorage.getItem('access_token')}` }
         }
       );
-      setMessage('Project deleted successfully');
+      setSuccess('Project deleted successfully');
       if (onSuccess) {
         onSuccess(); // Trigger dashboard refresh
       }
@@ -40,7 +40,7 @@ const DeleteProjectModal = ({ project, onClose, onSuccess }) => {
         onClose();
       }, 1500);
     } catch (error) {
-      setMessage(error.response?.data.error || 'Failed to delete project');
+      setError(error.response?.data.error || 'Failed to delete project');
     } finally {
       setLoading(false);
     }
@@ -50,11 +50,11 @@ const DeleteProjectModal = ({ project, onClose, onSuccess }) => {
     onClose();
   };
 
-  // Prevent copy event on the confirmation message
+  // Prevent copy event on the confirmation error
   const handleCopy = (e) => {
     e.preventDefault();
-    setMessage('Copying is not allowed.');
-    setTimeout(() => setMessage(''), 3000);
+    setError('Copying is not allowed.');
+    setTimeout(() => setError(''), 3000);
   };
 
   const isDeleteEnabled = inputValue === project.project_name;
@@ -91,8 +91,11 @@ const DeleteProjectModal = ({ project, onClose, onSuccess }) => {
               disabled={loading}
             />
           </div>
-          {message && (
-            <p className={styles.TaskUpdateModel__errorMessage}>{message}</p>
+          {error && (
+            <p className={styles.TaskUpdateModel__errorMessage}>{error}</p>
+          )}
+          {success && (
+            <p className={styles.TaskUpdateModel__successMessage}>{success}</p>
           )}
         </div>
         <div className={styles.modelFooter}>

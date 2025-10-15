@@ -113,12 +113,21 @@
   color: #297b85;
   cursor: pointer;
 }
-.toast {
+.errortoast {
   position: fixed;
   bottom: 20px;
   right: 20px;
   background: #e53e3e;
   color: white;
+  padding: 10px;
+  border-radius: 4px;
+}
+.successtoast {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  background-color: #d1fae5;
+  color: #047857;
   padding: 10px;
   border-radius: 4px;
 }

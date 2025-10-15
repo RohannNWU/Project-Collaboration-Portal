@@ -26,6 +26,7 @@ const GroupLeaderDashboard = () => {
     const [loadingChat] = useState(false);
     const [loadingLinks, setLoadingLinks] = useState(false);
     const [loadingMeetings, setLoadingMeetings] = useState(false);
+    const [success, setSuccess] = useState('');
     const [error, setError] = useState('');
     const [myTasks, setMyTasks] = useState([]);
     const [projectTasks, setProjectTasks] = useState([]);
@@ -261,8 +262,8 @@ const GroupLeaderDashboard = () => {
             setUploadFile(null);
             const updatedDocs = await fetchDocuments(taskId); // Refresh documents
             setFinalDocuments(updatedDocs);
-            setError('Document uploaded successfully!');
-            setTimeout(() => setError(''), 3000);
+            setSuccess('Document uploaded successfully!');
+            setTimeout(() => setSuccess(''), 3000);
             fetchFinalSubmission();
         } catch (err) {
             console.error('Error uploading document:', err);
@@ -439,8 +440,8 @@ const GroupLeaderDashboard = () => {
 
     const handleTaskUpdate = async ({ taskId, taskName, taskDescription, dueDate }) => {
         try {
-            setError('Task updated successfully!');
-            setTimeout(() => setError(''), 3000);
+            setSuccess('Task updated successfully!');
+            setTimeout(() => setSuccess(''), 3000);
             await fetchTasks(); // Refresh tasks list
             setActiveTab('tasks'); // Stay on tasks tab
         } catch (err) {
@@ -518,7 +519,8 @@ const GroupLeaderDashboard = () => {
             fetchTasks();
             fetchFinalSubmission();
             await fetchUserTaskAssignments();
-            setTimeout(() => setError(''), 3000);
+            setSuccess('Task marked as complete.');
+            setTimeout(() => setSuccess(''), 3000);
             fetchTasks();
         } catch (err) {
             console.error(`Error marking task ${taskId} as complete:`, err);
@@ -576,8 +578,8 @@ const GroupLeaderDashboard = () => {
             if (taskId === finalTask?.task_id) {
                 setFinalDocuments(updatedDocs);
             }
-            setError('Document deleted successfully.');
-            setTimeout(() => setError(''), 3000);
+            setSuccess('Document deleted successfully.');
+            setTimeout(() => setSuccess(''), 3000);
         } catch (err) {
             console.error(`Error deleting document ${documentId}:`, err);
             if (err.response?.status === 401) {
@@ -622,8 +624,8 @@ const GroupLeaderDashboard = () => {
             });
 
             console.log('File uploaded successfully:', response.data);
-            setError('File uploaded successfully!');
-            setTimeout(() => setError(''), 3000);
+            setSuccess('File uploaded successfully!');
+            setTimeout(() => setSuccess(''), 3000);
             fetchDocuments(taskId);
         } catch (err) {
             console.error('Error uploading file:', err);
@@ -791,9 +793,8 @@ const GroupLeaderDashboard = () => {
             });
 
             setTasks((prev) => prev.filter((task) => task.task_id !== taskId));
-            setError('Task deleted successfully.');
-            setTimeout(() => setError(''), 3000);
-
+            setSuccess('Task deleted successfully.');
+            setTimeout(() => setSuccess(''), 3000);
 
             if (assignedMembers.length > 0) {
                 try {
@@ -843,8 +844,8 @@ const GroupLeaderDashboard = () => {
 
             // Step 2: Remove task locally
             setTasks((prev) => prev.filter((task) => task.task_id !== taskId));
-            setError('Task Rejected');
-            setTimeout(() => setError(''), 3000);
+            setSuccess('Task Rejected');
+            setTimeout(() => setSuccess(''), 3000);
 
             // Step 3: Fetch assigned members for notification
             let assignedMembers = [];
@@ -909,11 +910,9 @@ const GroupLeaderDashboard = () => {
                 headers: { Authorization: `Bearer ${token}` }
             });
 
-
             setTasks((prev) => prev.filter((task) => task.task_id !== taskId));
-            setError('Task approved.');
-            setTimeout(() => setError(''), 3000);
-
+            setSuccess('Task approved.');
+            setTimeout(() => setSuccess(''), 3000);
 
             let assignedMembers = [];
             try {
@@ -977,8 +976,8 @@ const GroupLeaderDashboard = () => {
             });
 
             fetchLinks(); // Refresh the links list
-            setError('Link deleted successfully.');
-            setTimeout(() => setError(''), 3000);
+            setSuccess('Link deleted successfully.');
+            setTimeout(() => setSuccess(''), 3000);
         } catch (err) {
             console.error(`Error deleting link ${linkId}:`, err);
             if (err.response?.status === 401) {
@@ -1273,6 +1272,11 @@ const GroupLeaderDashboard = () => {
                             {error}
                         </div>
                     )}
+                    {success && (
+                        <div className={styles.successMessage}>
+                            {success}
+                        </div>
+                    )}
                     {loadingProject ? (
                         <div className={styles.loadingMessage}>
                             Loading project details...
@@ -1312,7 +1316,6 @@ const GroupLeaderDashboard = () => {
                         </div>
                     )}
                     <div className={styles.section}>
-                        <h2>Project Meetings</h2>
                         <div
                             className={`${styles.sectionHeader} ${expandedSections.meetings ? styles.sectionHeaderExpanded : ''}`}
                             onClick={() => ensureGroupLeader(() => {
@@ -1369,6 +1372,11 @@ const GroupLeaderDashboard = () => {
                     {error && (
                         <div className={styles.errorMessage}>
                             {error}
+                        </div>
+                    )}
+                    {success && (
+                        <div className={styles.successMessage}>
+                            {success}
                         </div>
                     )}
                     {/* My Tasks Section */}
@@ -1741,8 +1749,8 @@ const GroupLeaderDashboard = () => {
                             projectId={projectId}
                             onSuccess={async () => {
                                 await fetchLinks();
-                                setError('Link added successfully!');
-                                setTimeout(() => setError(''), 3000);
+                                setSuccess('Link added successfully!');
+                                setTimeout(() => setSuccess(''), 3000);
                             }}
                         />
                     )}
@@ -1754,8 +1762,8 @@ const GroupLeaderDashboard = () => {
                             projectName={projectData?.project_name}
                             onSuccess={async () => {
                                 await fetchTasks();
-                                setError('Task added successfully!');
-                                setTimeout(() => setError(''), 3000);
+                                setSuccess('Task added successfully!');
+                                setTimeout(() => setSuccess(''), 3000);
                             }}
                         />
                     )}
@@ -1767,6 +1775,16 @@ const GroupLeaderDashboard = () => {
             label: 'Review Tasks',
             content: (
                 <div className={styles.tabContent}>
+                    {error && (
+                        <div className={styles.errorMessage}>
+                            {error}
+                        </div>
+                    )}
+                    {success && (
+                        <div className={styles.successMessage}>
+                            {success}
+                        </div>
+                    )}
                     <h2 className={styles.tabHeading}>Review Submitted Tasks</h2>
                     {loadingTasks ? (
                         <div className={styles.loadingMessage}>
@@ -1872,6 +1890,11 @@ const GroupLeaderDashboard = () => {
                     {error && (
                         <div className={styles.chatError}>
                             {error}
+                        </div>
+                    )}
+                    {success && (
+                        <div className={styles.successMessage}>
+                            {success}
                         </div>
                     )}
                     {loadingChat ? (
@@ -1996,6 +2019,11 @@ const GroupLeaderDashboard = () => {
                 <div className={styles.tabContent}>
                     <h2 className={styles.tabHeading}>Final Submission</h2>
                     {error && <div className={styles.errorMessage}>{error}</div>}
+                    {success && (
+                        <div className={styles.successMessage}>
+                            {success}
+                        </div>
+                    )}
                     {loadingTasks ? (
                         <div className={styles.loadingMessage}>Loading final submission...</div>
                     ) : !finalTask ? (
@@ -2122,6 +2150,11 @@ const GroupLeaderDashboard = () => {
                     {error && (
                         <div className={styles.errorMessage}>
                             {error}
+                        </div>
+                    )}
+                    {success && (
+                        <div className={styles.successMessage}>
+                            {success}
                         </div>
                     )}
                     {loadingMembers ? (

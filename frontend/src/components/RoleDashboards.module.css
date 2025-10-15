@@ -52,7 +52,7 @@
   background-color: #83C8D1;
   min-height: 600px;
   border-top: 2px solid black;
-  color: #228693;
+  color: black;
 }
 
 .tabContent {
@@ -77,6 +77,16 @@
   border-radius: 0.25rem;
   margin-bottom: 1rem;
   border: 1px solid #f5c6cb;
+  text-align: center;
+}
+
+.successMessage {
+  background-color: #d1fae5;
+  color: #047857;
+  padding: 0.75rem;
+  border-radius: 0.25rem;
+  margin-bottom: 1rem;
+  border: 1px solid #a7f3d0;
   text-align: center;
 }
 
@@ -114,54 +124,62 @@
   margin-bottom: 1rem;
 }
 
-.meetingsList{
+.meetingsList {
   color: black;
 }
 
 .linksList {
-border-radius: 0.25rem;
-padding: 1rem;
-margin-top: 1rem;
+  border-radius: 0.25rem;
+  padding: 1rem;
+  margin-top: 1rem;
 }
+
 .linksList ul {
-list-style-type: none;
-padding: 0;
-margin: 0;
+  list-style-type: none;
+  padding: 0;
+  margin: 0;
 }
+
 .linkItem {
-width: 30%;
-display: flex;
-align-items: center;
-justify-content: space-between;
-margin-bottom: 0.75rem;
-padding: 0.5rem;
-border-radius: 0.25rem;
-transition: background-color 0.2s ease;
-text-decoration: underline;
+  width: 30%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 0.75rem;
+  padding: 0.5rem;
+  border-radius: 0.25rem;
+  transition: background-color 0.2s ease;
+  text-decoration: underline;
 }
+
 .linkItem a {
-color: black;
-text-decoration: none;
-font-size: 0.9rem;
-font-weight: 500;
-transition: color 0.2s ease;
-flex: 1;
+  color: black;
+  text-decoration: none;
+  font-size: 0.9rem;
+  font-weight: 500;
+  transition: color 0.2s ease;
+  flex: 1;
 }
+
 .linkItem a:hover {
-color: #228693;
-text-decoration: underline;
+  color: #228693;
+  text-decoration: underline;
 }
+
 .removeDocument {
-font-size: 0.75rem;
-color: #dc2626;
-cursor: pointer;
-text-decoration: underline;
-transition: color 0.2s;
-white-space: nowrap; /* Prevents wrapping */
+  font-size: 0.75rem;
+  color: #dc2626;
+  cursor: pointer;
+  text-decoration: underline;
+  transition: color 0.2s;
+  white-space: nowrap;
+  /* Prevents wrapping */
 }
+
 .removeDocument:hover {
-color: #991b1b;
+  color: #991b1b;
 }
+
 .detailRow {
   display: flex;
   gap: 2rem;

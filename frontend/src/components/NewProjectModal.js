@@ -11,6 +11,7 @@ const NewProjectModal = ({ onClose, onSuccess }) => {
     const [memberName, setMemberName] = useState('');
     const [project_members, setProjectMembers] = useState([]);
     const [message, setMessage] = useState('');
+    const [error, setError] = useState('');
     const [loading, setLoading] = useState(false);
     const navigate = useNavigate();
 
@@ -40,7 +41,7 @@ const NewProjectModal = ({ onClose, onSuccess }) => {
             })
             .catch((err) => {
                 if (err.response && err.response.status === 401) {
-                    setMessage('Invalid credentials');
+                    setError('Invalid credentials');
                     navigate('/');
                 }
             });
@@ -53,22 +54,22 @@ const NewProjectModal = ({ onClose, onSuccess }) => {
 
     const handleInputChange = (event) => {
         setMemberName(event.target.value);
-        setMessage('');
+        setError('');
     };
 
     const handleAddMember = async (e) => {
         e.preventDefault();
         const trimmedMemberName = memberName.trim();
         if (!trimmedMemberName) {
-            setMessage('Please enter an email address');
+            setError('Please enter an email address');
             return;
         }
         if (!isValidEmail(trimmedMemberName)) {
-            setMessage('Please enter a valid email address');
+            setError('Please enter a valid email address');
             return;
         }
         if (project_members.includes(trimmedMemberName)) {
-            setMessage('This email is already added');
+            setError('This email is already added');
             return;
         }
 
@@ -97,8 +98,8 @@ const NewProjectModal = ({ onClose, onSuccess }) => {
     const handleRemoveMember = (index) => {
         const memberToRemove = project_members[index];
         if (memberToRemove === email) {
-            setMessage('Cannot remove the project owner');
-            setTimeout(() => setMessage(''), 3000);
+            setError('Cannot remove the project owner');
+            setTimeout(() => setError(''), 3000);
             return;
         }
         setProjectMembers(project_members.filter((_, i) => i !== index));
@@ -111,7 +112,7 @@ const NewProjectModal = ({ onClose, onSuccess }) => {
         setLoading(true);
 
         if (project_members.length < 2) {
-            setMessage('At least 2 project members are required');
+            setError('At least 2 project members are required');
             setLoading(false);
             return;
         }
@@ -158,7 +159,7 @@ const NewProjectModal = ({ onClose, onSuccess }) => {
                 onClose();
             }, 1500);
         } catch (error) {
-            setMessage(error.response?.data.error || 'Failed to create project');
+            setError(error.response?.data.error || 'Failed to create project');
         } finally {
             setLoading(false);
         }
@@ -304,9 +305,19 @@ const NewProjectModal = ({ onClose, onSuccess }) => {
                             </div>
                         </div>
 
-                        {message && (
+                        {error && (
                             <p
                                 className={styles.TaskUpdateModel__errorMessage}
+                                style={{
+                                    color: message.includes('successfully') ? 'green' : 'red',
+                                }}
+                            >
+                                {error}
+                            </p>
+                        )}
+                        {message && (
+                            <p
+                                className={styles.TaskUpdateModel__successMessage}
                                 style={{
                                     color: message.includes('successfully') ? 'green' : 'red',
                                 }}

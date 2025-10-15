@@ -7,6 +7,7 @@ const AddMembermodal = ({ isOpen, onClose, projectId, projectName }) => {
     const [email, setEmail] = useState('');
     const [role, setRole] = useState('role');
     const [message, setMessage] = useState('');
+    const [error, setError] = useState('');
     const [loading, setLoading] = useState(false);
     const [loggedInEmail, setLoggedInEmail] = useState('');
     const navigate = useNavigate();
@@ -44,7 +45,7 @@ const AddMembermodal = ({ isOpen, onClose, projectId, projectName }) => {
 
     const handleAddMember = async () => {
         if (!email || role === 'role') {
-            setMessage('Please enter a valid email and select a role.');
+            setError('Please enter a valid email and select a role.');
             return;
         }
 
@@ -91,7 +92,7 @@ const AddMembermodal = ({ isOpen, onClose, projectId, projectName }) => {
             }, 2000);
         } catch (error) {
             console.error('Error adding member:', error);
-            setMessage(error.response?.data?.error || 'Failed to add member.');
+            setError(error.response?.data?.error || 'Failed to add member.');
         } finally {
             setLoading(false);
         }
@@ -138,6 +139,7 @@ const AddMembermodal = ({ isOpen, onClose, projectId, projectName }) => {
                     </div>
 
                     {message && <p className={styles.message}>{message}</p>}
+                    {error && <p className={styles.errorMessage}>{error}</p>}
                 </div>
 
                 <div className={styles.modelFooter}>

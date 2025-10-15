@@ -27,6 +27,7 @@ const Dashboard = () => {
   const [calendarEvents, setCalendarEvents] = useState([]);
   const [currentDate, setCurrentDate] = useState(new Date());
   const [selectedDate, setSelectedDate] = useState(null);
+  const [success, setSuccess] = useState('');
   const [error, setError] = useState('');
   const [calendarKey, setCalendarKey] = useState(0);
   const [showNewProjectModal, setShowNewProjectModal] = useState(false);
@@ -317,7 +318,6 @@ const Dashboard = () => {
       {/* Main Content */}
       <main className={styles.main}>
         {error && <div className={styles.errorMessage}>{error}</div>}
-
         {/* Projects Table */}
         <section className={styles.panel}>
           <div className={styles.panelHead} style={{ justifyContent: 'center' }}>

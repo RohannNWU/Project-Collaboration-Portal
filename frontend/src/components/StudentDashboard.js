@@ -25,6 +25,7 @@ const StudentDashboard = () => {
   const [taskMembers, setTaskMembers] = useState({});
   const [links, setProjectLinks] = useState([]);
   const [meetings, setMeetings] = useState([]);
+  const [success, setSuccess] = useState('');
   const [error, setError] = useState('');
   const isProjectGraded = projectData?.grade && projectData?.feedback;
   const location = useLocation();
@@ -428,8 +429,8 @@ const StudentDashboard = () => {
 
       fetchTasks();
       await fetchUserTaskAssignments(); // Refresh the user task assignments
-      setError('Task marked as complete.');
-      setTimeout(() => setError(''), 3000);
+      setSuccess('Task marked as complete.');
+      setTimeout(() => setSuccess(''), 3000);
     } catch (err) {
       console.error(`Error marking task ${taskId} as complete:`, err);
       if (err.response?.status === 401) {
@@ -517,8 +518,8 @@ const StudentDashboard = () => {
       });
 
       console.log('File uploaded successfully:', response.data);
-      setError('File uploaded successfully!');
-      setTimeout(() => setError(''), 3000);
+      setSuccess('File uploaded successfully!');
+      setTimeout(() => setSuccess(''), 3000);
       fetchDocuments(taskId);
     } catch (err) {
       console.error('Error uploading file:', err);
@@ -561,8 +562,8 @@ const StudentDashboard = () => {
       });
 
       fetchDocuments(taskId);
-      setError('Document deleted successfully.');
-      setTimeout(() => setError(''), 3000);
+      setSuccess('Document deleted successfully.');
+      setTimeout(() => setSuccess(''), 3000);
       fetchTasks();
     } catch (err) {
       console.error(`Error deleting document ${documentId}:`, err);
@@ -794,6 +795,11 @@ const StudentDashboard = () => {
               {error}
             </div>
           )}
+          {success && (
+            <div className={styles.successMessage}>
+              {success}
+            </div>
+          )}
           {loadingProject ? (
             <div className={styles.loadingMessage}>
               Loading project data...
@@ -823,7 +829,6 @@ const StudentDashboard = () => {
             </div>
           )}
           <div className={styles.section}>
-            <h2>Project Meetings</h2>
             <div
               className={`${styles.sectionHeader} ${expandedSections.meetings ? styles.sectionHeaderExpanded : ''}`}
               onClick={() => ensureStudent(() => {
@@ -872,6 +877,11 @@ const StudentDashboard = () => {
           {error && (
             <div className={styles.errorMessage}>
               {error}
+            </div>
+          )}
+          {success && (
+            <div className={styles.successMessage}>
+              {success}
             </div>
           )}
           {/* My Tasks Section */}
@@ -1183,6 +1193,11 @@ const StudentDashboard = () => {
               {error}
             </div>
           )}
+          {success && (
+            <div className={styles.successMessage}>
+              {success}
+            </div>
+          )}
           {loadingChat ? (
             <div className={styles.chatLoading}>
               <div className={styles.spinner}></div>
@@ -1322,6 +1337,11 @@ const StudentDashboard = () => {
           {error && (
             <div className={styles.errorMessage}>
               {error}
+            </div>
+          )}
+          {success && (
+            <div className={styles.successMessage}>
+              {success}
             </div>
           )}
           {loadingMembers ? (

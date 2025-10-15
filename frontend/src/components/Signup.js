@@ -15,6 +15,7 @@ const AddUser = () => {
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [message, setMessage] = useState('');
+  const [error, setError] = useState('');
   const navigate = useNavigate();
 
   const handleSubmit = async (e) => {
@@ -37,7 +38,7 @@ const AddUser = () => {
       setMessage(response.data.message);
       setTimeout(() => navigate('/'), 3000);
     } catch (error) {
-      setMessage(error.response?.data.error || 'Failed to add user');
+      setError(error.response?.data.error || 'Failed to add user');
     }
   };
 
@@ -168,7 +169,8 @@ const AddUser = () => {
         </div>
       </div>
 
-      {message && <div id="toast" className={styles.toast}>{message}</div>}
+      {message && <div id="toast" className={styles.successtoast}>{message}</div>}
+      {error && <div id="toast" className={styles.errortoast}>{error}</div>}
     </div>
   );
 };
