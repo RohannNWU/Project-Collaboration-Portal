@@ -736,7 +736,7 @@ const GroupLeaderDashboard = () => {
         } finally {
             setLoadingTasks(false);
         }
-    }, [projectId, navigate, fetchUserTaskAssignments]);
+    }, [projectId, navigate, fetchUserTaskAssignments, fetchTaskMembers]);
 
     useEffect(() => {
         if (activeTab === 'tasks' && projectId) {

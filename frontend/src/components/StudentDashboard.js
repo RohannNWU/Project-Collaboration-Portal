@@ -366,7 +366,7 @@ const StudentDashboard = () => {
     } finally {
       setLoadingTasks(false);
     }
-  }, [projectId, navigate, fetchUserTaskAssignments]);
+  }, [projectId, navigate, fetchUserTaskAssignments, fetchTaskMembers]);
 
   // Fetch members when Members tab is clicked
   useEffect(() => {
