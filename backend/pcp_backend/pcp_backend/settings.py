@@ -63,6 +63,7 @@ TEMPLATES = [
 WSGI_APPLICATION = 'pcp_backend.wsgi.application'
 
 # Database settings for development
+'''
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql',
@@ -86,7 +87,6 @@ DATABASES = {
         'PORT': '5432',
     }
 }
-'''
 
 # Password validation
 AUTH_PASSWORD_VALIDATORS = [
