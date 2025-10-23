@@ -61,9 +61,9 @@ TEMPLATES = [
 ]
 
 WSGI_APPLICATION = 'pcp_backend.wsgi.application'
+'''
 
 # Database settings for development
-'''
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql',
@@ -80,10 +80,10 @@ DATABASES = {
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql',
-        'NAME': 'pcpdb_8lsj',
+        'NAME': 'pcpdb_30rn',
         'USER': 'pcpdbadmin',
-        'PASSWORD': 'KHv9rQ4pjZ0YxsNLTRPYCnJqpxXBBMEg',  # Replace with your actual password
-        'HOST': 'dpg-d3ghnvvfte5s73c5kllg-a.frankfurt-postgres.render.com',
+        'PASSWORD': 'IgZmXDtRKbZZqeMBnNiQ8M822EYod7AT',  # Replace with your actual password
+        'HOST': 'dpg-d3t98deuk2gs73d3hdlg-a.frankfurt-postgres.render.com',
         'PORT': '5432',
     }
 }
